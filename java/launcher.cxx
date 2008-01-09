@@ -1,9 +1,38 @@
-#include <dlfcn.h>
-#include <jni.h>
+#include "jni.h"
 #include <iostream>
 
-static const char *relative_java_home = "linux/jdk1.6.0/jre";
-static const char *library_path = "lib/i386/client/libjvm.so";
+static const char *relative_java_home = JAVA_HOME;
+static const char *library_path = JAVA_LIB_PATH;
+
+#ifdef MINGW32
+#include <windows.h>
+#define RTLD_LAZY 0
+static void *dlopen(const char *name, int flags)
+{
+	return (void *)LoadLibrary(name);
+}
+
+static char *dlerror_value;
+
+static char *dlerror(void)
+{
+	return dlerror_value;
+}
+
+static void *dlsym(void *handle, const char *name)
+{
+	void *result = (void *)GetProcAddress((HMODULE)handle, name);
+	dlerror_value = result ? NULL : (char *)"function not found";
+	return result;
+}
+
+static void sleep(int seconds)
+{
+	Sleep(seconds * 1000);
+}
+#else
+#include <dlfcn.h>
+#endif
 
 static int create_java_vm(const char *argv0,
 		JavaVM **vm, void **env, JavaVMInitArgs *args)
@@ -15,13 +44,13 @@ static int create_java_vm(const char *argv0,
 	static jint (*JNI_CreateJavaVM)(JavaVM **pvm, void **penv, void *args);
 
 	if (slash)
-		snprintf(java_home, sizeof(java_home), "%.*s%s",
+		snprintf(java_home, sizeof(java_home), "JAVA_HOME=%.*s%s",
 			slash - argv0 + 1, argv0, relative_java_home);
 	else
-		snprintf(java_home, sizeof(java_home), "./%s",
+		snprintf(java_home, sizeof(java_home), "JAVA_HOME=./%s",
 			relative_java_home);
-	setenv("JAVA_HOME", java_home, 1);
-	snprintf(buffer, sizeof(buffer), "%s/%s", java_home, library_path);
+	putenv(java_home);
+	snprintf(buffer, sizeof(buffer), "%s/%s", java_home + 10, library_path);
 
 	handle = dlopen(buffer, RTLD_LAZY);
 	if (!handle) {
