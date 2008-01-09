@@ -2,23 +2,26 @@
 #include <jni.h>
 #include <iostream>
 
-static const char *relative_library_path =
-	"linux/jdk1.6.0/jre/lib/i386/client/libjvm.so";
+static const char *relative_java_home = "linux/jdk1.6.0/jre";
+static const char *library_path = "lib/i386/client/libjvm.so";
 
 static int create_java_vm(const char *argv0,
 		JavaVM **vm, void **env, JavaVMInitArgs *args)
 {
 	const char *slash = strrchr(argv0, '/');
-	char buffer[PATH_MAX];
+	char java_home[PATH_MAX], buffer[PATH_MAX];
 	void *handle;
 	char *err;
 	static jint (*JNI_CreateJavaVM)(JavaVM **pvm, void **penv, void *args);
 
 	if (slash)
-		snprintf(buffer, sizeof(buffer), "%.*s%s",
-			slash - argv0 + 1, argv0, relative_library_path);
+		snprintf(java_home, sizeof(java_home), "%.*s%s",
+			slash - argv0 + 1, argv0, relative_java_home);
 	else
-		snprintf(buffer, sizeof(buffer), "%s", relative_library_path);
+		snprintf(java_home, sizeof(java_home), "./%s",
+			relative_java_home);
+	setenv("JAVA_HOME", java_home, 1);
+	snprintf(buffer, sizeof(buffer), "%s/%s", java_home, library_path);
 
 	handle = dlopen(buffer, RTLD_LAZY);
 	if (!handle) {
