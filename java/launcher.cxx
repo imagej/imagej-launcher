@@ -34,6 +34,10 @@ static void sleep(int seconds)
 #include <dlfcn.h>
 #endif
 
+#ifndef JNI_CREATEVM
+#define JNI_CREATEVM "JNI_CreateJavaVM"
+#endif
+
 static int create_java_vm(const char *argv0,
 		JavaVM **vm, void **env, JavaVMInitArgs *args)
 {
@@ -60,7 +64,7 @@ static int create_java_vm(const char *argv0,
 	dlerror(); /* Clear any existing error */
 
 	JNI_CreateJavaVM = (typeof(JNI_CreateJavaVM))dlsym(handle,
-			"JNI_CreateJavaVM");
+			JNI_CREATEVM);
 	err = dlerror();
 	if (err) {
 		std::cerr << "Error loading libjvm: " << err << std::endl;
@@ -105,6 +109,9 @@ int main(int argc, char **argv, char **e)
 		if (!(args = env->NewObjectArray(1, env->FindClass("java/lang/String"), jstr)))
 			return 2;
 		env->CallStaticVoidMethodA(instance, method, (jvalue *)&args);
+		if (vm->DetachCurrentThread())
+			std::cerr << "Could not detach current thread"
+				<< std::endl;
 		sleep(9999);
 		std::cerr << "Alright" << std::endl;
 		return 0;
