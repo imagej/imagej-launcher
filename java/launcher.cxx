@@ -1,5 +1,9 @@
 #include "jni.h"
 #include <iostream>
+#ifdef MACOSX
+#include <pthread.h>
+#include <CoreFoundation/CoreFoundation.h>
+#endif
 
 static const char *relative_java_home = JAVA_HOME;
 static const char *library_path = JAVA_LIB_PATH;
@@ -74,7 +78,13 @@ static int create_java_vm(const char *argv0,
 	return JNI_CreateJavaVM(vm, env, args);
 }
 
-int main(int argc, char **argv, char **e)
+const char *argv0;
+
+/*
+ * The signature of start_ij() is funny because on MacOSX, it has to be called
+ * via pthread_create().
+ */
+static void *start_ij(void *dummy)
 {
 	JavaVM *vm;
 	JavaVMOption options[2];
@@ -93,7 +103,7 @@ int main(int argc, char **argv, char **e)
 	args.nOptions = sizeof(options) / sizeof(options[0]) - 1;
 	args.ignoreUnrecognized = JNI_TRUE;
 
-	if (create_java_vm(argv[0], &vm, (void **)&env, &args))
+	if (create_java_vm(argv0, &vm, (void **)&env, &args))
 		std::cerr << "Could not create JavaVM" << std::endl;
 	else if (!(instance = env->FindClass("ij/ImageJ")))
 		std::cerr << "Could not find ij.ImageJ" << std::endl;
@@ -105,17 +115,58 @@ int main(int argc, char **argv, char **e)
 		jobjectArray args;
 
 		if (!(jstr = env->NewStringUTF("linux/jdk1.6.0/jre/lib/deploy/splash.jpg")))
-			return 1;
+			goto fail;
 		if (!(args = env->NewObjectArray(1, env->FindClass("java/lang/String"), jstr)))
-			return 2;
+			goto fail;
 		env->CallStaticVoidMethodA(instance, method, (jvalue *)&args);
 		if (vm->DetachCurrentThread())
 			std::cerr << "Could not detach current thread"
 				<< std::endl;
-		sleep(9999);
-		std::cerr << "Alright" << std::endl;
-		return 0;
+		return NULL;
 	}
 
-	return 1;
+fail:
+	std::cerr << "Failed to start Java" << std::endl;
+	exit(1);
 }
+
+#ifdef MACOSX
+/* MacOSX needs to run Java in a new thread, AppKit in the main thread. */
+
+static void dummy_call_back(void *info) {}
+
+static void start_ij_macosx(void *dummy)
+{
+	/* set the Application's name */
+	char name[32];
+	sprintf(name, "APP_NAME_%ld", (long)getpid());
+	setenv(name, "ImageJ", 1);
+
+	pthread_t thread;
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
+	/* Start the thread that we will start the JVM on. */
+	pthread_create(&thread, &attr, start_ij, NULL);
+	pthread_attr_destroy(&attr);
+
+	CFRunLoopSourceContext context;
+	memset(&context, 0, sizeof(context));
+	context.perform = &dummy_call_back;
+
+	CFRunLoopSourceRef ref = CFRunLoopSourceCreate(NULL, 0, &context);
+	CFRunLoopAddSource (CFRunLoopGetCurrent(), ref, kCFRunLoopCommonModes); 
+	CFRunLoopRun();
+}
+#define start_ij start_ij_macosx
+#endif
+
+int main(int argc, char **argv, char **e)
+{
+	argv0 = argv[0];
+	start_ij(NULL);
+	sleep((unsigned long)-1l);
+}
+
