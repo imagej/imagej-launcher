@@ -42,21 +42,30 @@ static void sleep(int seconds)
 #define JNI_CREATEVM "JNI_CreateJavaVM"
 #endif
 
-static int create_java_vm(const char *argv0,
-		JavaVM **vm, void **env, JavaVMInitArgs *args)
+const char *fiji_dir;
+
+static char *get_fiji_dir(const char *argv0)
 {
 	const char *slash = strrchr(argv0, '/');
+	static char buffer[PATH_MAX];
+
+	if (slash)
+		snprintf(buffer, slash - argv0 + 1, argv0);
+	else
+		sprintf(buffer, "./");
+
+	return buffer;
+}
+
+static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
+{
 	char java_home[PATH_MAX], buffer[PATH_MAX];
 	void *handle;
 	char *err;
 	static jint (*JNI_CreateJavaVM)(JavaVM **pvm, void **penv, void *args);
 
-	if (slash)
-		snprintf(java_home, sizeof(java_home), "JAVA_HOME=%.*s%s",
-			slash - argv0 + 1, argv0, relative_java_home);
-	else
-		snprintf(java_home, sizeof(java_home), "JAVA_HOME=./%s",
-			relative_java_home);
+	snprintf(java_home, sizeof(java_home), "JAVA_HOME=%s/%s",
+			fiji_dir, relative_java_home);
 	putenv(java_home);
 	snprintf(buffer, sizeof(buffer), "%s/%s", java_home + 10, library_path);
 
@@ -78,8 +87,6 @@ static int create_java_vm(const char *argv0,
 	return JNI_CreateJavaVM(vm, env, args);
 }
 
-const char *argv0;
-
 /*
  * The signature of start_ij() is funny because on MacOSX, it has to be called
  * via pthread_create().
@@ -87,15 +94,22 @@ const char *argv0;
 static void *start_ij(void *dummy)
 {
 	JavaVM *vm;
-	JavaVMOption options[2];
+	JavaVMOption options[3];
 	JavaVMInitArgs args;
 	JNIEnv *env;
 	jclass instance;
 	jmethodID method;
+	static char class_path[65536];
+	static char plugin_path[PATH_MAX];
 
+	snprintf(class_path, sizeof(class_path),
+			"-Djava.class.path=%s/ij.jar", fiji_dir);
+	snprintf(plugin_path, sizeof(plugin_path),
+			"-Dplugins.dir=%s", fiji_dir);
 	memset(options, 0, sizeof(options));
-	options[0].optionString = "-Djava.class.path=ImageJ/ij.jar";
-	options[1].optionString = "../ImageJ/ij.jar";
+	options[0].optionString = class_path;
+	options[1].optionString = plugin_path;
+	options[2].optionString = "ij.ImageJ";
 
 	memset(&args, 0, sizeof(args));
 	args.version  = JNI_VERSION_1_2;
@@ -103,7 +117,7 @@ static void *start_ij(void *dummy)
 	args.nOptions = sizeof(options) / sizeof(options[0]) - 1;
 	args.ignoreUnrecognized = JNI_TRUE;
 
-	if (create_java_vm(argv0, &vm, (void **)&env, &args))
+	if (create_java_vm(&vm, (void **)&env, &args))
 		std::cerr << "Could not create JavaVM" << std::endl;
 	else if (!(instance = env->FindClass("ij/ImageJ")))
 		std::cerr << "Could not find ij.ImageJ" << std::endl;
@@ -165,7 +179,7 @@ static void start_ij_macosx(void *dummy)
 
 int main(int argc, char **argv, char **e)
 {
-	argv0 = argv[0];
+	fiji_dir = get_fiji_dir(argv[0]);
 	start_ij(NULL);
 	sleep((unsigned long)-1l);
 }
