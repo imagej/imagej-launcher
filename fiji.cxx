@@ -94,7 +94,7 @@ static void *start_ij(void *dummy)
 	jmethodID method;
 
 	memset(options, 0, sizeof(options));
-	options[0].optionString = "-Djava.class.path=../ImageJ/ij.jar";
+	options[0].optionString = "-Djava.class.path=ImageJ/ij.jar";
 	options[1].optionString = "../ImageJ/ij.jar";
 
 	memset(&args, 0, sizeof(args));
@@ -114,7 +114,7 @@ static void *start_ij(void *dummy)
 		jstring jstr;
 		jobjectArray args;
 
-		if (!(jstr = env->NewStringUTF("linux/jdk1.6.0/jre/lib/deploy/splash.jpg")))
+		if (!(jstr = env->NewStringUTF("java/linux/jdk1.6.0/jre/lib/deploy/splash.jpg")))
 			goto fail;
 		if (!(args = env->NewObjectArray(1, env->FindClass("java/lang/String"), jstr)))
 			goto fail;
