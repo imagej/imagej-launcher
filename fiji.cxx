@@ -43,6 +43,8 @@ static void sleep(int seconds)
 #endif
 
 const char *fiji_dir;
+char **main_argv;
+int main_argc;
 
 static char *get_fiji_dir(const char *argv0)
 {
@@ -125,13 +127,20 @@ static void *start_ij(void *dummy)
 					"main", "([Ljava/lang/String;)V")))
 		std::cerr << "Could not find main method" << std::endl;
 	else {
+		int i;
 		jstring jstr;
 		jobjectArray args;
 
-		if (!(jstr = env->NewStringUTF("java/linux/jdk1.6.0/jre/lib/deploy/splash.jpg")))
+		if (main_argc > 1 && !(jstr = env->NewStringUTF(main_argv[1])))
 			goto fail;
-		if (!(args = env->NewObjectArray(1, env->FindClass("java/lang/String"), jstr)))
+		if (!(args = env->NewObjectArray(main_argc - 1,
+				env->FindClass("java/lang/String"), jstr)))
 			goto fail;
+		for (i = 2; i < main_argc; i++) {
+			if (!(jstr = env->NewStringUTF(main_argv[i])))
+				goto fail;
+			env->SetObjectArrayElement(args, i - 1, jstr);
+		}
 		env->CallStaticVoidMethodA(instance, method, (jvalue *)&args);
 		if (vm->DetachCurrentThread())
 			std::cerr << "Could not detach current thread"
@@ -180,6 +189,8 @@ static void start_ij_macosx(void *dummy)
 int main(int argc, char **argv, char **e)
 {
 	fiji_dir = get_fiji_dir(argv[0]);
+	main_argv = argv;
+	main_argc = argc;
 	start_ij(NULL);
 	sleep((unsigned long)-1l);
 }
