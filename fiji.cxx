@@ -95,28 +95,45 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
  */
 static void *start_ij(void *dummy)
 {
+	int count = 0;
 	JavaVM *vm;
-	JavaVMOption options[3];
+	JavaVMOption options[5];
 	JavaVMInitArgs args;
 	JNIEnv *env;
 	jclass instance;
 	jmethodID method;
 	static char class_path[65536];
 	static char plugin_path[PATH_MAX];
+	static char ext_path[65536];
+	static char java_home_path[65536];
+
+	memset(options, 0, sizeof(options));
+
+	snprintf(java_home_path, sizeof(java_home_path),
+			"-Djava.home=%s/%s",
+			fiji_dir, relative_java_home);
+	options[count++].optionString = java_home_path;
+#ifdef MACOSX
+	snprintf(ext_path, sizeof(ext_path),
+			"-Djava.ext.dirs=%s/%s/lib/ext",
+			fiji_dir, relative_java_home);
+	options[count++].optionString = ext_path;
+#endif
 
 	snprintf(class_path, sizeof(class_path),
 			"-Djava.class.path=%s/ij.jar", fiji_dir);
+	options[count++].optionString = class_path;
+
 	snprintf(plugin_path, sizeof(plugin_path),
 			"-Dplugins.dir=%s", fiji_dir);
-	memset(options, 0, sizeof(options));
-	options[0].optionString = class_path;
-	options[1].optionString = plugin_path;
-	options[2].optionString = "ij.ImageJ";
+	options[count++].optionString = plugin_path;
+
+	options[count++].optionString = "ij.ImageJ";
 
 	memset(&args, 0, sizeof(args));
 	args.version  = JNI_VERSION_1_2;
 	args.options = options;
-	args.nOptions = sizeof(options) / sizeof(options[0]) - 1;
+	args.nOptions = count;
 	args.ignoreUnrecognized = JNI_TRUE;
 
 	if (create_java_vm(&vm, (void **)&env, &args))
