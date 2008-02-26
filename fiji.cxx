@@ -148,7 +148,8 @@ static void *start_ij(void *dummy)
 		jstring jstr;
 		jobjectArray args;
 
-		if (main_argc > 1 && !(jstr = env->NewStringUTF(main_argv[1])))
+		if (!(jstr = env->NewStringUTF(main_argc > 1 ?
+						main_argv[1] : "")))
 			goto fail;
 		if (!(args = env->NewObjectArray(main_argc - 1,
 				env->FindClass("java/lang/String"), jstr)))
