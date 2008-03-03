@@ -50,6 +50,12 @@ static char *get_fiji_dir(const char *argv0)
 {
 	const char *slash = strrchr(argv0, '/');
 	static char buffer[PATH_MAX];
+#ifdef WIN32
+	const char *backslash = strrchr(argv0, '\\');
+
+	if (backslash && slash < backslash)
+		slash = backslash;
+#endif
 
 	if (slash)
 		snprintf(buffer, slash - argv0 + 1, argv0);
