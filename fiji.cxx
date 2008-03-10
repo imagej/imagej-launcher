@@ -169,6 +169,8 @@ static void *start_ij(void *dummy)
 		if (vm->DetachCurrentThread())
 			std::cerr << "Could not detach current thread"
 				<< std::endl;
+		/* This does not return until ImageJ exits */
+		vm->DestroyJavaVM();
 		return NULL;
 	}
 
@@ -216,6 +218,6 @@ int main(int argc, char **argv, char **e)
 	main_argv = argv;
 	main_argc = argc;
 	start_ij(NULL);
-	sleep((unsigned long)-1l);
+	return 0;
 }
 
