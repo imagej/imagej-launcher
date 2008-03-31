@@ -8,6 +8,10 @@
 static const char *relative_java_home = JAVA_HOME;
 static const char *library_path = JAVA_LIB_PATH;
 
+
+
+/* Dynamic library loading stuff */
+
 #ifdef MINGW32
 #include <windows.h>
 #define RTLD_LAZY 0
@@ -37,6 +41,61 @@ static void sleep(int seconds)
 #else
 #include <dlfcn.h>
 #endif
+
+
+
+/* Determining heap size */
+
+#ifdef MACOSX
+#include <mach/mach_init.h>
+#include <mach/mach_host.h>
+
+size_t get_memory_size(int available_only)
+{
+	host_priv_t host = mach_host_self();
+	vm_size_t page_size;
+	vm_statistics_data_t host_info;
+	mach_msg_type_number_t host_count =
+		sizeof(host_info) / sizeof(integer_t);
+
+	host_page_size(host, &page_size);
+	return host_statistics(host, HOST_VM_INFO,
+			(host_info_t)&host_info, &host_count) ?
+		0 : ((size_t)(available_only ? host_info.free_count :
+				host_info.active_count +
+				host_info.inactive_count +
+				host_info.wire_count) * (size_t)page_size);
+}
+#elif defined(linux)
+size_t get_memory_size(int available_only)
+{
+	ssize_t page_size = sysconf(_SC_PAGESIZE);
+	ssize_t available_pages = sysconf(available_only ?
+			_SC_AVPHYS_PAGES : _SC_PHYS_PAGES);
+	return page_size < 0 || available_pages < 0 ?
+		0 : (size_t)page_size * (size_t)available_pages;
+}
+#elif defined(WIN32)
+#include <windows.h>
+
+size_t get_memory_size(int available_only)
+{
+	MEMORYSTATUS status;
+
+	GlobalMemoryStatus(&status);
+	return available_only ? status.dwAvailPhys : status.dwTotalPhys;
+}
+#else
+size_t get_memory_size(int available_only)
+{
+	fprintf(stderr, "Unsupported\n");
+	return 0;
+}
+#endif
+
+
+
+/* Java stuff */
 
 #ifndef JNI_CREATEVM
 #define JNI_CREATEVM "JNI_CreateJavaVM"
@@ -95,6 +154,9 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 	return JNI_CreateJavaVM(vm, env, args);
 }
 
+/* the maximal size of the heap on 32-bit systems, in megabyte */
+#define MAX_32BIT_HEAP 1920
+
 /*
  * The signature of start_ij() is funny because on MacOSX, it has to be called
  * via pthread_create().
@@ -103,7 +165,7 @@ static void *start_ij(void *dummy)
 {
 	int count = 0;
 	JavaVM *vm;
-	JavaVMOption options[5];
+	JavaVMOption options[6];
 	JavaVMInitArgs args;
 	JNIEnv *env;
 	jclass instance;
@@ -112,6 +174,9 @@ static void *start_ij(void *dummy)
 	static char plugin_path[PATH_MAX];
 	static char ext_path[65536];
 	static char java_home_path[65536];
+
+	size_t memory_size = get_memory_size(0);
+	static char heap_size[1024];
 
 	memset(options, 0, sizeof(options));
 
@@ -134,7 +199,16 @@ static void *start_ij(void *dummy)
 			"-Dplugins.dir=%s", fiji_dir);
 	options[count++].optionString = plugin_path;
 
-	options[count++].optionString = "ij.ImageJ";
+	if (memory_size > 0) {
+		memory_size = memory_size / 1024 * 2 / 3 / 1024;
+		if (sizeof(void *) == 4 && memory_size > MAX_32BIT_HEAP)
+			memory_size = MAX_32BIT_HEAP;
+		snprintf(heap_size, sizeof(heap_size),
+			"-Xmx%dm", (int)memory_size);
+		options[count++].optionString = heap_size;
+	}
+
+	options[count++].optionString = strdup("ij.ImageJ");
 
 	memset(&args, 0, sizeof(args));
 	args.version  = JNI_VERSION_1_2;
