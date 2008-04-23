@@ -147,7 +147,7 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 
 	handle = dlopen(buffer, RTLD_LAZY);
 	if (!handle) {
-		std::cerr << "Could not load Java library!" << std::endl;
+		cerr << "Could not load Java library!" << endl;
 		return 1;
 	}
 	dlerror(); /* Clear any existing error */
@@ -156,7 +156,7 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 			JNI_CREATEVM);
 	err = dlerror();
 	if (err) {
-		std::cerr << "Error loading libjvm: " << err << std::endl;
+		cerr << "Error loading libjvm: " << err << endl;
 		return 1;
 	}
 
@@ -261,12 +261,12 @@ static void *start_ij(void *dummy)
 	args.ignoreUnrecognized = JNI_TRUE;
 
 	if (create_java_vm(&vm, (void **)&env, &args))
-		std::cerr << "Could not create JavaVM" << std::endl;
+		cerr << "Could not create JavaVM" << endl;
 	else if (!(instance = env->FindClass("ij/ImageJ")))
-		std::cerr << "Could not find ij.ImageJ" << std::endl;
+		cerr << "Could not find ij.ImageJ" << endl;
 	else if (!(method = env->GetStaticMethodID(instance,
 					"main", "([Ljava/lang/String;)V")))
-		std::cerr << "Could not find main method" << std::endl;
+		cerr << "Could not find main method" << endl;
 	else {
 		int i;
 		jstring jstr;
@@ -285,15 +285,14 @@ static void *start_ij(void *dummy)
 		}
 		env->CallStaticVoidMethodA(instance, method, (jvalue *)&args);
 		if (vm->DetachCurrentThread())
-			std::cerr << "Could not detach current thread"
-				<< std::endl;
+			cerr << "Could not detach current thread" << endl;
 		/* This does not return until ImageJ exits */
 		vm->DestroyJavaVM();
 		return NULL;
 	}
 
 fail:
-	std::cerr << "Failed to start Java" << std::endl;
+	cerr << "Failed to start Java" << endl;
 	exit(1);
 }
 
