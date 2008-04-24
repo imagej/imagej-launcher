@@ -198,6 +198,16 @@ int build_classpath(string &result, string jar_directory) {
 	return 0;
 }
 
+static void start_debug(JavaVMOption *options, int count, int i)
+{
+	cerr << "java";
+	for (int j = 0; j < count; j++)
+		cerr << " " <<
+			options[j].optionString;
+	for (int j = 1; j < i; j++)
+		cerr << " " << main_argv[j];
+}
+
 /* the maximal size of the heap on 32-bit systems, in megabyte */
 #define MAX_32BIT_HEAP 1920
 
@@ -209,7 +219,7 @@ static void *start_ij(void *dummy)
 {
 	int count = 0;
 	JavaVM *vm;
-	JavaVMOption options[6];
+	JavaVMOption options[512];
 	JavaVMInitArgs args;
 	JNIEnv *env;
 	jclass instance;
@@ -219,6 +229,13 @@ static void *start_ij(void *dummy)
 	static char ext_path[65536];
 	static char java_home_path[65536];
 	int debug = 0;
+	int dashdash = 0;
+
+	for (int i = 1; i < main_argc; i++)
+		if (!strcmp(main_argv[i], "--")) {
+			dashdash = i;
+			break;
+		}
 
 	size_t memory_size = get_memory_size(0);
 	static char heap_size[1024];
@@ -253,7 +270,21 @@ static void *start_ij(void *dummy)
 		options[count++].optionString = heap_size;
 	}
 
+	if (dashdash) {
+		for (int i = 1; i < dashdash && count + 1 <
+				sizeof(options) / sizeof(options[0]); i++)
+			if (strcmp(main_argv[i], "--dry-run"))
+				options[count++].optionString = main_argv[i];
+			else
+				debug++;
+		main_argv += dashdash;
+		main_argc -= dashdash;
+	}
+
 	options[count++].optionString = strdup("ij.ImageJ");
+
+	if (debug)
+		start_debug(options, count, 0);
 
 	memset(&args, 0, sizeof(args));
 	args.version  = JNI_VERSION_1_2;
@@ -281,14 +312,8 @@ static void *start_ij(void *dummy)
 			goto fail;
 		for (i = 1; i < main_argc; i++) {
 			if (!strcmp(main_argv[i], "--dry-run")) {
-				if (debug++ == 0) {
-					cerr << "java";
-					for (int j = 0; j < count; j++)
-						cerr << " " <<
-							options[j].optionString;
-					for (int j = 1; j < i; j++)
-						cerr << " " << main_argv[j];
-				}
+				if (debug++ == 0)
+					start_debug(options, count, i);
 				continue;
 			} else if (debug) {
 				cerr << " " << main_argv[i];
