@@ -218,6 +218,7 @@ static void *start_ij(void *dummy)
 	static char plugin_path[PATH_MAX];
 	static char ext_path[65536];
 	static char java_home_path[65536];
+	int debug = 0;
 
 	size_t memory_size = get_memory_size(0);
 	static char heap_size[1024];
@@ -278,14 +279,34 @@ static void *start_ij(void *dummy)
 		if (!(args = env->NewObjectArray(main_argc - 1,
 				env->FindClass("java/lang/String"), jstr)))
 			goto fail;
-		for (i = 2; i < main_argc; i++) {
+		for (i = 1; i < main_argc; i++) {
+			if (!strcmp(main_argv[i], "--dry-run")) {
+				if (debug++ == 0) {
+					cerr << "java";
+					for (int j = 0; j < count; j++)
+						cerr << " " <<
+							options[j].optionString;
+					for (int j = 1; j < i; j++)
+						cerr << " " << main_argv[j];
+				}
+				continue;
+			} else if (debug) {
+				cerr << " " << main_argv[i];
+				continue;
+			}
 			if (!(jstr = env->NewStringUTF(main_argv[i])))
 				goto fail;
 			env->SetObjectArrayElement(args, i - 1, jstr);
 		}
-		env->CallStaticVoidMethodA(instance, method, (jvalue *)&args);
-		if (vm->DetachCurrentThread())
-			cerr << "Could not detach current thread" << endl;
+		if (debug)
+			cerr << endl;
+		else {
+			env->CallStaticVoidMethodA(instance,
+					method, (jvalue *)&args);
+			if (vm->DetachCurrentThread())
+				cerr << "Could not detach current thread"
+					<< endl;
+		}
 		/* This does not return until ImageJ exits */
 		vm->DestroyJavaVM();
 		return NULL;
