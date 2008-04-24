@@ -163,12 +163,12 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 	return JNI_CreateJavaVM(vm, env, args);
 }
 
-int build_classpath(char *buffer, unsigned int buffer_size) {
-	string result("-Djava.class.path=");
-	result += fiji_dir;
-	result += "/ij.jar";
-	string jar_directory(fiji_dir);
-	jar_directory += "/jars/";
+int build_classpath(string &result, string jar_directory) {
+	if (result == "") {
+		result = "-Djava.class.path=";
+		result += fiji_dir;
+		result += "/ij.jar";
+	}
 	DIR *directory = opendir(jar_directory.c_str());
 	if (!directory) {
 		cerr << "Failed to open: " << jar_directory << endl;
@@ -179,6 +179,13 @@ int build_classpath(char *buffer, unsigned int buffer_size) {
 	struct dirent *entry;
 	while (NULL != (entry = readdir(directory))) {
 		string filename(entry->d_name);
+		if (entry->d_type == DT_DIR) {
+			if (filename != "." && filename != ".." &&
+					build_classpath(result, jar_directory
+						+ filename + "/"))
+				return 1;
+			continue;
+		}
 		unsigned int n = filename.size();
 		if (n <= extension_length)
 			continue;
@@ -188,12 +195,6 @@ int build_classpath(char *buffer, unsigned int buffer_size) {
 					extension))
 			result += ":" + jar_directory + filename;
 	}
-	if( result.size() > buffer_size - 1 ) {
-		cerr << "The classpath buffer size was too small (!)" << endl;
-		return 1;
-	}
-	strncpy(buffer,result.c_str(),buffer_size);
-	buffer[buffer_size-1] = 0;
 	return 0;
 }
 
@@ -213,7 +214,7 @@ static void *start_ij(void *dummy)
 	JNIEnv *env;
 	jclass instance;
 	jmethodID method;
-	static char class_path[65536];
+	static string class_path;
 	static char plugin_path[PATH_MAX];
 	static char ext_path[65536];
 	static char java_home_path[65536];
@@ -234,9 +235,9 @@ static void *start_ij(void *dummy)
 	options[count++].optionString = ext_path;
 #endif
 
-	if (build_classpath(class_path,sizeof(class_path)))
+	if (build_classpath(class_path, string(fiji_dir) + "/jars/"))
 		return NULL;
-	options[count++].optionString = class_path;
+	options[count++].optionString = strdup(class_path.c_str());
 
 	snprintf(plugin_path, sizeof(plugin_path),
 			"-Dplugins.dir=%s", fiji_dir);
