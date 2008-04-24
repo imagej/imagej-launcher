@@ -163,20 +163,20 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 	return JNI_CreateJavaVM(vm, env, args);
 }
 
-int build_classpath(char * buffer,unsigned int buffer_size) {
+int build_classpath(char *buffer, unsigned int buffer_size) {
 	string result("-Djava.class.path=");
 	result += fiji_dir;
 	result += "/ij.jar";
 	string jar_directory(fiji_dir);
 	jar_directory += "/jars/";
-	DIR * directory = opendir(jar_directory.c_str());
-	if(!directory) {
-	cerr << "Failed to open: " << jar_directory << endl;
+	DIR *directory = opendir(jar_directory.c_str());
+	if (!directory) {
+		cerr << "Failed to open: " << jar_directory << endl;
 		return 1;
 	}
 	string extension(".jar");
 	unsigned int extension_length = extension.size();
-	struct dirent * entry;
+	struct dirent *entry;
 	while (NULL != (entry = readdir(directory))) {
 		string filename(entry->d_name);
 		unsigned int n = filename.size();
@@ -234,9 +234,8 @@ static void *start_ij(void *dummy)
 	options[count++].optionString = ext_path;
 #endif
 
-	if (build_classpath(class_path,sizeof(class_path))) {
+	if (build_classpath(class_path,sizeof(class_path)))
 		return NULL;
-	}
 	options[count++].optionString = class_path;
 
 	snprintf(plugin_path, sizeof(plugin_path),
