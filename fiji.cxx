@@ -253,7 +253,7 @@ static void *start_ij(void *dummy)
 	options[count++].optionString = ext_path;
 #endif
 
-	if (build_classpath(class_path, string(fiji_dir) + "/jars/"))
+	if (build_classpath(class_path, string(fiji_dir) + "/jars"))
 		return NULL;
 	options[count++].optionString = strdup(class_path.c_str());
 
