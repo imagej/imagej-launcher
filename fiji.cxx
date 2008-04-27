@@ -12,6 +12,12 @@ using std::string;
 #include <CoreFoundation/CoreFoundation.h>
 #endif
 
+#ifdef MINGW32
+#define PATH_SEP ";"
+#else
+#define PATH_SEP ":"
+#endif
+
 static const char *relative_java_home = JAVA_HOME;
 static const char *library_path = JAVA_LIB_PATH;
 
@@ -203,7 +209,7 @@ int build_classpath(string &result, string jar_directory, int no_error) {
 		if (!filename.compare(extension_start,
 					extension_length,
 					extension))
-			result += ":" + jar_directory + filename;
+			result += PATH_SEP + jar_directory + filename;
 		else {
 			if (filename != "." && filename != ".." &&
 					build_classpath(result, jar_directory
