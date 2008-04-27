@@ -24,12 +24,26 @@ static const char *library_path = JAVA_LIB_PATH;
 #ifdef MINGW32
 #include <windows.h>
 #define RTLD_LAZY 0
+static char *dlerror_value;
+
 static void *dlopen(const char *name, int flags)
 {
-	return (void *)LoadLibrary(name);
-}
+	void *result = LoadLibrary(name);
+	DWORD error_code = GetLastError();
+	LPSTR buffer;
 
-static char *dlerror_value;
+	FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+			FORMAT_MESSAGE_FROM_SYSTEM |
+			FORMAT_MESSAGE_IGNORE_INSERTS,
+			NULL,
+			error_code,
+			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+			(LPSTR)&buffer,
+			0, NULL);
+	dlerror_value = buffer;
+
+	return result;
+}
 
 static char *dlerror(void)
 {
@@ -147,7 +161,8 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 
 	handle = dlopen(buffer, RTLD_LAZY);
 	if (!handle) {
-		cerr << "Could not load Java library!" << endl;
+		cerr << "Could not load Java library '" <<
+			buffer << "': " << dlerror() << endl;
 		return 1;
 	}
 	dlerror(); /* Clear any existing error */
