@@ -178,7 +178,7 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 	return JNI_CreateJavaVM(vm, env, args);
 }
 
-int build_classpath(string &result, string jar_directory) {
+int build_classpath(string &result, string jar_directory, int no_error) {
 	if (result == "") {
 		result = "-Djava.class.path=";
 		result += fiji_dir;
@@ -186,6 +186,8 @@ int build_classpath(string &result, string jar_directory) {
 	}
 	DIR *directory = opendir(jar_directory.c_str());
 	if (!directory) {
+		if (no_error)
+			return 0;
 		cerr << "Failed to open: " << jar_directory << endl;
 		return 1;
 	}
@@ -194,13 +196,6 @@ int build_classpath(string &result, string jar_directory) {
 	struct dirent *entry;
 	while (NULL != (entry = readdir(directory))) {
 		string filename(entry->d_name);
-		if (entry->d_type == DT_DIR) {
-			if (filename != "." && filename != ".." &&
-					build_classpath(result, jar_directory
-						+ filename + "/"))
-				return 1;
-			continue;
-		}
 		unsigned int n = filename.size();
 		if (n <= extension_length)
 			continue;
@@ -209,6 +204,14 @@ int build_classpath(string &result, string jar_directory) {
 					extension_length,
 					extension))
 			result += ":" + jar_directory + filename;
+		else {
+			if (filename != "." && filename != ".." &&
+					build_classpath(result, jar_directory
+						+ filename + "/", 1))
+				return 1;
+			continue;
+		}
+
 	}
 	return 0;
 }
@@ -268,7 +271,7 @@ static void *start_ij(void *dummy)
 	options[count++].optionString = ext_path;
 #endif
 
-	if (build_classpath(class_path, string(fiji_dir) + "/jars"))
+	if (build_classpath(class_path, string(fiji_dir) + "/jars", 0))
 		return NULL;
 	options[count++].optionString = strdup(class_path.c_str());
 
