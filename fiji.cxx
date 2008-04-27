@@ -128,7 +128,7 @@ static char *get_fiji_dir(const char *argv0)
 	if (slash)
 		snprintf(buffer, slash - argv0 + 1, argv0);
 	else
-		sprintf(buffer, "./");
+		sprintf(buffer, ".");
 
 	return buffer;
 }
