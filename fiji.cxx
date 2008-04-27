@@ -318,11 +318,6 @@ static void *start_ij(void *dummy)
 
 	if (create_java_vm(&vm, (void **)&env, &args))
 		cerr << "Could not create JavaVM" << endl;
-	else if (!(instance = env->FindClass("ij/ImageJ")))
-		cerr << "Could not find ij.ImageJ" << endl;
-	else if (!(method = env->GetStaticMethodID(instance,
-					"main", "([Ljava/lang/String;)V")))
-		cerr << "Could not find main method" << endl;
 	else {
 		int i;
 		jstring jstr;
@@ -350,6 +345,11 @@ static void *start_ij(void *dummy)
 		if (debug)
 			cerr << endl;
 		else {
+			if (!(instance = env->FindClass("ij/ImageJ")))
+				cerr << "Could not find ij.ImageJ" << endl;
+			else if (!(method = env->GetStaticMethodID(instance,
+					"main", "([Ljava/lang/String;)V")))
+				cerr << "Could not find main method" << endl;
 			env->CallStaticVoidMethodA(instance,
 					method, (jvalue *)&args);
 			if (vm->DetachCurrentThread())
