@@ -209,11 +209,11 @@ int build_classpath(string &result, string jar_directory, int no_error) {
 		if (!filename.compare(extension_start,
 					extension_length,
 					extension))
-			result += PATH_SEP + jar_directory + filename;
+			result += PATH_SEP + jar_directory + "/" + filename;
 		else {
 			if (filename != "." && filename != ".." &&
 					build_classpath(result, jar_directory
-						+ filename + "/", 1))
+						+ "/" + filename, 1))
 				return 1;
 			continue;
 		}
