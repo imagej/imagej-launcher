@@ -184,9 +184,13 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 	return JNI_CreateJavaVM(vm, env, args);
 }
 
+static int headless;
+
 int build_classpath(string &result, string jar_directory, int no_error) {
 	if (result == "") {
 		result = "-Djava.class.path=";
+		if (headless)
+			result += string(fiji_dir) + "/misc/headless.jar:";
 		result += fiji_dir;
 		result += "/ij.jar";
 	}
@@ -260,6 +264,12 @@ static void *start_ij(void *dummy)
 			dashdash = i;
 			break;
 		}
+		else if (!strcmp(main_argv[i], "--headless"))
+			headless = 1;
+
+	/* only interpret --headless if it is not an ImageJ option */
+	if (headless && !dashdash)
+		headless = 0;
 
 	size_t memory_size = get_memory_size(0);
 	static char heap_size[1024];
@@ -299,7 +309,9 @@ static void *start_ij(void *dummy)
 	if (dashdash) {
 		for (int i = 1; i < dashdash && count + 1 <
 				sizeof(options) / sizeof(options[0]); i++)
-			if (strcmp(main_argv[i], "--dry-run"))
+			if (!strcmp(main_argv[i], "--headless"))
+				continue;
+			else if (strcmp(main_argv[i], "--dry-run"))
 				options[count++].optionString = main_argv[i];
 			else
 				debug++;
