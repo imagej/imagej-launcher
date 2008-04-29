@@ -277,6 +277,8 @@ static void *start_ij(void *dummy)
 	options[count++].optionString = ext_path;
 #endif
 
+	if (build_classpath(class_path, string(fiji_dir) + "/plugins", 0))
+		return NULL;
 	if (build_classpath(class_path, string(fiji_dir) + "/jars", 0))
 		return NULL;
 	options[count++].optionString = strdup(class_path.c_str());
