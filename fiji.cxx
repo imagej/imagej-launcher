@@ -323,10 +323,9 @@ static void *start_ij(void *dummy)
 		jstring jstr;
 		jobjectArray args;
 
-		if (!(jstr = env->NewStringUTF(main_argc > 1 ?
-						main_argv[1] : "")))
+		if (!(jstr = env->NewStringUTF("-port0")))
 			goto fail;
-		if (!(args = env->NewObjectArray(main_argc - 1,
+		if (!(args = env->NewObjectArray(main_argc,
 				env->FindClass("java/lang/String"), jstr)))
 			goto fail;
 		for (i = 1; i < main_argc; i++) {
@@ -340,7 +339,7 @@ static void *start_ij(void *dummy)
 			}
 			if (!(jstr = env->NewStringUTF(main_argv[i])))
 				goto fail;
-			env->SetObjectArrayElement(args, i - 1, jstr);
+			env->SetObjectArrayElement(args, i, jstr);
 		}
 		if (debug)
 			cerr << endl;
