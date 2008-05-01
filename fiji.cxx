@@ -226,14 +226,105 @@ int build_classpath(string &result, string jar_directory, int no_error) {
 	return 0;
 }
 
-static void start_debug(JavaVMOption *options, int count, int i)
+struct string_array {
+	char **list;
+	int nr, alloc;
+};
+
+static void append_string(struct string_array& array, char *str)
+{
+	if (array.nr >= array.alloc) {
+		array.alloc = 2 * array.nr + 16;
+		array.list = (char **)realloc(array.list,
+				array.alloc * sizeof(str));
+	}
+	array.list[array.nr++] = str;
+}
+
+static void prepend_string(struct string_array& array, char *str)
+{
+	if (array.nr >= array.alloc) {
+		array.alloc = 2 * array.nr + 16;
+		array.list = (char **)realloc(array.list,
+				array.alloc * sizeof(str));
+	}
+	memmove(array.list + 1, array.list, array.nr * sizeof(str));
+	array.list[0] = str;
+	array.nr++;
+}
+
+static void append_string_array(struct string_array& target,
+		struct string_array &source)
+{
+	if (target.alloc - target.nr < source.nr) {
+		target.alloc += source.nr;
+		target.list = (char **)realloc(target.list,
+				target.alloc * sizeof(target.list[0]));
+	}
+	memcpy(target.list + target.nr, source.list,
+			source.nr * sizeof(target.list[0]));
+	target.nr += source.nr;
+}
+
+static JavaVMOption *prepare_java_options(struct string_array& array)
+{
+	JavaVMOption *result = (JavaVMOption *)calloc(array.nr,
+			sizeof(JavaVMOption));
+
+	for (int i = 0; i < array.nr; i++)
+		result[i].optionString = array.list[i];
+
+	return result;
+}
+
+static jobjectArray prepare_ij_options(JNIEnv *env, struct string_array& array)
+{
+	jstring jstr;
+	jobjectArray result;
+
+	if (!(jstr = env->NewStringUTF(array.nr ? array.list[0] : ""))) {
+fail:
+		cerr << "Failed to create ImageJ option array" << endl;
+		exit(1);
+	}
+
+	result = env->NewObjectArray(array.nr,
+			env->FindClass("java/lang/String"), jstr);
+	if (!result)
+		goto fail;
+	for (int i = 1; i < array.nr; i++) {
+		if (!(jstr = env->NewStringUTF(array.list[i])))
+			goto fail;
+		env->SetObjectArrayElement(result, i, jstr);
+	}
+	return result;
+}
+
+struct options {
+	struct string_array java_options, ij_options;
+	int debug, use_system_jvm;
+};
+
+static void add_option(struct options& options, char *option, int for_ij)
+{
+	if (!strcmp(option, "--dry-run"))
+		options.debug++;
+	else if (!strcmp(option, "--system"))
+		options.use_system_jvm++;
+	else
+		append_string(for_ij ?
+				options.ij_options : options.java_options,
+				option);
+}
+
+static void show_commandline(struct options& options)
 {
 	cerr << "java";
-	for (int j = 0; j < count; j++)
-		cerr << " " <<
-			options[j].optionString;
-	for (int j = 1; j < i; j++)
-		cerr << " " << main_argv[j];
+	for (int j = 0; j < options.java_options.nr; j++)
+		cerr << " " << options.java_options.list[j];
+	for (int j = 0; j < options.ij_options.nr; j++)
+		cerr << " " << options.ij_options.list[j];
+	cerr << endl;
 }
 
 /* the maximal size of the heap on 32-bit systems, in megabyte */
@@ -245,26 +336,20 @@ static void start_debug(JavaVMOption *options, int count, int i)
  */
 static void *start_ij(void *dummy)
 {
-	int count = 0;
 	JavaVM *vm;
-	JavaVMOption options[512];
+	struct options options;
 	JavaVMInitArgs args;
 	JNIEnv *env;
-	jclass instance;
-	jmethodID method;
 	static string class_path;
 	static char plugin_path[PATH_MAX];
 	static char ext_path[65536];
 	static char java_home_path[65536];
-	int debug = 0;
 	int dashdash = 0;
 
 	for (int i = 1; i < main_argc; i++)
-		if (!strcmp(main_argv[i], "--")) {
+		if (!strcmp(main_argv[i], "--"))
 			dashdash = i;
-			break;
-		}
-		else if (!strcmp(main_argv[i], "--headless"))
+		else
 			headless = 1;
 
 	/* only interpret --headless if it is not an ImageJ option */
@@ -274,28 +359,24 @@ static void *start_ij(void *dummy)
 	size_t memory_size = get_memory_size(0);
 	static char heap_size[1024];
 
-	memset(options, 0, sizeof(options));
+	memset(&options, 0, sizeof(options));
 
-	snprintf(java_home_path, sizeof(java_home_path),
-			"-Djava.home=%s/%s",
-			fiji_dir, relative_java_home);
-	options[count++].optionString = java_home_path;
 #ifdef MACOSX
 	snprintf(ext_path, sizeof(ext_path),
 			"-Djava.ext.dirs=%s/%s/lib/ext",
 			fiji_dir, relative_java_home);
-	options[count++].optionString = ext_path;
+	add_option(options, ext_path, 0);
 #endif
 
 	if (build_classpath(class_path, string(fiji_dir) + "/plugins", 0))
 		return NULL;
 	if (build_classpath(class_path, string(fiji_dir) + "/jars", 0))
 		return NULL;
-	options[count++].optionString = strdup(class_path.c_str());
+	add_option(options, strdup(class_path.c_str()), 0);
 
 	snprintf(plugin_path, sizeof(plugin_path),
 			"-Dplugins.dir=%s", fiji_dir);
-	options[count++].optionString = plugin_path;
+	add_option(options, plugin_path, 0);
 
 	if (memory_size > 0) {
 		memory_size = memory_size / 1024 * 2 / 3 / 1024;
@@ -303,80 +384,74 @@ static void *start_ij(void *dummy)
 			memory_size = MAX_32BIT_HEAP;
 		snprintf(heap_size, sizeof(heap_size),
 			"-Xmx%dm", (int)memory_size);
-		options[count++].optionString = heap_size;
+		add_option(options, heap_size, 0);
 	}
 
 	if (dashdash) {
-		for (int i = 1; i < dashdash && count + 1 <
-				sizeof(options) / sizeof(options[0]); i++)
-			if (!strcmp(main_argv[i], "--headless"))
-				continue;
-			else if (strcmp(main_argv[i], "--dry-run"))
-				options[count++].optionString = main_argv[i];
-			else
-				debug++;
+		for (int i = 1; i < dashdash; i++)
+			if (!headless || strcmp(main_argv[i], "--headless"))
+				add_option(options, main_argv[i], 0);
 		main_argv += dashdash;
 		main_argc -= dashdash;
 	}
 
-	options[count++].optionString = strdup("ij.ImageJ");
+	add_option(options, strdup("ij.ImageJ"), 0);
 
-	if (debug)
-		start_debug(options, count, 0);
+	add_option(options, "-port0", 1);
+	for (int i = 1; i < main_argc; i++)
+		add_option(options, main_argv[i], 1);
+
+	if (options.debug) {
+		show_commandline(options);
+		exit(0);
+	}
 
 	memset(&args, 0, sizeof(args));
 	args.version  = JNI_VERSION_1_2;
-	args.options = options;
-	args.nOptions = count;
+	args.options = prepare_java_options(options.java_options);
+	args.nOptions = options.java_options.nr;
 	args.ignoreUnrecognized = JNI_TRUE;
 
-	if (create_java_vm(&vm, (void **)&env, &args))
-		cerr << "Could not create JavaVM" << endl;
-	else {
-		int i;
-		jstring jstr;
-		jobjectArray args;
-
-		if (!(jstr = env->NewStringUTF("-port0")))
-			goto fail;
-		if (!(args = env->NewObjectArray(main_argc,
-				env->FindClass("java/lang/String"), jstr)))
-			goto fail;
-		for (i = 1; i < main_argc; i++) {
-			if (!strcmp(main_argv[i], "--dry-run")) {
-				if (debug++ == 0)
-					start_debug(options, count, i);
-				continue;
-			} else if (debug) {
-				cerr << " " << main_argv[i];
-				continue;
-			}
-			if (!(jstr = env->NewStringUTF(main_argv[i])))
-				goto fail;
-			env->SetObjectArrayElement(args, i, jstr);
-		}
-		if (debug)
-			cerr << endl;
-		else {
-			if (!(instance = env->FindClass("ij/ImageJ")))
-				cerr << "Could not find ij.ImageJ" << endl;
-			else if (!(method = env->GetStaticMethodID(instance,
-					"main", "([Ljava/lang/String;)V")))
-				cerr << "Could not find main method" << endl;
-			env->CallStaticVoidMethodA(instance,
-					method, (jvalue *)&args);
-			if (vm->DetachCurrentThread())
-				cerr << "Could not detach current thread"
-					<< endl;
-		}
-		/* This does not return until ImageJ exits */
-		vm->DestroyJavaVM();
-		return NULL;
+	if (options.use_system_jvm)
+		env = NULL;
+	else if (create_java_vm(&vm, (void **)&env, &args)) {
+		cerr << "Warning: falling back to System JVM" << endl;
+		env = NULL;
+	} else {
+		snprintf(java_home_path, sizeof(java_home_path),
+				"-Djava.home=%s/%s",
+				fiji_dir, relative_java_home);
+		prepend_string(options.java_options, java_home_path);
 	}
 
-fail:
-	cerr << "Failed to start Java" << endl;
-	exit(1);
+	if (env) {
+		jclass instance;
+		jmethodID method;
+		jobjectArray args;
+
+		if (!(instance = env->FindClass("ij/ImageJ")))
+			cerr << "Could not find ij.ImageJ" << endl;
+		else if (!(method = env->GetStaticMethodID(instance,
+				"main", "([Ljava/lang/String;)V")))
+			cerr << "Could not find main method" << endl;
+
+		args = prepare_ij_options(env, options.ij_options);
+		env->CallStaticVoidMethodA(instance,
+				method, (jvalue *)&args);
+		if (vm->DetachCurrentThread())
+			cerr << "Could not detach current thread"
+				<< endl;
+		/* This does not return until ImageJ exits */
+		vm->DestroyJavaVM();
+	} else {
+		/* fall back to system-wide Java */
+		append_string_array(options.java_options, options.ij_options);
+		append_string(options.java_options, NULL);
+		prepend_string(options.java_options, "java");
+		if (execvp("java", options.java_options.list))
+			cerr << "Could not launch system-wide Java" << endl;
+	}
+	return NULL;
 }
 
 #ifdef MACOSX
