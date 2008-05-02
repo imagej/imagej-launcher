@@ -311,7 +311,7 @@ static void add_option(struct options& options, char *option, int for_ij)
 		options.debug++;
 	else if (!strcmp(option, "--system"))
 		options.use_system_jvm++;
-	else
+	else if (strcmp(option, "--headless"))
 		append_string(for_ij ?
 				options.ij_options : options.java_options,
 				option);
@@ -349,12 +349,8 @@ static void *start_ij(void *dummy)
 	for (int i = 1; i < main_argc; i++)
 		if (!strcmp(main_argv[i], "--"))
 			dashdash = i;
-		else
+		else if (!strcmp(main_argv[i], "--headless"))
 			headless = 1;
-
-	/* only interpret --headless if it is not an ImageJ option */
-	if (headless && !dashdash)
-		headless = 0;
 
 	size_t memory_size = get_memory_size(0);
 	static char heap_size[1024];
