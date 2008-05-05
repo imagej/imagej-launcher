@@ -376,7 +376,7 @@ static void *start_ij(void *dummy)
 
 	if (!plugin_path[0])
 		snprintf(plugin_path, sizeof(plugin_path),
-				"-Dplugins.dir=%s/plugins", fiji_dir);
+				"-Dplugins.dir=%s", fiji_dir);
 	add_option(options, plugin_path, 0);
 
 	if (memory_size > 0) {
