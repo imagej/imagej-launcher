@@ -311,7 +311,8 @@ static void add_option(struct options& options, char *option, int for_ij)
 		options.debug++;
 	else if (!strcmp(option, "--system"))
 		options.use_system_jvm++;
-	else if (strcmp(option, "--headless"))
+	else if (strcmp(option, "--headless") ||
+			strncmp(option, "--plugins=", 10))
 		append_string(for_ij ?
 				options.ij_options : options.java_options,
 				option);
@@ -341,7 +342,7 @@ static void *start_ij(void *dummy)
 	JavaVMInitArgs args;
 	JNIEnv *env;
 	static string class_path;
-	static char plugin_path[PATH_MAX];
+	static char plugin_path[PATH_MAX] = "";
 	static char ext_path[65536];
 	static char java_home_path[65536];
 	int dashdash = 0;
@@ -349,6 +350,9 @@ static void *start_ij(void *dummy)
 	for (int i = 1; i < main_argc; i++)
 		if (!strcmp(main_argv[i], "--"))
 			dashdash = i;
+		else if (!strncmp(main_argv[i], "--plugins=", 10))
+			snprintf(plugin_path, sizeof(plugin_path),
+					"-Dplugins.dir=%s", main_argv[i] + 10);
 		else if (!strcmp(main_argv[i], "--headless"))
 			headless = 1;
 
@@ -370,8 +374,9 @@ static void *start_ij(void *dummy)
 		return NULL;
 	add_option(options, strdup(class_path.c_str()), 0);
 
-	snprintf(plugin_path, sizeof(plugin_path),
-			"-Dplugins.dir=%s/plugins", fiji_dir);
+	if (!plugin_path[0])
+		snprintf(plugin_path, sizeof(plugin_path),
+				"-Dplugins.dir=%s/plugins", fiji_dir);
 	add_option(options, plugin_path, 0);
 
 	if (memory_size > 0) {
