@@ -451,6 +451,7 @@ static void *start_ij(void *dummy)
 		prepend_string(options.java_options, "java");
 		if (execvp("java", options.java_options.list))
 			cerr << "Could not launch system-wide Java" << endl;
+		exit(1);
 	}
 	return NULL;
 }
