@@ -408,6 +408,9 @@ static void *start_ij(void *dummy)
 		add_option(options, heap_size, 0);
 	}
 
+	if (headless)
+		add_option(options, "-Djava.awt.headless=true", 0);
+
 	if (dashdash) {
 		for (int i = 1; i < dashdash; i++)
 			if (!headless || strcmp(main_argv[i], "--headless"))
