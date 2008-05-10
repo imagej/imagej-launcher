@@ -468,6 +468,15 @@ static void *start_ij(void *dummy)
 		append_string_array(options.java_options, options.ij_options);
 		append_string(options.java_options, NULL);
 		prepend_string(options.java_options, "java");
+#ifdef MACOSX
+		/*
+		 * On MacOSX, one must (stupidly) fork() before exec() to
+		 * clean up some pthread state somehow, otherwise the exec()
+		 * will fail with "Operation not supported".
+		 */
+		if (fork())
+			exit(0);
+#endif
 		if (execvp("java", options.java_options.list))
 			cerr << "Could not launch system-wide Java" << endl;
 		exit(1);
