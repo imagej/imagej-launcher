@@ -492,7 +492,7 @@ static void start_ij_macosx(void *dummy)
 	icon += getpid();
 	string icon_path = fiji_dir;
 	icon_path += "/images/Fiji.icns";
-	setenv(strdup(icon.c_str()), strdup(icon_path.c_str()));
+	setenv(strdup(icon.c_str()), strdup(icon_path.c_str()), 1);
 
 	pthread_t thread;
 	pthread_attr_t attr;
