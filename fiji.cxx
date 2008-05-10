@@ -13,6 +13,7 @@ using std::string;
 #endif
 
 #ifdef MINGW32
+#include <process.h>
 #define PATH_SEP ";"
 #else
 #define PATH_SEP ":"
@@ -167,8 +168,11 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 
 	handle = dlopen(buffer, RTLD_LAZY);
 	if (!handle) {
+		const char *error = dlerror();
+		if (!error)
+			error = "(unknown error)";
 		cerr << "Could not load Java library '" <<
-			buffer << "': " << dlerror() << endl;
+			buffer << "': " << error << endl;
 		return 1;
 	}
 	dlerror(); /* Clear any existing error */
@@ -253,6 +257,11 @@ static void prepend_string(struct string_array& array, char *str)
 	array.nr++;
 }
 
+static void prepend_string(struct string_array& array, const char *str)
+{
+	prepend_string(array, strdup(str));
+}
+
 static void append_string_array(struct string_array& target,
 		struct string_array &source)
 {
@@ -318,11 +327,22 @@ static void add_option(struct options& options, char *option, int for_ij)
 				option);
 }
 
+static void add_option(struct options& options, const char *option, int for_ij)
+{
+	add_option(options, strdup(option), for_ij);
+}
+
+static void add_option(struct options& options, string &option, int for_ij)
+{
+	add_option(options, option.c_str(), for_ij);
+}
+
 static void show_commandline(struct options& options)
 {
 	cerr << "java";
 	for (int j = 0; j < options.java_options.nr; j++)
 		cerr << " " << options.java_options.list[j];
+	cerr << " ij.ImageJ";
 	for (int j = 0; j < options.ij_options.nr; j++)
 		cerr << " " << options.ij_options.list[j];
 	cerr << endl;
@@ -372,7 +392,7 @@ static void *start_ij(void *dummy)
 		return NULL;
 	if (build_classpath(class_path, string(fiji_dir) + "/jars", 0))
 		return NULL;
-	add_option(options, strdup(class_path.c_str()), 0);
+	add_option(options, class_path, 0);
 
 	if (!plugin_path[0])
 		snprintf(plugin_path, sizeof(plugin_path),
@@ -395,8 +415,6 @@ static void *start_ij(void *dummy)
 		main_argv += dashdash;
 		main_argc -= dashdash;
 	}
-
-	add_option(options, strdup("ij.ImageJ"), 0);
 
 	add_option(options, "-port0", 1);
 	for (int i = 1; i < main_argc; i++)
@@ -446,6 +464,7 @@ static void *start_ij(void *dummy)
 		vm->DestroyJavaVM();
 	} else {
 		/* fall back to system-wide Java */
+		add_option(options, "ij.ImageJ", 0);
 		append_string_array(options.java_options, options.ij_options);
 		append_string(options.java_options, NULL);
 		prepend_string(options.java_options, "java");
@@ -467,6 +486,13 @@ static void start_ij_macosx(void *dummy)
 	char name[32];
 	sprintf(name, "APP_NAME_%ld", (long)getpid());
 	setenv(name, "ImageJ", 1);
+
+	/* set the Dock icon */
+	string icon = "APP_ICON_";
+	icon += getpid();
+	string icon_path = fiji_dir;
+	icon_path += "/images/Fiji.icns";
+	setenv(strdup(icon.c_str()), strdup(icon_path.c_str()));
 
 	pthread_t thread;
 	pthread_attr_t attr;
