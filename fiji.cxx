@@ -168,8 +168,11 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 
 	handle = dlopen(buffer, RTLD_LAZY);
 	if (!handle) {
+		const char *error = dlerror();
+		if (!error)
+			error = "(unknown error)";
 		cerr << "Could not load Java library '" <<
-			buffer << "': " << dlerror() << endl;
+			buffer << "': " << error << endl;
 		return 1;
 	}
 	dlerror(); /* Clear any existing error */
