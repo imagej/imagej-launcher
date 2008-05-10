@@ -13,6 +13,7 @@ using std::string;
 #endif
 
 #ifdef MINGW32
+#include <process.h>
 #define PATH_SEP ";"
 #else
 #define PATH_SEP ":"
@@ -338,6 +339,7 @@ static void show_commandline(struct options& options)
 	cerr << "java";
 	for (int j = 0; j < options.java_options.nr; j++)
 		cerr << " " << options.java_options.list[j];
+	cerr << " ij.ImageJ";
 	for (int j = 0; j < options.ij_options.nr; j++)
 		cerr << " " << options.ij_options.list[j];
 	cerr << endl;
@@ -411,8 +413,6 @@ static void *start_ij(void *dummy)
 		main_argc -= dashdash;
 	}
 
-	add_option(options, "ij.ImageJ", 0);
-
 	add_option(options, "-port0", 1);
 	for (int i = 1; i < main_argc; i++)
 		add_option(options, main_argv[i], 1);
@@ -461,6 +461,7 @@ static void *start_ij(void *dummy)
 		vm->DestroyJavaVM();
 	} else {
 		/* fall back to system-wide Java */
+		add_option(options, "ij.ImageJ", 0);
 		append_string_array(options.java_options, options.ij_options);
 		append_string(options.java_options, NULL);
 		prepend_string(options.java_options, "java");
