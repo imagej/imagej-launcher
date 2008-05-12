@@ -432,7 +432,7 @@ static void *start_ij(void *dummy)
 	args.version  = JNI_VERSION_1_2;
 	args.options = prepare_java_options(options.java_options);
 	args.nOptions = options.java_options.nr;
-	args.ignoreUnrecognized = JNI_TRUE;
+	args.ignoreUnrecognized = JNI_FALSE;
 
 	if (options.use_system_jvm)
 		env = NULL;
