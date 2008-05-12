@@ -320,7 +320,7 @@ static void add_option(struct options& options, char *option, int for_ij)
 		options.debug++;
 	else if (!strcmp(option, "--system"))
 		options.use_system_jvm++;
-	else if (strcmp(option, "--headless") ||
+	else if (strcmp(option, "--headless") &&
 			strncmp(option, "--plugins=", 10))
 		append_string(for_ij ?
 				options.ij_options : options.java_options,
@@ -413,8 +413,7 @@ static void *start_ij(void *dummy)
 
 	if (dashdash) {
 		for (int i = 1; i < dashdash; i++)
-			if (!headless || strcmp(main_argv[i], "--headless"))
-				add_option(options, main_argv[i], 0);
+			add_option(options, main_argv[i], 0);
 		main_argv += dashdash;
 		main_argc -= dashdash;
 	}
