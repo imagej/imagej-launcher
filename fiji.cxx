@@ -373,8 +373,12 @@ static void *start_ij(void *dummy)
 		else if (!strncmp(main_argv[i], "--plugins=", 10))
 			snprintf(plugin_path, sizeof(plugin_path),
 					"-Dplugins.dir=%s", main_argv[i] + 10);
-		else if (!strcmp(main_argv[i], "--headless"))
+		else if (!strcmp(main_argv[i], "--headless")) {
 			headless = 1;
+			/* handle "--headless script.ijm" gracefully */
+			if (i + 2 == main_argc)
+				dashdash = i;
+		}
 
 	size_t memory_size = get_memory_size(0);
 	static char heap_size[1024];
@@ -419,6 +423,17 @@ static void *start_ij(void *dummy)
 	}
 
 	add_option(options, "-port0", 1);
+
+	/* handle "--headless script.ijm" gracefully */
+	if (headless) {
+		if (main_argc < 2) {
+			cerr << "--headless without a parameter?" << endl;
+			exit(1);
+		}
+		if (strcmp(main_argv[1], "-batch"))
+			add_option(options, "-batch", 1);
+	}
+
 	for (int i = 1; i < main_argc; i++)
 		add_option(options, main_argv[i], 1);
 
