@@ -376,7 +376,7 @@ static void *start_ij(void *dummy)
 		else if (!strcmp(main_argv[i], "--headless")) {
 			headless = 1;
 			/* handle "--headless script.ijm" gracefully */
-			if (i + 2 == main_argc)
+			if (i + 2 == main_argc && main_argv[i + 1][0] != '-')
 				dashdash = i;
 		}
 
