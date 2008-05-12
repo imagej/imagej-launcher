@@ -437,6 +437,14 @@ static void *start_ij(void *dummy)
 	for (int i = 1; i < main_argc; i++)
 		add_option(options, main_argv[i], 1);
 
+#ifdef MACOSX
+	if (!headless && !getenv("SECURITYSESSIONID")) {
+		cerr << "No GUI detected.  You might want to use the"
+			<< " --headless option." << endl;
+		exit(1);
+	}
+#endif
+
 	if (options.debug) {
 		show_commandline(options);
 		exit(0);
