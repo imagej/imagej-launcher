@@ -451,11 +451,14 @@ static void *start_ij(void *dummy)
 		jmethodID method;
 		jobjectArray args;
 
-		if (!(instance = env->FindClass("ij/ImageJ")))
+		if (!(instance = env->FindClass("ij/ImageJ"))) {
 			cerr << "Could not find ij.ImageJ" << endl;
-		else if (!(method = env->GetStaticMethodID(instance,
-				"main", "([Ljava/lang/String;)V")))
+			exit(1);
+		} else if (!(method = env->GetStaticMethodID(instance,
+				"main", "([Ljava/lang/String;)V"))) {
 			cerr << "Could not find main method" << endl;
+			exit(1);
+		}
 
 		args = prepare_ij_options(env, options.ij_options);
 		env->CallStaticVoidMethodA(instance,
