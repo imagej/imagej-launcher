@@ -385,6 +385,8 @@ static void *start_ij(void *dummy)
 			main_class = "org.python.util.jython";
 		else if (!strcmp(main_argv[i], "--jruby"))
 			main_class = "org.jruby.Main";
+		else if (!strncmp(main_argv[i], "--main-class=", 13))
+			main_class = main_argv[i] + 13;
 		else
 			main_argv[count++] = main_argv[i];
 	main_argc = count;
