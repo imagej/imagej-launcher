@@ -323,7 +323,8 @@ static void add_option(struct options& options, char *option, int for_ij)
 		options.use_system_jvm++;
 	else if (strcmp(option, "--headless") &&
 			strncmp(option, "--plugins=", 10) &&
-			strcmp(option, "--jython"))
+			strcmp(option, "--jython") &&
+			strcmp(option, "--jruby"))
 		append_string(for_ij ?
 				options.ij_options : options.java_options,
 				option);
@@ -383,6 +384,8 @@ static void *start_ij(void *dummy)
 		}
 		else if (!strcmp(main_argv[i], "--jython"))
 			main_class = "org.python.util.jython";
+		else if (!strcmp(main_argv[i], "--jruby"))
+			main_class = "org.jruby.Main";
 
 	size_t memory_size = get_memory_size(0);
 	static char heap_size[1024];
