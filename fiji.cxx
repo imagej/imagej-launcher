@@ -134,6 +134,7 @@ size_t get_memory_size(int available_only)
 const char *fiji_dir;
 char **main_argv;
 int main_argc;
+const char *main_class = "ij.ImageJ";
 
 static char *get_fiji_dir(const char *argv0)
 {
@@ -321,7 +322,8 @@ static void add_option(struct options& options, char *option, int for_ij)
 	else if (!strcmp(option, "--system"))
 		options.use_system_jvm++;
 	else if (strcmp(option, "--headless") &&
-			strncmp(option, "--plugins=", 10))
+			strncmp(option, "--plugins=", 10) &&
+			strcmp(option, "--jython"))
 		append_string(for_ij ?
 				options.ij_options : options.java_options,
 				option);
@@ -342,7 +344,7 @@ static void show_commandline(struct options& options)
 	cerr << "java";
 	for (int j = 0; j < options.java_options.nr; j++)
 		cerr << " " << options.java_options.list[j];
-	cerr << " ij.ImageJ";
+	cerr << " " << main_class;
 	for (int j = 0; j < options.ij_options.nr; j++)
 		cerr << " " << options.ij_options.list[j];
 	cerr << endl;
@@ -379,6 +381,8 @@ static void *start_ij(void *dummy)
 			if (i + 2 == main_argc && main_argv[i + 1][0] != '-')
 				dashdash = i;
 		}
+		else if (!strcmp(main_argv[i], "--jython"))
+			main_class = "org.python.util.jython";
 
 	size_t memory_size = get_memory_size(0);
 	static char heap_size[1024];
@@ -422,7 +426,8 @@ static void *start_ij(void *dummy)
 		main_argc -= dashdash;
 	}
 
-	add_option(options, "-port0", 1);
+	if (!strcmp(main_class, "ij.ImageJ"))
+		add_option(options, "-port0", 1);
 
 	/* handle "--headless script.ijm" gracefully */
 	if (headless) {
@@ -479,8 +484,10 @@ static void *start_ij(void *dummy)
 		jmethodID method;
 		jobjectArray args;
 
-		if (!(instance = env->FindClass("ij/ImageJ"))) {
-			cerr << "Could not find ij.ImageJ" << endl;
+		string slashed(main_class);
+		replace(slashed.begin(), slashed.end(), '.', '/');
+		if (!(instance = env->FindClass(slashed.c_str()))) {
+			cerr << "Could not find " << main_class << endl;
 			exit(1);
 		} else if (!(method = env->GetStaticMethodID(instance,
 				"main", "([Ljava/lang/String;)V"))) {
