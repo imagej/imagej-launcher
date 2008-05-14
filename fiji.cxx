@@ -367,7 +367,7 @@ static void *start_ij(void *dummy)
 	int count = 1;
 	for (int i = 1; i < main_argc; i++)
 		if (!strcmp(main_argv[i], "--"))
-			dashdash = i;
+			dashdash = count;
 		else if (!strcmp(main_argv[i], "--dry-run"))
 			options.debug++;
 		else if (!strcmp(main_argv[i], "--system"))
@@ -379,7 +379,7 @@ static void *start_ij(void *dummy)
 			headless = 1;
 			/* handle "--headless script.ijm" gracefully */
 			if (i + 2 == main_argc && main_argv[i + 1][0] != '-')
-				dashdash = i;
+				dashdash = count;
 		}
 		else if (!strcmp(main_argv[i], "--jython"))
 			main_class = "org.python.util.jython";
@@ -423,6 +423,8 @@ static void *start_ij(void *dummy)
 		add_option(options, "-Djava.awt.headless=true", 0);
 
 	if (dashdash) {
+		if (headless)
+			dashdash--;
 		for (int i = 1; i < dashdash; i++)
 			add_option(options, main_argv[i], 0);
 		main_argv += dashdash;
@@ -433,12 +435,12 @@ static void *start_ij(void *dummy)
 		add_option(options, "-port0", 1);
 
 	/* handle "--headless script.ijm" gracefully */
-	if (headless) {
+	if (headless && !strcmp(main_class, "ij.ImageJ")) {
 		if (main_argc < 2) {
 			cerr << "--headless without a parameter?" << endl;
 			exit(1);
 		}
-		if (strcmp(main_argv[1], "-batch"))
+		if (*main_argv[1] != '-')
 			add_option(options, "-batch", 1);
 	}
 
