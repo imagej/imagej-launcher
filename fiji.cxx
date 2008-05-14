@@ -317,17 +317,9 @@ struct options {
 
 static void add_option(struct options& options, char *option, int for_ij)
 {
-	if (!strcmp(option, "--dry-run"))
-		options.debug++;
-	else if (!strcmp(option, "--system"))
-		options.use_system_jvm++;
-	else if (strcmp(option, "--headless") &&
-			strncmp(option, "--plugins=", 10) &&
-			strcmp(option, "--jython") &&
-			strcmp(option, "--jruby"))
-		append_string(for_ij ?
-				options.ij_options : options.java_options,
-				option);
+	append_string(for_ij ?
+			options.ij_options : options.java_options,
+			option);
 }
 
 static void add_option(struct options& options, const char *option, int for_ij)
@@ -370,9 +362,16 @@ static void *start_ij(void *dummy)
 	static char java_home_path[65536];
 	int dashdash = 0;
 
+	memset(&options, 0, sizeof(options));
+
+	int count = 1;
 	for (int i = 1; i < main_argc; i++)
 		if (!strcmp(main_argv[i], "--"))
 			dashdash = i;
+		else if (!strcmp(main_argv[i], "--dry-run"))
+			options.debug++;
+		else if (!strcmp(main_argv[i], "--system"))
+			options.use_system_jvm++;
 		else if (!strncmp(main_argv[i], "--plugins=", 10))
 			snprintf(plugin_path, sizeof(plugin_path),
 					"-Dplugins.dir=%s", main_argv[i] + 10);
@@ -386,11 +385,12 @@ static void *start_ij(void *dummy)
 			main_class = "org.python.util.jython";
 		else if (!strcmp(main_argv[i], "--jruby"))
 			main_class = "org.jruby.Main";
+		else
+			main_argv[count++] = main_argv[i];
+	main_argc = count;
 
 	size_t memory_size = get_memory_size(0);
 	static char heap_size[1024];
-
-	memset(&options, 0, sizeof(options));
 
 #ifdef MACOSX
 	snprintf(ext_path, sizeof(ext_path),
