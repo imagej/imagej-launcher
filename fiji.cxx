@@ -511,6 +511,14 @@ static void *start_ij(void *dummy)
 		/* This does not return until ImageJ exits */
 		vm->DestroyJavaVM();
 	} else {
+#ifdef MACOSX
+		add_option(options, "-Xdock:name=Fiji", 0);
+		string icon_option = "-Xdock:icon=";
+		icon_option += fiji_dir;
+		icon_option += "/images/Fiji.icns";
+		add_option(options, icon_option, 0);
+#endif
+
 		/* fall back to system-wide Java */
 		add_option(options, "ij.ImageJ", 0);
 		append_string_array(options.java_options, options.ij_options);
@@ -542,11 +550,11 @@ static void start_ij_macosx(void *dummy)
 	/* set the Application's name */
 	char name[32];
 	sprintf(name, "APP_NAME_%ld", (long)getpid());
-	setenv(name, "ImageJ", 1);
+	setenv(name, "Fiji", 1);
 
 	/* set the Dock icon */
 	string icon = "APP_ICON_";
-	icon += getpid();
+	icon += (name + 9);
 	string icon_path = fiji_dir;
 	icon_path += "/images/Fiji.icns";
 	setenv(strdup(icon.c_str()), strdup(icon_path.c_str()), 1);
