@@ -391,6 +391,20 @@ static void *start_ij(void *dummy)
 			main_argv[count++] = main_argv[i];
 	main_argc = count;
 
+	if (!headless &&
+#ifdef MACOSX
+			!getenv("SECURITYSESSIONID")
+#elif defined(__linux__)
+			!getenv("DISPLAY")
+#else
+			false
+#endif
+			) {
+		cerr << "No GUI detected.  Falling back to headless mode."
+			<< endl;
+		headless = 1;
+	}
+
 	size_t memory_size = get_memory_size(0);
 	static char heap_size[1024];
 
@@ -448,20 +462,6 @@ static void *start_ij(void *dummy)
 
 	for (int i = 1; i < main_argc; i++)
 		add_option(options, main_argv[i], 1);
-
-	if (!headless &&
-#ifdef MACOSX
-			!getenv("SECURITYSESSIONID")
-#elif defined(__linux__)
-			!getenv("DISPLAY")
-#else
-			false
-#endif
-			) {
-		cerr << "No GUI detected.  You might want to use the"
-			<< " --headless option." << endl;
-		exit(1);
-	}
 
 	if (options.debug) {
 		show_commandline(options);
