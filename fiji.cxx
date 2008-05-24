@@ -415,6 +415,9 @@ static void *start_ij(void *dummy)
 	add_option(options, ext_path, 0);
 #endif
 
+	/* For Jython 2.2.1 to work properly with .jar packages: */
+	add_option(options, "-Dpython.cachedir.skip=false", 0);
+
 	if (build_classpath(class_path, string(fiji_dir) + "/plugins", 0))
 		return NULL;
 	if (build_classpath(class_path, string(fiji_dir) + "/jars", 0))
