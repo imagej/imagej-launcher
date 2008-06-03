@@ -192,13 +192,6 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 static int headless;
 
 int build_classpath(string &result, string jar_directory, int no_error) {
-	if (result == "") {
-		result = "-Djava.class.path=";
-		if (headless)
-			result += string(fiji_dir) + "/misc/headless.jar:";
-		result += fiji_dir;
-		result += "/ij.jar";
-	}
 	DIR *directory = opendir(jar_directory.c_str());
 	if (!directory) {
 		if (no_error)
@@ -387,6 +380,10 @@ static void *start_ij(void *dummy)
 			main_class = "org.jruby.Main";
 		else if (!strncmp(main_argv[i], "--main-class=", 13))
 			main_class = main_argv[i] + 13;
+		else if (!strncmp(main_argv[i], "--class-path=", 13)) {
+			class_path += main_argv[i] + 13;
+			class_path += PATH_SEP;
+		}
 		else
 			main_argv[count++] = main_argv[i];
 	main_argc = count;
@@ -417,6 +414,13 @@ static void *start_ij(void *dummy)
 
 	/* For Jython 2.2.1 to work properly with .jar packages: */
 	add_option(options, "-Dpython.cachedir.skip=false", 0);
+
+	class_path = "-Djava.class.path=" + class_path;
+	if (headless)
+		class_path += string(fiji_dir) + "/misc/headless.jar"
+			+ PATH_SEP;
+	class_path += fiji_dir;
+	class_path += "/ij.jar";
 
 	if (build_classpath(class_path, string(fiji_dir) + "/plugins", 0))
 		return NULL;
