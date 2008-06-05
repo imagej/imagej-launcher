@@ -212,7 +212,18 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 	static jint (*JNI_CreateJavaVM)(JavaVM **pvm, void **penv, void *args);
 
 	java_home << fiji_dir << "/" << relative_java_home;
+#ifdef WIN32
+	/* support Windows with its ridiculously anachronistic putenv() */
+	stringstream java_home_env;
+	java_home_env << "JAVA_HOME=" << java_home.str();
+	putenv(strdup(java_home_env.str().c_str()));
+	/* Windows automatically adds the path of the executable to PATH */
+	stringstream path;
+	path << "PATH=" << getenv("PATH") << ";" << java_home.str() << "/bin";
+	putenv(strdup(path.str().c_str()));
+#else
 	setenv("JAVA_HOME", java_home.str().c_str(), 1);
+#endif
 	buffer << java_home.str() << "/" << library_path;
 
 	handle = dlopen(buffer.str().c_str(), RTLD_LAZY);
