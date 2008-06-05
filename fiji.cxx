@@ -7,6 +7,9 @@ using std::endl;
 #include <string>
 using std::string;
 
+#include <sstream>
+using std::stringstream;
+
 #ifdef MACOSX
 #include <pthread.h>
 #include <CoreFoundation/CoreFoundation.h>
@@ -122,6 +125,34 @@ size_t get_memory_size(int available_only)
 	return 0;
 }
 #endif
+
+static long long parse_memory(const char *amount)
+{
+	char *endp;
+	long long result = strtoll(amount, &endp, 0);
+
+	if (endp)
+		switch (*endp) {
+		case 't': case 'T':
+			result <<= 10;
+			/* fall through */
+		case 'g': case 'G':
+			result <<= 10;
+			/* fall through */
+		case 'm': case 'M':
+			result <<= 10;
+			/* fall through */
+		case 'k': case 'K':
+			result <<= 10;
+			break;
+		case '\0':
+			/* fall back to megabyte */
+			if (result < 1024)
+				result <<= 20;
+		}
+
+	return result;
+}
 
 
 
@@ -325,6 +356,11 @@ static void add_option(struct options& options, string &option, int for_ij)
 	add_option(options, option.c_str(), for_ij);
 }
 
+static void add_option(struct options& options, stringstream &option, int for_ij)
+{
+	add_option(options, option.str().c_str(), for_ij);
+}
+
 static void show_commandline(struct options& options)
 {
 	cerr << "java";
@@ -355,6 +391,8 @@ static void *start_ij(void *dummy)
 	static char java_home_path[65536];
 	int dashdash = 0;
 
+	size_t memory_size = 0;
+
 	memset(&options, 0, sizeof(options));
 
 	int count = 1;
@@ -368,6 +406,12 @@ static void *start_ij(void *dummy)
 		else if (!strncmp(main_argv[i], "--plugins=", 10))
 			snprintf(plugin_path, sizeof(plugin_path),
 					"-Dplugins.dir=%s", main_argv[i] + 10);
+		else if (!strncmp(main_argv[i], "--heap=", 7))
+			memory_size = parse_memory(main_argv[i] + 7);
+		else if (!strncmp(main_argv[i], "--mem=", 6))
+			memory_size = parse_memory(main_argv[i] + 6);
+		else if (!strncmp(main_argv[i], "--memory=", 9))
+			memory_size = parse_memory(main_argv[i] + 9);
 		else if (!strcmp(main_argv[i], "--headless")) {
 			headless = 1;
 			/* handle "--headless script.ijm" gracefully */
@@ -402,9 +446,6 @@ static void *start_ij(void *dummy)
 		headless = 1;
 	}
 
-	size_t memory_size = get_memory_size(0);
-	static char heap_size[1024];
-
 #ifdef MACOSX
 	snprintf(ext_path, sizeof(ext_path),
 			"-Djava.ext.dirs=%s/%s/lib/ext",
@@ -433,12 +474,16 @@ static void *start_ij(void *dummy)
 				"-Dplugins.dir=%s", fiji_dir);
 	add_option(options, plugin_path, 0);
 
+	// if arguments don't set the memory size, set it after available memory
+	if (memory_size == 0)
+		memory_size = get_memory_size(0) * 2 / 3;
+
 	if (memory_size > 0) {
-		memory_size = memory_size / 1024 * 2 / 3 / 1024;
+		memory_size >>= 20;
 		if (sizeof(void *) == 4 && memory_size > MAX_32BIT_HEAP)
 			memory_size = MAX_32BIT_HEAP;
-		snprintf(heap_size, sizeof(heap_size),
-			"-Xmx%dm", (int)memory_size);
+		stringstream heap_size;
+		heap_size << "-Xmx"<< memory_size << "m";
 		add_option(options, heap_size, 0);
 	}
 
