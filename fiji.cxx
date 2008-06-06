@@ -418,7 +418,7 @@ static void *start_ij(void *dummy)
 
 	int count = 1;
 	for (int i = 1; i < main_argc; i++)
-		if (!strcmp(main_argv[i], "--"))
+		if (!strcmp(main_argv[i], "--") && !dashdash)
 			dashdash = count;
 		else if (!strcmp(main_argv[i], "--dry-run"))
 			options.debug++;
