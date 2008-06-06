@@ -171,7 +171,7 @@ static long long parse_memory(const char *amount)
 const char *fiji_dir;
 char **main_argv;
 int main_argc;
-const char *main_class = "ij.ImageJ";
+const char *main_class;
 
 static char *get_fiji_dir(const char *argv0)
 {
@@ -516,6 +516,20 @@ static void *start_ij(void *dummy)
 			add_option(options, main_argv[i], 0);
 		main_argv += dashdash - 1;
 		main_argc -= dashdash - 1;
+	}
+
+	if (!main_class) {
+		const char *first = main_argv[1];
+		int len = main_argc > 1 ? strlen(first) : 0;
+
+		if (len > 1 && !strncmp(first, "--", 2))
+			len = 0;
+		if (len > 3 && !strcmp(first + len - 3, ".py"))
+			main_class = "org.python.util.jython";
+		else if (len > 3 && !strcmp(first + len - 3, ".rb"))
+			main_class = "org.jruby.Main";
+		else
+			main_class = "ij.ImageJ";
 	}
 
 #ifndef MACOSX
