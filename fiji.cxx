@@ -606,7 +606,14 @@ static void start_ij_macosx(void *dummy)
 	string icon = "APP_ICON_";
 	icon += (name + 9);
 	string icon_path = fiji_dir;
-	icon_path += "/images/Fiji.icns";
+	/*
+	 * Check if we're launched from within an Application bundle or
+	 * command line.  If from a bundle, Fiji.app should be in the path.
+	 */
+	if (icon_path.find("Fiji.app") == string::npos)
+		icon_path += "/images/Fiji.icns";
+	else
+		icon_path += "/../Resources/Fiji.icns";
 	setenv(strdup(icon.c_str()), strdup(icon_path.c_str()), 1);
 
 	pthread_t thread;
