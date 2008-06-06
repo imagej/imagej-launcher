@@ -446,12 +446,10 @@ static void *start_ij(void *dummy)
 		add_option(options, "-Djava.awt.headless=true", 0);
 
 	if (dashdash) {
-		if (headless)
-			dashdash--;
 		for (int i = 1; i < dashdash; i++)
 			add_option(options, main_argv[i], 0);
-		main_argv += dashdash;
-		main_argc -= dashdash;
+		main_argv += dashdash - 1;
+		main_argc -= dashdash - 1;
 	}
 
 	if (!strcmp(main_class, "ij.ImageJ"))
