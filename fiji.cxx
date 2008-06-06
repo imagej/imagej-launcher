@@ -197,17 +197,16 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 #ifdef MACOSX
 	set_path_to_JVM();
 #else
-	char java_home[PATH_MAX], buffer[PATH_MAX];
+	stringstream java_home, buffer;
 	void *handle;
 	char *err;
 	static jint (*JNI_CreateJavaVM)(JavaVM **pvm, void **penv, void *args);
 
-	snprintf(java_home, sizeof(java_home), "JAVA_HOME=%s/%s",
-			fiji_dir, relative_java_home);
-	putenv(java_home);
-	snprintf(buffer, sizeof(buffer), "%s/%s", java_home + 10, library_path);
+	java_home << fiji_dir << "/" << relative_java_home;
+	setenv("JAVA_HOME", java_home.str().c_str(), 1);
+	buffer << java_home << "/" << library_path;
 
-	handle = dlopen(buffer, RTLD_LAZY);
+	handle = dlopen(buffer.str(), RTLD_LAZY);
 	if (!handle) {
 		const char *error = dlerror();
 		if (!error)
@@ -396,9 +395,7 @@ static void *start_ij(void *dummy)
 	JavaVMInitArgs args;
 	JNIEnv *env;
 	static string class_path;
-	static char plugin_path[PATH_MAX] = "";
-	static char ext_path[65536];
-	static char java_home_path[65536];
+	stringstream plugin_path;
 	int dashdash = 0;
 
 	long long memory_size = 0;
@@ -425,8 +422,7 @@ static void *start_ij(void *dummy)
 		else if (!strcmp(main_argv[i], "--system"))
 			options.use_system_jvm++;
 		else if (!strncmp(main_argv[i], "--plugins=", 10))
-			snprintf(plugin_path, sizeof(plugin_path),
-					"-Dplugins.dir=%s", main_argv[i] + 10);
+			plugin_path << "-Dplugins.dir=" << (main_argv[i] + 10);
 		else if (!strncmp(main_argv[i], "--heap=", 7))
 			memory_size = parse_memory(main_argv[i] + 7);
 		else if (!strncmp(main_argv[i], "--mem=", 6))
@@ -468,9 +464,9 @@ static void *start_ij(void *dummy)
 	}
 
 #ifdef MACOSX
-	snprintf(ext_path, sizeof(ext_path),
-			"-Djava.ext.dirs=%s/%s/lib/ext",
-			fiji_dir, relative_java_home);
+	stringstream ext_path;
+	ext_path << "-Djava.ext.dirs=" << fiji_dir << "/"
+		<< relative_java_home << "/lib/ext";
 	add_option(options, ext_path, 0);
 #endif
 
@@ -490,9 +486,8 @@ static void *start_ij(void *dummy)
 		return NULL;
 	add_option(options, class_path, 0);
 
-	if (!plugin_path[0])
-		snprintf(plugin_path, sizeof(plugin_path),
-				"-Dplugins.dir=%s", fiji_dir);
+	if (plugin_path.str() == "")
+		plugin_path << "-Dplugins.dir=" << fiji_dir;
 	add_option(options, plugin_path, 0);
 
 	// if arguments don't set the memory size, set it after available memory
@@ -568,10 +563,11 @@ static void *start_ij(void *dummy)
 		cerr << "Warning: falling back to System JVM" << endl;
 		env = NULL;
 	} else {
-		snprintf(java_home_path, sizeof(java_home_path),
-				"-Djava.home=%s/%s",
-				fiji_dir, relative_java_home);
-		prepend_string(options.java_options, java_home_path);
+		stringstream java_home_path;
+		java_home_path << "-Djava.home=" << fiji_dir << "/"
+			<< relative_java_home;
+		prepend_string(options.java_options,
+			java_home_path.str().c_str());
 	}
 
 	if (env) {
@@ -786,16 +782,16 @@ static void dummy_call_back(void *info) {}
 static void start_ij_macosx(void *dummy)
 {
 	/* set the Application's name */
-	char name[32];
-	sprintf(name, "APP_NAME_%ld", (long)getpid());
-	setenv(name, "Fiji", 1);
+	stringstream name;
+	name << "APP_NAME_" << (long)getpid();
+	setenv(name.str().c_str(), "Fiji", 1);
 
 	/* set the Dock icon */
-	string icon = "APP_ICON_";
-	icon += (name + 9);
+	stringstream icon;
+	icon << "APP_ICON_" << (long)getpid();;
 	string icon_path;
 	append_icon_path(icon_path);
-	setenv(strdup(icon.c_str()), strdup(icon_path.c_str()), 1);
+	setenv(icon.str().c_str(), icon_path.c_str(), 1);
 
 	pthread_t thread;
 	pthread_attr_t attr;
