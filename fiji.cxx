@@ -11,8 +11,14 @@ using std::string;
 using std::stringstream;
 
 #ifdef MACOSX
+#include <stdlib.h>
+#include <sys/stat.h>
 #include <pthread.h>
 #include <CoreFoundation/CoreFoundation.h>
+
+static void append_icon_path(string &str);
+static void set_path_to_JVM(void);
+static int get_fiji_bundle_variable(const char *key, string &value);
 #endif
 
 #ifdef MINGW32
@@ -188,6 +194,9 @@ static char *get_fiji_dir(const char *argv0)
 
 static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 {
+#ifdef MACOSX
+	set_path_to_JVM();
+#else
 	char java_home[PATH_MAX], buffer[PATH_MAX];
 	void *handle;
 	char *err;
@@ -216,6 +225,7 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 		cerr << "Error loading libjvm: " << err << endl;
 		return 1;
 	}
+#endif
 
 	return JNI_CreateJavaVM(vm, env, args);
 }
@@ -391,9 +401,20 @@ static void *start_ij(void *dummy)
 	static char java_home_path[65536];
 	int dashdash = 0;
 
-	size_t memory_size = 0;
+	long long memory_size = 0;
 
 	memset(&options, 0, sizeof(options));
+
+#ifdef MACOSX
+	string value;
+	if (!get_fiji_bundle_variable("heap", value) ||
+			!get_fiji_bundle_variable("mem", value) ||
+			!get_fiji_bundle_variable("memory", value))
+		memory_size = parse_memory(value.c_str());
+	if (!get_fiji_bundle_variable("system", value) &&
+			atol(value.c_str()) > 0)
+		options.use_system_jvm++;
+#endif
 
 	int count = 1;
 	for (int i = 1; i < main_argc; i++)
@@ -521,7 +542,8 @@ static void *start_ij(void *dummy)
 	}
 
 	memset(&args, 0, sizeof(args));
-	args.version  = JNI_VERSION_1_2;
+	/* JNI_VERSION_1_4 is used on Mac OS X to indicate 1.4.x and later */
+	args.version = JNI_VERSION_1_4;
 	args.options = prepare_java_options(options.java_options);
 	args.nOptions = options.java_options.nr;
 	args.ignoreUnrecognized = JNI_FALSE;
@@ -563,19 +585,7 @@ static void *start_ij(void *dummy)
 		/* This does not return until ImageJ exits */
 		vm->DestroyJavaVM();
 	} else {
-#ifdef MACOSX
-		add_option(options, "-Xdock:name=Fiji", 0);
-		string icon_option = "-Xdock:icon=";
-		icon_option += fiji_dir;
-		icon_option += "/images/Fiji.icns";
-		add_option(options, icon_option, 0);
-#endif
-
 		/* fall back to system-wide Java */
-		add_option(options, "ij.ImageJ", 0);
-		append_string_array(options.java_options, options.ij_options);
-		append_string(options.java_options, NULL);
-		prepend_string(options.java_options, "java");
 #ifdef MACOSX
 		/*
 		 * On MacOSX, one must (stupidly) fork() before exec() to
@@ -584,7 +594,19 @@ static void *start_ij(void *dummy)
 		 */
 		if (fork())
 			exit(0);
+
+		add_option(options, "-Xdock:name=Fiji", 0);
+		string icon_option = "-Xdock:icon=";
+		append_icon_path(icon_option);
+		add_option(options, icon_option, 0);
 #endif
+
+		/* fall back to system-wide Java */
+		add_option(options, "ij.ImageJ", 0);
+		append_string_array(options.java_options, options.ij_options);
+		append_string(options.java_options, NULL);
+		prepend_string(options.java_options, "java");
+
 		if (execvp("java", options.java_options.list))
 			cerr << "Could not launch system-wide Java" << endl;
 		exit(1);
@@ -593,6 +615,156 @@ static void *start_ij(void *dummy)
 }
 
 #ifdef MACOSX
+static void append_icon_path(string &str)
+{
+	str += fiji_dir;
+	/*
+	 * Check if we're launched from within an Application bundle or
+	 * command line.  If from a bundle, Fiji.app should be in the path.
+	 */
+	if (strstr(fiji_dir, "Fiji.app"))
+		str += "/../Resources/Fiji.icns";
+	else
+		str += "/images/Fiji.icns";
+}
+
+static void set_path_to_JVM(void)
+{
+	/*
+	 * MacOSX specific stuff for system java
+	 * -------------------------------------
+	 * Non-macosx works but places java into separate pid,
+	 * which causes all kinds of strange behaviours (app can
+	 * launch multiple times, etc).
+	 *
+	 * Search for system wide java >= 1.5
+	 * and if found, launch Fiji with the system wide java.
+	 * This is an adaptation from simple.c from Apple's
+	 * simpleJavaLauncher code.
+	 */
+
+	CFStringRef targetJVM = CFSTR("1.5"); // Minimum Java5
+
+	/* Look for the JavaVM bundle using its identifier. */
+	CFBundleRef JavaVMBundle =
+		CFBundleGetBundleWithIdentifier(CFSTR("com.apple.JavaVM"));
+
+	if (!JavaVMBundle)
+		return;
+
+	/* Get a path for the JavaVM bundle. */
+	CFURLRef JavaVMBundleURL = CFBundleCopyBundleURL(JavaVMBundle);
+	CFRelease(JavaVMBundle);
+	if (!JavaVMBundleURL)
+		return;
+
+	/* Append to the path the Versions Component. */
+	CFURLRef JavaVMBundlerVersionsDirURL =
+		CFURLCreateCopyAppendingPathComponent(kCFAllocatorDefault,
+				JavaVMBundleURL, CFSTR("Versions"), true);
+	CFRelease(JavaVMBundleURL);
+	if (!JavaVMBundlerVersionsDirURL)
+		return;
+
+	/* Append to the path the target JVM's Version. */
+	CFURLRef TargetJavaVM =
+		CFURLCreateCopyAppendingPathComponent(kCFAllocatorDefault,
+				JavaVMBundlerVersionsDirURL, targetJVM, true);
+	CFRelease(JavaVMBundlerVersionsDirURL);
+	if (!TargetJavaVM)
+		return;
+
+	UInt8 pathToTargetJVM[PATH_MAX] = "";
+	Boolean result = CFURLGetFileSystemRepresentation(TargetJavaVM, true,
+				pathToTargetJVM, PATH_MAX);
+	CFRelease(TargetJavaVM);
+	if (!result)
+		return;
+
+	/*
+	 * Check to see if the directory, or a symlink for the target
+	 * JVM directory exists, and if so set the environment
+	 * variable JAVA_JVM_VERSION to the target JVM.
+	 */
+	if (access((const char *)pathToTargetJVM, R_OK))
+		return;
+
+	/*
+	 * Ok, the directory exists, so now we need to set the
+	 * environment var JAVA_JVM_VERSION to the CFSTR targetJVM.
+	 *
+	 * We can reuse the pathToTargetJVM buffer to set the environment
+	 * varable.
+	 */
+	if (CFStringGetCString(targetJVM, (char *)pathToTargetJVM,
+				PATH_MAX, kCFStringEncodingUTF8))
+		setenv("JAVA_JVM_VERSION",
+				(const char *)pathToTargetJVM, 1);
+
+}
+
+static int get_fiji_bundle_variable(const char *key, string &value)
+{
+	/*
+	 * Reading the command line options from the Info.plist file in the
+	 * Application bundle.
+	 *
+	 * This routine expects a separate dictionary for fiji with the
+	 * options from the command line as keys.
+	 *
+	 * If Info.plist is not present (i.e. if started from the cmd-line),
+	 * the whole thing will be just skipped.
+	 *
+	 * Example: Setting the java heap to 1024m
+	 * <key>fiji</key>
+	 * <dict>
+	 *	<key>heap</key>
+	 *	<string>1024</string>
+	 * </dict>
+	 */
+
+	static CFDictionaryRef fijiInfoDict;
+	static int initialized = 0;
+
+	if (!initialized) {
+		initialized = 1;
+
+		/* Get the main bundle for the app. */
+		CFBundleRef fijiBundle = CFBundleGetMainBundle();
+		if (!fijiBundle)
+			return -1;
+
+		/* Get an instance of the non-localized keys. */
+		CFDictionaryRef bundleInfoDict =
+			CFBundleGetInfoDictionary(fijiBundle);
+		if (!bundleInfoDict)
+			return -2;
+
+		fijiInfoDict = (CFDictionaryRef)
+			CFDictionaryGetValue(bundleInfoDict, CFSTR("fiji"));
+	}
+
+	if (!fijiInfoDict)
+		return -3;
+
+	CFStringRef key_ref =
+		CFStringCreateWithCString(NULL, key,
+			kCFStringEncodingMacRoman);
+	if (!key_ref)
+		return -4;
+
+	CFStringRef propertyString = (CFStringRef)
+		CFDictionaryGetValue(fijiInfoDict, key_ref);
+	CFRelease(key_ref);
+	if (!propertyString)
+		return -5;
+
+	value = CFStringGetCStringPtr(propertyString,
+			kCFStringEncodingMacRoman);
+
+	return 0;
+}
+
 /* MacOSX needs to run Java in a new thread, AppKit in the main thread. */
 
 static void dummy_call_back(void *info) {}
@@ -607,15 +779,8 @@ static void start_ij_macosx(void *dummy)
 	/* set the Dock icon */
 	string icon = "APP_ICON_";
 	icon += (name + 9);
-	string icon_path = fiji_dir;
-	/*
-	 * Check if we're launched from within an Application bundle or
-	 * command line.  If from a bundle, Fiji.app should be in the path.
-	 */
-	if (icon_path.find("Fiji.app") == string::npos)
-		icon_path += "/images/Fiji.icns";
-	else
-		icon_path += "/../Resources/Fiji.icns";
+	string icon_path;
+	append_icon_path(icon_path);
 	setenv(strdup(icon.c_str()), strdup(icon_path.c_str()), 1);
 
 	pthread_t thread;
@@ -633,7 +798,7 @@ static void start_ij_macosx(void *dummy)
 	context.perform = &dummy_call_back;
 
 	CFRunLoopSourceRef ref = CFRunLoopSourceCreate(NULL, 0, &context);
-	CFRunLoopAddSource (CFRunLoopGetCurrent(), ref, kCFRunLoopCommonModes); 
+	CFRunLoopAddSource (CFRunLoopGetCurrent(), ref, kCFRunLoopCommonModes);
 	CFRunLoopRun();
 }
 #define start_ij start_ij_macosx
@@ -647,4 +812,3 @@ int main(int argc, char **argv, char **e)
 	start_ij(NULL);
 	return 0;
 }
-
