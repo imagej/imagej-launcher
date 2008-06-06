@@ -497,8 +497,10 @@ static void *start_ij(void *dummy)
 		main_argc -= dashdash - 1;
 	}
 
+#ifndef MACOSX
 	if (!strcmp(main_class, "ij.ImageJ"))
 		add_option(options, "-port0", 1);
+#endif
 
 	/* handle "--headless script.ijm" gracefully */
 	if (headless && !strcmp(main_class, "ij.ImageJ")) {
