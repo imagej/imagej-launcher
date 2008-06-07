@@ -545,7 +545,7 @@ static int start_ij(void)
 	static string class_path, ext_option, jvm_options;
 	stringstream plugin_path;
 	int dashdash = 0, jdb = 0;
-	bool allow_multiple = false;
+	bool allow_multiple = false, skip_build_classpath = false;
 
 	size_t memory_size = 0;
 
@@ -645,19 +645,22 @@ static int start_ij(void)
 	add_option(options, "-Dpython.cachedir.skip=false", 0);
 
 	class_path = "-Djava.class.path=" + class_path;
-	if (headless)
-		class_path += string(fiji_dir) + "/misc/headless.jar"
-			+ PATH_SEP;
-	class_path += fiji_dir;
-	class_path += "/misc/Fiji.jar";
-	class_path += PATH_SEP;
-	class_path += fiji_dir;
-	class_path += "/ij.jar";
+	if (!skip_build_classpath) {
+		if (headless)
+			class_path += string(fiji_dir) + "/misc/headless.jar"
+				+ PATH_SEP;
+		class_path += fiji_dir;
+		class_path += "/misc/Fiji.jar";
+		class_path += PATH_SEP;
+		class_path += fiji_dir;
+		class_path += "/ij.jar";
 
-	if (build_classpath(class_path, string(fiji_dir) + "/plugins", 0))
-		return 1;
-	if (build_classpath(class_path, string(fiji_dir) + "/jars", 0))
-		return 1;
+		if (build_classpath(class_path,
+					string(fiji_dir) + "/plugins", 0))
+			return 1;
+		if (build_classpath(class_path, string(fiji_dir) + "/jars", 0))
+			return 1;
+	}
 	add_option(options, class_path, 0);
 
 	if (plugin_path.str() == "")
