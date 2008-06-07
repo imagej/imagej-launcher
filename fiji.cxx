@@ -177,6 +177,7 @@ const char *fiji_dir;
 char **main_argv;
 int main_argc;
 const char *main_class;
+bool run_precompiled = false;
 
 static char *get_fiji_dir(const char *argv0)
 {
@@ -189,6 +190,14 @@ static char *get_fiji_dir(const char *argv0)
 		slash = backslash;
 #endif
 
+	if (slash && slash - argv0 >= 11 && !strncmp(argv0
+				+ (slash - argv0) - 11, "precompiled", 11)) {
+		if (slash - argv0 == 11)
+			slash = NULL;
+		else
+			slash -= 12;
+		run_precompiled = true;
+	}
 	if (slash)
 		snprintf(buffer, slash - argv0 + 1, argv0);
 	else
@@ -614,7 +623,10 @@ static int start_ij(void)
 			ext_option += main_argv[i] + 4;
 		}
 		else if (!strcmp(main_argv[i], "--fake")) {
+			skip_build_classpath = true;
 			class_path += fiji_dir;
+			if (run_precompiled)
+				class_path += "/precompiled";
 			class_path += "/fake.jar" PATH_SEP;
 			main_class = "Fake";
 		}
