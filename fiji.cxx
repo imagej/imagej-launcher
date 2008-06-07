@@ -633,6 +633,8 @@ static int start_ij(void)
 			class_path += "/fake.jar" PATH_SEP;
 			main_class = "Fake";
 		}
+		else if (!strncmp(main_argv[i], "--fiji-dir=", 11))
+			fiji_dir = main_argv[i] + 11;
 		else
 			main_argv[count++] = main_argv[i];
 	main_argc = count;
