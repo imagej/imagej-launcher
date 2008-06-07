@@ -228,7 +228,7 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 		if (!error)
 			error = "(unknown error)";
 		cerr << "Could not load Java library '" <<
-			buffer << "': " << error << endl;
+			buffer.str() << "': " << error << endl;
 		return 1;
 	}
 	dlerror(); /* Clear any existing error */
