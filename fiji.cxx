@@ -62,7 +62,10 @@ static void *dlopen(const char *name, int flags)
 
 static char *dlerror(void)
 {
-	return dlerror_value;
+	/* We need to reset the error */
+	char *result = dlerror_value;
+	dlerror_value = NULL;
+	return result;
 }
 
 static void *dlsym(void *handle, const char *name)
