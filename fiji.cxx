@@ -384,11 +384,7 @@ static void show_commandline(struct options& options)
 /* the maximal size of the heap on 32-bit systems, in megabyte */
 #define MAX_32BIT_HEAP 1920
 
-/*
- * The signature of start_ij() is funny because on MacOSX, it has to be called
- * via pthread_create().
- */
-static void *start_ij(void *dummy)
+static int start_ij(void)
 {
 	JavaVM *vm;
 	struct options options;
@@ -481,9 +477,9 @@ static void *start_ij(void *dummy)
 	class_path += "/ij.jar";
 
 	if (build_classpath(class_path, string(fiji_dir) + "/plugins", 0))
-		return NULL;
+		return 1;
 	if (build_classpath(class_path, string(fiji_dir) + "/jars", 0))
-		return NULL;
+		return 1;
 	add_option(options, class_path, 0);
 
 	if (plugin_path.str() == "")
@@ -621,7 +617,7 @@ static void *start_ij(void *dummy)
 			cerr << "Could not launch system-wide Java" << endl;
 		exit(1);
 	}
-	return NULL;
+	return 0;
 }
 
 #ifdef MACOSX
@@ -779,6 +775,11 @@ static int get_fiji_bundle_variable(const char *key, string &value)
 
 static void dummy_call_back(void *info) {}
 
+static void *start_ij_aux(void *dummy)
+{
+	exit(start_ij());
+}
+
 static void start_ij_macosx(void *dummy)
 {
 	/* set the Application's name */
@@ -800,7 +801,7 @@ static void start_ij_macosx(void *dummy)
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
 	/* Start the thread that we will start the JVM on. */
-	pthread_create(&thread, &attr, start_ij, NULL);
+	pthread_create(&thread, &attr, start_ij_aux, NULL);
 	pthread_attr_destroy(&attr);
 
 	CFRunLoopSourceContext context;
