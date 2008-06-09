@@ -392,7 +392,7 @@ static int start_ij(void)
 	JNIEnv *env;
 	static string class_path, ext_option;
 	stringstream plugin_path;
-	int dashdash = 0;
+	int dashdash = 0, jdb = 0;
 
 	long long memory_size = 0;
 
@@ -422,6 +422,8 @@ static int start_ij(void)
 			options.debug++;
 		else if (!strcmp(main_argv[i], "--system"))
 			options.use_system_jvm++;
+		else if (!strcmp(main_argv[i], "--jdb"))
+			jdb = 1;
 		else if (!strncmp(main_argv[i], "--plugins=", 10))
 			plugin_path << "-Dplugins.dir=" << (main_argv[i] + 10);
 		else if (!strncmp(main_argv[i], "--heap=", 7))
@@ -529,6 +531,13 @@ static int start_ij(void)
 			main_class = "org.jruby.Main";
 		else
 			main_class = "ij.ImageJ";
+	}
+
+	if (jdb) {
+		add_option(options, "-classpath", 1);
+		add_option(options, class_path.substr(18).c_str(), 1);
+		add_option(options, main_class, 1);
+		main_class = "com.sun.tools.example.debug.tty.TTY";
 	}
 
 #ifndef MACOSX
