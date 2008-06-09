@@ -163,6 +163,12 @@ static long long parse_memory(const char *amount)
 	return result;
 }
 
+static bool parse_bool(string &value)
+{
+	return value != "0" && value != "false" &&
+		value != "False" && value != "FALSE";
+}
+
 
 
 /* Java stuff */
@@ -474,6 +480,7 @@ static int start_ij(void)
 	static string class_path, ext_option, jvm_options;
 	stringstream plugin_path;
 	int dashdash = 0, jdb = 0;
+	bool allow_multiple = false;
 
 	long long memory_size = 0;
 
@@ -493,6 +500,8 @@ static int start_ij(void)
 			"/System/Library/Java/Extensions:"
 			"/System/Library/Frameworks/JavaVM.framework"
 				"/Home/lib/ext";
+	if (!get_fiji_bundle_variable("allowMultiple", value))
+		allow_multiple = parse_bool(value);
 	get_fiji_bundle_variable("JVMOptions", jvm_options);
 #else
 	read_file_as_string(string(fiji_dir) + "/jvm.cfg", jvm_options);
@@ -508,6 +517,8 @@ static int start_ij(void)
 			options.use_system_jvm++;
 		else if (!strcmp(main_argv[i], "--jdb"))
 			jdb = 1;
+		else if (!strcmp(main_argv[i], "--allow-multiple"))
+			allow_multiple = true;
 		else if (!strncmp(main_argv[i], "--plugins=", 10))
 			plugin_path << "-Dplugins.dir=" << (main_argv[i] + 10);
 		else if (!strncmp(main_argv[i], "--heap=", 7))
@@ -630,10 +641,8 @@ static int start_ij(void)
 		main_class = "com.sun.tools.example.debug.tty.TTY";
 	}
 
-#ifndef MACOSX
-	if (!strcmp(main_class, "ij.ImageJ"))
+	if (allow_multiple && !strcmp(main_class, "ij.ImageJ"))
 		add_option(options, "-port0", 1);
-#endif
 
 	/* handle "--headless script.ijm" gracefully */
 	if (headless && !strcmp(main_class, "ij.ImageJ")) {
