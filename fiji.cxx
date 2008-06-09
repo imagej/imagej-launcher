@@ -204,7 +204,7 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 
 	java_home << fiji_dir << "/" << relative_java_home;
 	setenv("JAVA_HOME", java_home.str().c_str(), 1);
-	buffer << java_home << "/" << library_path;
+	buffer << java_home.str() << "/" << library_path;
 
 	handle = dlopen(buffer.str().c_str(), RTLD_LAZY);
 	if (!handle) {
