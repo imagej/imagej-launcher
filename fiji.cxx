@@ -390,7 +390,7 @@ static int start_ij(void)
 	struct options options;
 	JavaVMInitArgs args;
 	JNIEnv *env;
-	static string class_path;
+	static string class_path, ext_option;
 	stringstream plugin_path;
 	int dashdash = 0;
 
@@ -407,6 +407,11 @@ static int start_ij(void)
 	if (!get_fiji_bundle_variable("system", value) &&
 			atol(value.c_str()) > 0)
 		options.use_system_jvm++;
+	if (get_fiji_bundle_variable("ext", ext_option))
+		ext_option = "/Library/Java/Extensions:"
+			"/System/Library/Java/Extensions:"
+			"/System/Library/Frameworks/JavaVM.framework"
+				"/Home/lib/ext";
 #endif
 
 	int count = 1;
@@ -441,6 +446,11 @@ static int start_ij(void)
 			class_path += main_argv[i] + 13;
 			class_path += PATH_SEP;
 		}
+		else if (!strncmp(main_argv[i], "--ext=", 4)) {
+			if (ext_option != "")
+				ext_option += PATH_SEP;
+			ext_option += main_argv[i] + 4;
+		}
 		else
 			main_argv[count++] = main_argv[i];
 	main_argc = count;
@@ -459,12 +469,10 @@ static int start_ij(void)
 		headless = 1;
 	}
 
-#ifdef MACOSX
-	stringstream ext_path;
-	ext_path << "-Djava.ext.dirs=" << fiji_dir << "/"
-		<< relative_java_home << "/lib/ext";
-	add_option(options, ext_path, 0);
-#endif
+	if (ext_option != "") {
+		ext_option = string("-Djava.ext.dirs=") + ext_option;
+		add_option(options, ext_option, 0);
+	}
 
 	/* For Jython 2.2.1 to work properly with .jar packages: */
 	add_option(options, "-Dpython.cachedir.skip=false", 0);
