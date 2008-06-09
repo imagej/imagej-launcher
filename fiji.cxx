@@ -206,7 +206,7 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 	setenv("JAVA_HOME", java_home.str().c_str(), 1);
 	buffer << java_home << "/" << library_path;
 
-	handle = dlopen(buffer.str(), RTLD_LAZY);
+	handle = dlopen(buffer.str().c_str(), RTLD_LAZY);
 	if (!handle) {
 		const char *error = dlerror();
 		if (!error)
@@ -797,7 +797,7 @@ static void *start_ij_aux(void *dummy)
 	exit(start_ij());
 }
 
-static void start_ij_macosx(void *dummy)
+static int start_ij_macosx(void)
 {
 	/* set the Application's name */
 	stringstream name;
@@ -828,6 +828,7 @@ static void start_ij_macosx(void *dummy)
 	CFRunLoopSourceRef ref = CFRunLoopSourceCreate(NULL, 0, &context);
 	CFRunLoopAddSource (CFRunLoopGetCurrent(), ref, kCFRunLoopCommonModes);
 	CFRunLoopRun();
+	return 0;
 }
 #define start_ij start_ij_macosx
 #endif
@@ -837,6 +838,5 @@ int main(int argc, char **argv, char **e)
 	fiji_dir = get_fiji_dir(argv[0]);
 	main_argv = argv;
 	main_argc = argc;
-	start_ij(NULL);
-	return 0;
+	return start_ij();
 }
