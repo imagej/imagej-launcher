@@ -10,6 +10,9 @@ using std::string;
 #include <sstream>
 using std::stringstream;
 
+#include <fstream>
+using std::ifstream;
+
 #ifdef MACOSX
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -370,14 +373,92 @@ static void add_option(struct options& options, stringstream &option, int for_ij
 	add_option(options, option.str().c_str(), for_ij);
 }
 
+static bool is_quote(char c)
+{
+	return c == '\'' || c == '"';
+}
+
+static int find_closing_quote(string s, char quote, int index, int len)
+{
+	for (int i = index; i < len; i++) {
+		char c = s[i];
+		if (c == quote)
+			return i;
+		if (is_quote(c))
+			i = find_closing_quote(s, c, i + 1, len);
+	}
+	cerr << "Unclosed quote: " << s << endl << "               ";
+	for (int i = 0; i < index; i++)
+		cerr << " ";
+	cerr << "^" << endl;
+	exit(1);
+}
+
+static void add_options(struct options &options, string &cmd_line, int for_ij)
+{
+	int len = cmd_line.length();
+	string current = "";
+
+	for (int i = 0; i < len; i++) {
+		char c = cmd_line[i];
+		if (is_quote(c)) {
+			int i2 = find_closing_quote(cmd_line, c, i + 1, len);
+			current += cmd_line.substr(i + 1, i2 - i - 1);
+			i = i2;
+			continue;
+		}
+		if (c == ' ' || c == '\t' || c == '\n') {
+			if (current == "")
+				continue;
+			add_option(options, current, for_ij);
+			current = "";
+		} else
+			current += c;
+	}
+	if (current != "")
+		add_option(options, current, for_ij);
+}
+
+static int read_file_as_string(string file_name, string &contents)
+{
+	char buffer[1024];
+	ifstream in(file_name.c_str());
+	while (in.good()) {
+		in.get(buffer, sizeof(buffer));
+		contents += buffer;
+	}
+	in.close();
+}
+
+static string quote_if_necessary(const char *option)
+{
+	string result = "";
+	for (; *option; option++)
+		switch (*option) {
+		case '\n':
+			result += "\\n";
+			break;
+		case '\t':
+			result += "\\t";
+			break;
+		case ' ': case '"': case '\\':
+			result += "\\";
+			/* fallthru */
+		default:
+			result += *option;
+			break;
+		}
+	return result;
+}
+
 static void show_commandline(struct options& options)
 {
 	cerr << "java";
 	for (int j = 0; j < options.java_options.nr; j++)
-		cerr << " " << options.java_options.list[j];
+		cerr << " " << quote_if_necessary(options.java_options.list[j]);
 	cerr << " " << main_class;
 	for (int j = 0; j < options.ij_options.nr; j++)
-		cerr << " " << options.ij_options.list[j];
+		cerr << " " << quote_if_necessary(options.ij_options.list[j]);
 	cerr << endl;
 }
 
@@ -390,7 +471,7 @@ static int start_ij(void)
 	struct options options;
 	JavaVMInitArgs args;
 	JNIEnv *env;
-	static string class_path, ext_option;
+	static string class_path, ext_option, jvm_options;
 	stringstream plugin_path;
 	int dashdash = 0, jdb = 0;
 
@@ -412,6 +493,9 @@ static int start_ij(void)
 			"/System/Library/Java/Extensions:"
 			"/System/Library/Frameworks/JavaVM.framework"
 				"/Home/lib/ext";
+	get_fiji_bundle_variable("JVMOptions", jvm_options);
+#else
+	read_file_as_string(string(fiji_dir) + "/jvm.cfg", jvm_options);
 #endif
 
 	int count = 1;
@@ -511,6 +595,9 @@ static int start_ij(void)
 
 	if (headless)
 		add_option(options, "-Djava.awt.headless=true", 0);
+
+	if (jvm_options != "")
+		add_options(options, jvm_options, 0);
 
 	if (dashdash) {
 		for (int i = 1; i < dashdash; i++)
