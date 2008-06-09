@@ -568,6 +568,9 @@ static int start_ij(void)
 		class_path += string(fiji_dir) + "/misc/headless.jar"
 			+ PATH_SEP;
 	class_path += fiji_dir;
+	class_path += "/misc/Fiji.jar";
+	class_path += PATH_SEP;
+	class_path += fiji_dir;
 	class_path += "/ij.jar";
 
 	if (build_classpath(class_path, string(fiji_dir) + "/plugins", 0))
