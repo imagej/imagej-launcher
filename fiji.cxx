@@ -549,9 +549,10 @@ static int start_ij(void)
 	if (headless && !strcmp(main_class, "ij.ImageJ")) {
 		if (main_argc < 2) {
 			cerr << "--headless without a parameter?" << endl;
-			exit(1);
+			if (!options.debug)
+				exit(1);
 		}
-		if (*main_argv[1] != '-')
+		if (main_argc > 1 && *main_argv[1] != '-')
 			add_option(options, "-batch", 1);
 	}
 
