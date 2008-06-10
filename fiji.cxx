@@ -739,7 +739,7 @@ static int start_ij(void)
 #endif
 
 		/* fall back to system-wide Java */
-		add_option(options, "ij.ImageJ", 0);
+		add_option(options, main_class, 0);
 		append_string_array(options.java_options, options.ij_options);
 		append_string(options.java_options, NULL);
 		prepend_string(options.java_options, "java");
