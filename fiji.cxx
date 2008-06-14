@@ -493,7 +493,7 @@ static int start_ij(void)
 	int dashdash = 0, jdb = 0;
 	bool allow_multiple = false;
 
-	long long memory_size = 0;
+	size_t memory_size = 0;
 
 	memset(&options, 0, sizeof(options));
 
@@ -606,8 +606,11 @@ static int start_ij(void)
 	add_option(options, plugin_path, 0);
 
 	// if arguments don't set the memory size, set it after available memory
-	if (memory_size == 0)
-		memory_size = get_memory_size(0) * 2 / 3;
+	if (memory_size == 0) {
+		memory_size = get_memory_size(0);
+		/* 0.75x, but avoid multiplication to avoid overflow */
+		memory_size -= memory_size >> 2;
+	}
 
 	if (memory_size > 0) {
 		memory_size >>= 20;
