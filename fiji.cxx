@@ -24,7 +24,7 @@ static void set_path_to_JVM(void);
 static int get_fiji_bundle_variable(const char *key, string &value);
 #endif
 
-#ifdef MINGW32
+#ifdef WIN32
 #include <process.h>
 #define PATH_SEP ";"
 #else
@@ -34,13 +34,9 @@ static int get_fiji_bundle_variable(const char *key, string &value);
 static const char *relative_java_home = JAVA_HOME;
 static const char *library_path = JAVA_LIB_PATH;
 
-// FIXME: these may need to change on Windows
-#include <sys/types.h>
-#include <dirent.h>
-
 /* Dynamic library loading stuff */
 
-#ifdef MINGW32
+#ifdef WIN32
 #include <windows.h>
 #define RTLD_LAZY 0
 static char *dlerror_value;
@@ -248,6 +244,64 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 
 	return JNI_CreateJavaVM(vm, env, args);
 }
+
+#ifdef WIN32
+struct entry {
+	char d_name[PATH_MAX];
+	int d_namlen;
+} entry;
+
+struct dir {
+	string pattern;
+	HANDLE handle;
+	WIN32_FIND_DATA find_data;
+	int done;
+	struct entry entry;
+};
+
+struct dir *open_dir(const char *path)
+{
+	struct dir *result = new dir();
+	if (!result)
+		return result;
+	result->pattern = path;
+	result->pattern += "/*";
+	result->handle = FindFirstFile(result->pattern.c_str(),
+			&(result->find_data));
+	if (result->handle == INVALID_HANDLE_VALUE) {
+		free(result);
+		return NULL;
+	}
+	result->done = 0;
+	return result;
+}
+
+struct entry *read_dir(struct dir *dir)
+{
+	if (dir->done)
+		return NULL;
+	strcpy(dir->entry.d_name, dir->find_data.cFileName);
+	dir->entry.d_namlen = strlen(dir->entry.d_name);
+	if (FindNextFile(dir->handle, &dir->find_data) == 0)
+		dir->done = 1;
+	return &dir->entry;
+}
+
+int close_dir(struct dir *dir)
+{
+	FindClose(dir->handle);
+	delete dir;
+	return 0;
+}
+
+#define DIR struct dir
+#define dirent entry
+#define opendir open_dir
+#define readdir read_dir
+#define closedir close_dir
+#else
+#include <dirent.h>
+#endif
 
 static int headless;
 
