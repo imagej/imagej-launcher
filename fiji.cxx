@@ -1106,6 +1106,25 @@ int main(int argc, char **argv, char **e)
 {
 #if defined(MACOSX)
 	launch_32bit_on_tiger(argc, argv);
+#elif defined(WIN32)
+	string kernel32_dll_path = string(getenv("WINDIR"))
+		+ "\\system32\\kernel32.dll";
+	void *kernel32_dll = dlopen(kernel32_dll_path.c_str(), RTLD_LAZY);
+	BOOL WINAPI (*attach_console)(DWORD process_id) = kernel32_dll ?
+		(typeof(attach_console))dlsym(kernel32_dll, "AttachConsole") :
+		NULL;
+
+stringstream s;
+s << "handle: " << (int)kernel32_dll << ", " << (int)attach_console;
+MessageBox(NULL, s.str().c_str(), "Message", MB_OK);
+	if (attach_console != NULL)
+		if (attach_console((DWORD)-1)) /* -1 == parent process */
+			MessageBox(NULL, "true", "attach", MB_OK);
+	WriteConsole(GetStdHandle(STD_ERROR_HANDLE), "Hello\n", 6, NULL, NULL);
+	//freopen("CONOUT$", "wb", stdout);
+	//freopen("CONOUT$", "wb", stderr);
+	int err_fd = open_osfhandle(GetStdHandle(STD_ERROR_HANDLE), 0);
+	*stderr = fdopen(err_fd, "wb");
 #endif
 	fiji_dir = get_fiji_dir(argv[0]);
 	main_argv = argv;
