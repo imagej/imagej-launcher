@@ -627,6 +627,7 @@ static int start_ij(void)
 		}
 		else if (!strcmp(main_argv[i], "--fake")) {
 			skip_build_classpath = true;
+			headless = 1;
 			class_path += fiji_dir;
 			if (run_precompiled)
 				class_path += "/precompiled";
