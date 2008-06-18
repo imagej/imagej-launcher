@@ -545,6 +545,15 @@ static void show_commandline(struct options& options)
 	cerr << endl;
 }
 
+bool file_exists(string path)
+{
+	ifstream test(path.c_str());
+	if (!test.is_open())
+		return false;
+	test.close();
+	return true;
+}
+
 /* the maximal size of the heap on 32-bit systems, in megabyte */
 #define MAX_32BIT_HEAP 1920
 
@@ -629,7 +638,8 @@ static int start_ij(void)
 			skip_build_classpath = true;
 			headless = 1;
 			class_path += fiji_dir;
-			if (run_precompiled)
+			if (run_precompiled || !file_exists(string(fiji_dir)
+						+ "/fake.jar"))
 				class_path += "/precompiled";
 			class_path += "/fake.jar" PATH_SEP;
 			main_class = "Fake";
