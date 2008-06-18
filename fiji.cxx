@@ -673,7 +673,13 @@ static int start_ij(void)
 	add_option(options, "-Dpython.cachedir.skip=false", 0);
 
 	class_path = "-Djava.class.path=" + class_path;
-	if (!skip_build_classpath) {
+	if (skip_build_classpath) {
+		/* strip trailing ":" */
+		int len = class_path.length();
+		if (class_path[len - 1] == PATH_SEP[0])
+			class_path = class_path.substr(0, len - 1);
+	}
+	else {
 		if (headless)
 			class_path += string(fiji_dir) + "/misc/headless.jar"
 				+ PATH_SEP;
