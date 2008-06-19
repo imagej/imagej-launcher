@@ -653,7 +653,7 @@ static int start_ij(void)
 
 	if (!headless &&
 #ifdef MACOSX
-			!getenv("SECURITYSESSIONID")
+			!getenv("SECURITYSESSIONID") && !getenv("DISPLAY")
 #elif defined(__linux__)
 			!getenv("DISPLAY")
 #else
