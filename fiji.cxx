@@ -582,10 +582,11 @@ static int start_ij(void)
 			atol(value.c_str()) > 0)
 		options.use_system_jvm++;
 	if (get_fiji_bundle_variable("ext", ext_option))
-		ext_option = "/Library/Java/Extensions:"
+		ext_option = string(fiji_dir)
+			+ "/" + relative_java_home + "/Home/lib/ext:"
+			"/Library/Java/Extensions:"
 			"/System/Library/Java/Extensions:"
-			"/System/Library/Frameworks/JavaVM.framework"
-				"/Home/lib/ext";
+			"/System/Library/Frameworks/JavaVM.framework";
 	if (!get_fiji_bundle_variable("allowMultiple", value))
 		allow_multiple = parse_bool(value);
 	get_fiji_bundle_variable("JVMOptions", jvm_options);
