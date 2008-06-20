@@ -1042,10 +1042,72 @@ static int start_ij_macosx(void)
 	return 0;
 }
 #define start_ij start_ij_macosx
+
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#include <mach/machine.h>
+#include <unistd.h>
+#include <sys/param.h>
+#include <sys/sysctl.h>
+#include <string.h>
+
+/*
+ * Them stupid Apple software designers -- in their infinite wisdom -- added
+ * 64-bit support to Tiger without really supporting it.
+ *
+ * As a consequence, a universal binary will be executed in 64-bit mode on
+ * a x86_64 machine, even if neither CoreFoundation nor Java can be linked,
+ * and sure enough, the executable will crash.
+ *
+ * It does not even reach main(), so we have to provide an _extra_ executable
+ * to detect if we're on Tiger, and even worse!  We have to have _yet another_
+ * executable, namely a universal binary containing only 32-bit versions,
+ * since the Apple software designers -- again, in their infinite wisdom --
+ * did not provide a way to force execution of the i386 part of a universal
+ * binary if we run on x86_64.
+ *
+ * So we wrote this program to detect whether we are really running on
+ * a MacOSX that can rightfully claim 64-bit support, and hope that we meet
+ * the Apple software designers some night, with a baseball bat in our hands.
+ */
+static int is_leopard(void)
+{
+	int mib[2] = { CTL_KERN, KERN_OSRELEASE };
+	char os_release[128];
+	size_t len = sizeof(os_release);;
+
+	return sysctl(mib, 2, os_release, &len, NULL, 0) != -1 &&
+		atoi(os_release) > 8;
+}
+
+static int launch_32bit_on_tiger(int argc, char **argv)
+{
+	const char *match = "-macosx";
+	int offset = strlen(argv[0]) - strlen(match);
+
+#if sizeof(void *) < 8
+	return 0;
+#endif
+
+	if (is_leopard())
+		return 0;
+
+	if (offset < 0 || strcmp(argv[0] + offset, match))
+		return 0; /* no suffix -macosx found, no magic -tiger call */
+
+	strcpy(argv[0] + offset, "-tiger");
+	execv(argv[0], argv);
+	fprintf(stderr, "Could not execute %s: %d(%s)\n",
+		argv[0], errno, strerror(errno));
+	exit(1);
+}
 #endif
 
 int main(int argc, char **argv, char **e)
 {
+#if defined(MACOSX)
+	launch_32bit_on_tiger(argc, argv);
+#endif
 	fiji_dir = get_fiji_dir(argv[0]);
 	main_argv = argv;
 	main_argc = argc;
