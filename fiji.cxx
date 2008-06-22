@@ -1085,9 +1085,8 @@ static int launch_32bit_on_tiger(int argc, char **argv)
 	const char *match = "-macosx";
 	int offset = strlen(argv[0]) - strlen(match);
 
-#if sizeof(void *) < 8
-	return 0;
-#endif
+	if (sizeof(void *) < 8)
+		return 0;
 
 	if (is_leopard())
 		return 0;
