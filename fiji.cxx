@@ -182,10 +182,74 @@ int main_argc;
 const char *main_class;
 bool run_precompiled = false;
 
-static char *get_fiji_dir(const char *argv0)
+static string normalize_path(const char *path)
 {
+#ifdef WIN32
+	if (((path[0] >= 'A' && path[0] <= 'Z') ||
+			(path[0] >= 'a' && path[0] <= 'z')) && path[1] == ':')
+#else
+	if (path[0] == '/')
+#endif
+		return string(path);
+	char buffer[PATH_MAX];
+	if (!getcwd(buffer, sizeof(buffer))) {
+		cerr << "Could not get current directory!" << endl;
+		exit(1);
+	}
+	string p = path;
+	for (;;) {
+		int index = p.find("\\");
+		if (index < 0)
+			break;
+		p = p.substr(0, index) + "/" + p.substr(index + 1);
+	}
+	for (;;) {
+		int index = p.find("/./");
+		if (index < 0)
+			break;
+		p = p.substr(0, index) + p.substr(index + 2);
+	}
+	for (;;) {
+		int index = p.find("/../");
+		if (index < 0)
+			break;
+		int slash = p.rfind("/", 0, index);
+		if (slash < 0)
+			p = p.substr(index + 4);
+		else
+			p = p.substr(0, slash) + p.substr(index + 4);
+	}
+	while (!strncmp(p.c_str(), "../", 3) || !strncmp(p.c_str(), "./", 2)) {
+		if (!strncmp(p.c_str(), "./", 2)) {
+			p = p.substr(2);
+			continue;
+		}
+		char *slash = strrchr(buffer, '/');
+		if (slash)
+			*slash = '\0';
+		p = p.substr(3);
+	}
+	return string(buffer) + '/' + p;
+}
+
+static inline int suffixcmp(const char *string, int len, const char *suffix)
+{
+	int suffix_len = strlen(suffix);
+	if (len < suffix_len)
+		return -1;
+	return strncmp(string + len - suffix_len, suffix, suffix_len);
+}
+
+static const char *get_fiji_dir(const char *argv0)
+{
+	static string buffer;
+
+	if (buffer != "")
+		return buffer.c_str();
+
+	buffer = normalize_path(argv0);
+	argv0 = buffer.c_str();
 	const char *slash = strrchr(argv0, '/');
-	static char buffer[PATH_MAX];
 #ifdef WIN32
 	const char *backslash = strrchr(argv0, '\\');
 
@@ -193,20 +257,23 @@ static char *get_fiji_dir(const char *argv0)
 		slash = backslash;
 #endif
 
-	if (slash && slash - argv0 >= 11 && !strncmp(argv0
-				+ (slash - argv0) - 11, "precompiled", 11)) {
-		if (slash - argv0 == 11)
-			slash = NULL;
-		else
-			slash -= 12;
+	if (!slash) {
+		cerr << "Could not get absolute path for executable" << endl;
+		exit(1);
+	}
+
+	int len = slash - argv0;
+	if (!suffixcmp(argv0, len, "/precompiled")) {
+		slash -= strlen("/precompiled");
 		run_precompiled = true;
 	}
-	if (slash)
-		snprintf(buffer, slash - argv0 + 1, argv0);
-	else
-		sprintf(buffer, ".");
+#ifdef MACOSX
+	else if (!suffixcmp(argv0, len, "/Fiji.app/Contents/MacOS"))
+		slash -= strlen("/Contents/MacOS");
+#endif
 
-	return buffer;
+	buffer = buffer.substr(0, slash - argv0);
+	return buffer.c_str();
 }
 
 static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
