@@ -1149,19 +1149,24 @@ static int is_leopard(void)
 
 static int launch_32bit_on_tiger(int argc, char **argv)
 {
-	const char *match = "-macosx";
+	const char *match, *replace;
+
+	if (is_leopard()) {
+		match = "-tiger";
+		replace = "-macosx";
+	}
+	else { /* Tiger */
+		match = "-macosx";
+		replace = "-tiger";
+		if (sizeof(void *) < 8)
+			return 0; /* already 32-bit, everything's fine */
+	}
+
 	int offset = strlen(argv[0]) - strlen(match);
-
-	if (sizeof(void *) < 8)
-		return 0;
-
-	if (is_leopard())
-		return 0;
-
 	if (offset < 0 || strcmp(argv[0] + offset, match))
-		return 0; /* no suffix -macosx found, no magic -tiger call */
+		return 0; /* suffix not found, no replacement */
 
-	strcpy(argv[0] + offset, "-tiger");
+	strcpy(argv[0] + offset, replace);
 	execv(argv[0], argv);
 	fprintf(stderr, "Could not execute %s: %d(%s)\n",
 		argv[0], errno, strerror(errno));
