@@ -7,6 +7,7 @@
 #include <string.h>
 using std::cerr;
 using std::endl;
+using std::ostream;
 
 #include <string>
 using std::string;
@@ -38,6 +39,27 @@ using std::replace;
 #include <io.h>
 #include <process.h>
 #define PATH_SEP ";"
+
+static void open_win_console();
+
+class win_cerr
+{
+	public:
+		template<class T>
+		ostream& operator<<(T t) {
+			open_win_console();
+			return cerr << t;
+		}
+
+		ostream& operator<<(std::ostream &(*manip)(std::ostream &s)) {
+			open_win_console();
+			return cerr << manip;
+		}
+};
+
+static win_cerr fake_cerr;
+#define cerr fake_cerr
+
 #else
 #define PATH_SEP ":"
 #endif
@@ -51,6 +73,22 @@ static const char *library_path = JAVA_LIB_PATH;
 #include <windows.h>
 #define RTLD_LAZY 0
 static char *dlerror_value;
+
+static char *get_win_error(void)
+{
+	DWORD error_code = GetLastError();
+	LPSTR buffer;
+
+	FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+			FORMAT_MESSAGE_FROM_SYSTEM |
+			FORMAT_MESSAGE_IGNORE_INSERTS,
+			NULL,
+			error_code,
+			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+			(LPSTR)&buffer,
+			0, NULL);
+	return buffer;
+}
 
 static void *dlopen(const char *name, int flags)
 {
@@ -434,7 +472,44 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 	return JNI_CreateJavaVM(vm, env, args);
 }
 
+/* Windows specific stuff */
+
 #ifdef WIN32
+static void sleep_a_while(void)
+{
+	Sleep(60 * 1000);
+}
+
+static void open_win_console(void)
+{
+	static int initialized = 0;
+
+	if (initialized)
+		return;
+	initialized = 1;
+
+	string kernel32_dll_path = string(getenv("WINDIR"))
+			+ "\\system32\\kernel32.dll";
+	void *kernel32_dll = dlopen(kernel32_dll_path.c_str(), RTLD_LAZY);
+	BOOL WINAPI (*attach_console)(DWORD process_id) = NULL;
+	if (kernel32_dll)
+		attach_console = (typeof(attach_console))
+			dlsym(kernel32_dll, "AttachConsole");
+	if (!attach_console || !attach_console((DWORD)-1)) {
+		AllocConsole();
+		atexit(sleep_a_while);
+	}
+
+	freopen("CONOUT$", "wt", stdout);
+	freopen("CONOUT$", "wb", stderr);
+
+	HANDLE handle = CreateFile("CONOUT$", GENERIC_WRITE, FILE_SHARE_WRITE,
+		NULL, OPEN_EXISTING, 0, NULL);
+	SetStdHandle(STD_OUTPUT_HANDLE, handle);
+	SetStdHandle(STD_ERROR_HANDLE, handle);
+}
+
+
 struct entry {
 	char d_name[PATH_MAX];
 	int d_namlen;
@@ -1402,6 +1477,11 @@ int main(int argc, char **argv, char **e)
 {
 #if defined(MACOSX)
 	launch_32bit_on_tiger(argc, argv);
+#elif defined(WIN32)
+	int len = strlen(argv[0]);
+	if (!suffixcmp(argv[0], len, "fiji.exe") ||
+			!suffixcmp(argv[0], len, "fiji"))
+		open_win_console();
 #endif
 	fiji_dir = get_fiji_dir(argv[0]);
 	main_argv = argv;
