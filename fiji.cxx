@@ -923,8 +923,8 @@ static void append_icon_path(string &str)
 	 * Check if we're launched from within an Application bundle or
 	 * command line.  If from a bundle, Fiji.app should be in the path.
 	 */
-	if (strstr(fiji_dir, "Fiji.app"))
-		str += "/../Resources/Fiji.icns";
+	if (!suffixcmp(fiji_dir, strlen(fiji_dir), "Fiji.app"))
+		str += "/Contents/Resources/Fiji.icns";
 	else
 		str += "/images/Fiji.icns";
 }
