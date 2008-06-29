@@ -868,7 +868,7 @@ static int start_ij(void)
 		jobjectArray args;
 
 		string slashed(main_class);
-		replace(slashed.begin(), slashed.end(), '.', '/');
+		slashed.replace(slashed.begin(), slashed.end(), '.', '/');
 		if (!(instance = env->FindClass(slashed.c_str()))) {
 			cerr << "Could not find " << main_class << endl;
 			exit(1);
