@@ -25,6 +25,8 @@ static int get_fiji_bundle_variable(const char *key, string &value);
 #endif
 
 #ifdef WIN32
+#include <algorithm>
+using std::replace;
 #include <io.h>
 #include <process.h>
 #define PATH_SEP ";"
