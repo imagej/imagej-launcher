@@ -624,6 +624,25 @@ bool file_exists(string path)
 	return true;
 }
 
+bool handle_one_option(int &i, const char *option, string &arg)
+{
+	if (!strcmp(main_argv[i], option)) {
+		if (++i >= main_argc || !main_argv[i]) {
+			cerr << "Option " << option << " needs an argument!"
+				<< endl;
+			exit(1);
+		}
+		arg = main_argv[i];
+		return true;
+	}
+	int len = strlen(option);
+	if (!strncmp(main_argv[i], option, len) && main_argv[i][len] == '=') {
+		arg = main_argv[i] + len + 1;
+		return true;
+	}
+	return false;
+}
+
 /* the maximal size of the heap on 32-bit systems, in megabyte */
 #define MAX_32BIT_HEAP 1920
 
@@ -633,7 +652,7 @@ static int start_ij(void)
 	struct options options;
 	JavaVMInitArgs args;
 	JNIEnv *env;
-	static string class_path, ext_option, jvm_options;
+	string class_path, ext_option, jvm_options, arg;
 	stringstream plugin_path;
 	int dashdash = 0;
 	bool allow_multiple = false, skip_build_classpath = false;
@@ -679,14 +698,12 @@ static int start_ij(void)
 		}
 		else if (!strcmp(main_argv[i], "--allow-multiple"))
 			allow_multiple = true;
-		else if (!strncmp(main_argv[i], "--plugins=", 10))
-			plugin_path << "-Dplugins.dir=" << (main_argv[i] + 10);
-		else if (!strncmp(main_argv[i], "--heap=", 7))
-			memory_size = parse_memory(main_argv[i] + 7);
-		else if (!strncmp(main_argv[i], "--mem=", 6))
-			memory_size = parse_memory(main_argv[i] + 6);
-		else if (!strncmp(main_argv[i], "--memory=", 9))
-			memory_size = parse_memory(main_argv[i] + 9);
+		else if (handle_one_option(i, "--plugins", arg))
+			plugin_path << "-Dplugins.dir=" << arg;
+		else if (handle_one_option(i, "--heap", arg) ||
+				handle_one_option(i, "--mem", arg) ||
+				handle_one_option(i, "--memory", arg))
+			memory_size = parse_memory(arg.c_str());
 		else if (!strcmp(main_argv[i], "--headless")) {
 			headless = 1;
 			/* handle "--headless script.ijm" gracefully */
@@ -697,16 +714,18 @@ static int start_ij(void)
 			main_class = "org.python.util.jython";
 		else if (!strcmp(main_argv[i], "--jruby"))
 			main_class = "org.jruby.Main";
-		else if (!strncmp(main_argv[i], "--main-class=", 13))
-			main_class = main_argv[i] + 13;
-		else if (!strncmp(main_argv[i], "--class-path=", 13)) {
-			class_path += main_argv[i] + 13;
-			class_path += PATH_SEP;
-		}
-		else if (!strncmp(main_argv[i], "--ext=", 4)) {
+		else if (handle_one_option(i, "--main-class", arg))
+			main_class = strdup(arg.c_str());
+		else if (handle_one_option(i, "--class-path", arg) ||
+				handle_one_option(i, "--classpath", arg) ||
+				handle_one_option(i, "-classpath", arg) ||
+				handle_one_option(i, "--cp", arg) ||
+				handle_one_option(i, "-cp", arg))
+			class_path += arg + PATH_SEP;
+		else if (handle_one_option(i, "--ext", arg)) {
 			if (ext_option != "")
 				ext_option += PATH_SEP;
-			ext_option += main_argv[i] + 4;
+			ext_option += arg;
 		}
 		else if (!strcmp(main_argv[i], "--fake")) {
 			skip_build_classpath = true;
@@ -730,8 +749,8 @@ static int start_ij(void)
 			class_path += "/javac.jar" PATH_SEP;
 			main_class = "com.sun.tools.javac.Main";
 		}
-		else if (!strncmp(main_argv[i], "--fiji-dir=", 11))
-			fiji_dir = main_argv[i] + 11;
+		else if (handle_one_option(i, "--fiji-dir", arg))
+			fiji_dir = strdup(arg.c_str());
 		else
 			main_argv[count++] = main_argv[i];
 	main_argc = count;
