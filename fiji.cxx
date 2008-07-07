@@ -714,8 +714,10 @@ static int start_ij(void)
 			main_class = "org.python.util.jython";
 		else if (!strcmp(main_argv[i], "--jruby"))
 			main_class = "org.jruby.Main";
-		else if (handle_one_option(i, "--main-class", arg))
+		else if (handle_one_option(i, "--main-class", arg)) {
+			class_path += "." PATH_SEP;
 			main_class = strdup(arg.c_str());
+		}
 		else if (handle_one_option(i, "--class-path", arg) ||
 				handle_one_option(i, "--classpath", arg) ||
 				handle_one_option(i, "-classpath", arg) ||
@@ -751,8 +753,19 @@ static int start_ij(void)
 		}
 		else if (handle_one_option(i, "--fiji-dir", arg))
 			fiji_dir = strdup(arg.c_str());
-		else
-			main_argv[count++] = main_argv[i];
+		else {
+			int len = strlen(main_argv[i]);
+			if (len > 6 && !strcmp(main_argv[i]
+						+ len - 6, ".class")) {
+				class_path += "." PATH_SEP;
+				string dotted = main_argv[i];
+				replace(dotted.begin(), dotted.end(), '/', '.');
+				dotted = dotted.substr(0, len - 6);
+				main_class = strdup(dotted.c_str());
+			}
+			else
+				main_argv[count++] = main_argv[i];
+		}
 	main_argc = count;
 
 	if (!headless &&
