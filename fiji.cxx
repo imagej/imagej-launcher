@@ -635,8 +635,9 @@ static int start_ij(void)
 	JNIEnv *env;
 	static string class_path, ext_option, jvm_options;
 	stringstream plugin_path;
-	int dashdash = 0, jdb = 0;
+	int dashdash = 0;
 	bool allow_multiple = false, skip_build_classpath = false;
+	bool jdb = false, add_class_path_option = false;
 
 	size_t memory_size = 0;
 
@@ -672,8 +673,10 @@ static int start_ij(void)
 			options.debug++;
 		else if (!strcmp(main_argv[i], "--system"))
 			options.use_system_jvm++;
-		else if (!strcmp(main_argv[i], "--jdb"))
-			jdb = 1;
+		else if (!strcmp(main_argv[i], "--jdb")) {
+			add_class_path_option = true;
+			jdb = true;
+		}
 		else if (!strcmp(main_argv[i], "--allow-multiple"))
 			allow_multiple = true;
 		else if (!strncmp(main_argv[i], "--plugins=", 10))
@@ -714,6 +717,18 @@ static int start_ij(void)
 				class_path += "/precompiled";
 			class_path += "/fake.jar" PATH_SEP;
 			main_class = "Fake";
+		}
+		else if (!strcmp(main_argv[i], "--javac")) {
+			add_class_path_option = true;
+			headless = 1;
+			class_path += fiji_dir;
+			if (run_precompiled || !file_exists(string(fiji_dir)
+						+ "/jars/javac.jar"))
+				class_path += "/precompiled";
+			else
+				class_path += "/jars";
+			class_path += "/javac.jar" PATH_SEP;
+			main_class = "com.sun.tools.javac.Main";
 		}
 		else if (!strncmp(main_argv[i], "--fiji-dir=", 11))
 			fiji_dir = main_argv[i] + 11;
@@ -815,9 +830,12 @@ static int start_ij(void)
 			main_class = "ij.ImageJ";
 	}
 
-	if (jdb) {
+	if (add_class_path_option) {
 		add_option(options, "-classpath", 1);
 		add_option(options, class_path.substr(18).c_str(), 1);
+	}
+
+	if (jdb) {
 		add_option(options, main_class, 1);
 		main_class = "com.sun.tools.example.debug.tty.TTY";
 	}
