@@ -1,3 +1,5 @@
+#define _BSD_SOURCE
+#include <stdlib.h>
 #include "jni.h"
 #include <stdlib.h>
 #include <limits.h>
