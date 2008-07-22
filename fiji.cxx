@@ -21,7 +21,6 @@ using std::ifstream;
 #include <sys/stat.h>
 #include <unistd.h>
 
-
 #ifdef MACOSX
 #include <stdlib.h>
 #include <pthread.h>
