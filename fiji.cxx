@@ -1,6 +1,8 @@
 #include "jni.h"
-
+#include <stdlib.h>
+#include <limits.h>
 #include <iostream>
+#include <string.h>
 using std::cerr;
 using std::endl;
 
@@ -17,6 +19,7 @@ using std::ifstream;
 #include <sys/stat.h>
 #include <unistd.h>
 
+
 #ifdef MACOSX
 #include <stdlib.h>
 #include <pthread.h>
@@ -27,9 +30,10 @@ static void set_path_to_JVM(void);
 static int get_fiji_bundle_variable(const char *key, string &value);
 #endif
 
-#ifdef WIN32
 #include <algorithm>
 using std::replace;
+
+#ifdef WIN32
 #include <io.h>
 #include <process.h>
 #define PATH_SEP ";"
