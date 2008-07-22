@@ -13,9 +13,12 @@ using std::stringstream;
 #include <fstream>
 using std::ifstream;
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #ifdef MACOSX
 #include <stdlib.h>
-#include <sys/stat.h>
 #include <pthread.h>
 #include <CoreFoundation/CoreFoundation.h>
 
@@ -185,54 +188,136 @@ int main_argc;
 const char *main_class;
 bool run_precompiled = false;
 
-static string normalize_path(const char *path)
+static size_t mystrlcpy(char *dest, const char *src, size_t size)
+{
+	size_t ret = strlen(src);
+
+	if (size) {
+		size_t len = (ret >= size) ? size - 1 : ret;
+		memcpy(dest, src, len);
+		dest[len] = '\0';
+	}
+	return ret;
+}
+
+static const char *make_absolute_path(const char *path)
+{
+	static char bufs[2][PATH_MAX + 1], *buf = bufs[0], *next_buf = bufs[1];
+	char cwd[1024] = "";
+	int buf_index = 1, len;
+
+	int depth = 20;
+	char *last_elem = NULL;
+	struct stat st;
+
+	if (mystrlcpy(buf, path, PATH_MAX) >= PATH_MAX) {
+		cerr << "Too long path: " << path << endl;
+		exit(1);
+	}
+
+	while (depth--) {
+		if (stat(buf, &st) || !S_ISDIR(st.st_mode)) {
+			char *last_slash = strrchr(buf, '/');
+			if (last_slash) {
+				*last_slash = '\0';
+				last_elem = strdup(last_slash + 1);
+			} else {
+				last_elem = strdup(buf);
+				*buf = '\0';
+			}
+		}
+
+		if (*buf) {
+			if (!*cwd && !getcwd(cwd, sizeof(cwd))) {
+				cerr << "Could not get current working dir"
+					<< endl;
+				exit(1);
+			}
+
+			if (chdir(buf)) {
+				cerr << "Could not switch to " << buf << endl;
+				exit(1);
+			}
+		}
+		if (!getcwd(buf, PATH_MAX)) {
+			cerr << "Could not get current working directory"
+				<< endl;
+			exit(1);
+		}
+
+		if (last_elem) {
+			int len = strlen(buf);
+			if (len + strlen(last_elem) + 2 > PATH_MAX) {
+				cerr << "Too long path name: "
+					<< buf << "/" << last_elem << endl;
+				exit(1);
+			}
+			buf[len] = '/';
+			strcpy(buf + len + 1, last_elem);
+			free(last_elem);
+			last_elem = NULL;
+		}
+
+		if (!lstat(buf, &st) && S_ISLNK(st.st_mode)) {
+			len = readlink(buf, next_buf, PATH_MAX);
+			if (len < 0) {
+				cerr << "Invalid symlink: " << buf << endl;
+				exit(1);
+			}
+			next_buf[len] = '\0';
+			buf = next_buf;
+			buf_index = 1 - buf_index;
+			next_buf = bufs[buf_index];
+		} else
+			break;
+	}
+
+	if (*cwd && chdir(cwd)) {
+		cerr << "Could not change back to " << cwd << endl;
+		exit(1);
+	}
+
+	return buf;
+}
+
+static bool is_absolute_path(const char *path)
 {
 #ifdef WIN32
 	if (((path[0] >= 'A' && path[0] <= 'Z') ||
 			(path[0] >= 'a' && path[0] <= 'z')) && path[1] == ':')
-#else
-	if (path[0] == '/')
+		return true;
 #endif
-		return string(path);
-	char buffer[PATH_MAX];
-	if (!getcwd(buffer, sizeof(buffer))) {
-		cerr << "Could not get current directory!" << endl;
+	return path[0] == '/';
+}
+
+static string find_in_path(const char *path)
+{
+	const char *p = getenv("PATH");
+
+	if (!p) {
+		cerr << "Could not get PATH" << endl;
 		exit(1);
 	}
-	string p = path;
+
 	for (;;) {
-		int index = p.find("\\");
-		if (index < 0)
-			break;
-		p = p.substr(0, index) + "/" + p.substr(index + 1);
-	}
-	for (;;) {
-		int index = p.find("/./");
-		if (index < 0)
-			break;
-		p = p.substr(0, index) + p.substr(index + 2);
-	}
-	for (;;) {
-		int index = p.find("/../");
-		if (index < 0)
-			break;
-		int slash = p.rfind("/", 0, index);
-		if (slash < 0)
-			p = p.substr(index + 4);
-		else
-			p = p.substr(0, slash) + p.substr(index + 4);
-	}
-	while (!strncmp(p.c_str(), "../", 3) || !strncmp(p.c_str(), "./", 2)) {
-		if (!strncmp(p.c_str(), "./", 2)) {
-			p = p.substr(2);
-			continue;
+		const char *colon = strchr(p, ':'), *orig_p = p;
+		int len = colon ? colon - p : strlen(p);
+		struct stat st;
+		char buffer[PATH_MAX];
+
+		if (!len) {
+			cerr << "Could not find " << path << " in PATH" << endl;
+			exit(1);
 		}
-		char *slash = strrchr(buffer, '/');
-		if (slash)
-			*slash = '\0';
-		p = p.substr(3);
+
+		p += len + !!colon;
+		if (!is_absolute_path(orig_p))
+			continue;
+		snprintf(buffer, sizeof(buffer), "%.*s/%s", len, orig_p, path);
+		if (!stat(buffer, &st) && S_ISREG(st.st_mode) &&
+				(st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)))
+			return make_absolute_path(buffer);
 	}
-	return string(buffer) + '/' + p;
 }
 
 static inline int suffixcmp(const char *string, int len, const char *suffix)
@@ -250,7 +335,10 @@ static const char *get_fiji_dir(const char *argv0)
 	if (buffer != "")
 		return buffer.c_str();
 
-	buffer = normalize_path(argv0);
+	if (!strchr(argv0, '/'))
+		buffer = find_in_path(argv0);
+	else
+		buffer = make_absolute_path(argv0);
 	argv0 = buffer.c_str();
 	const char *slash = strrchr(argv0, '/');
 #ifdef WIN32
