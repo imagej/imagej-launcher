@@ -263,6 +263,7 @@ static const char *make_absolute_path(const char *path)
 			last_elem = NULL;
 		}
 
+#ifndef WIN32
 		if (!lstat(buf, &st) && S_ISLNK(st.st_mode)) {
 			len = readlink(buf, next_buf, PATH_MAX);
 			if (len < 0) {
@@ -274,6 +275,7 @@ static const char *make_absolute_path(const char *path)
 			buf_index = 1 - buf_index;
 			next_buf = bufs[buf_index];
 		} else
+#endif
 			break;
 	}
 
@@ -319,8 +321,13 @@ static string find_in_path(const char *path)
 		if (!is_absolute_path(orig_p))
 			continue;
 		snprintf(buffer, sizeof(buffer), "%.*s/%s", len, orig_p, path);
+#ifdef WIN32
+#define S_IX S_IXUSR
+#else
+#define S_IX (S_IXUSR | S_IXGRP | S_IXOTH)
+#endif
 		if (!stat(buffer, &st) && S_ISREG(st.st_mode) &&
-				(st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)))
+				(st.st_mode & S_IX))
 			return make_absolute_path(buffer);
 	}
 }
