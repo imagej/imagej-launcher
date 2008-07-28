@@ -1033,6 +1033,13 @@ static int start_ij(void)
 	if (allow_multiple && !strcmp(main_class, "ij.ImageJ"))
 		add_option(options, "-port0", 1);
 
+	if (!strcmp(main_class, "ij.ImageJ")) {
+		stringstream icon_option;
+		icon_option << "-icon=" << fiji_dir << "/images/icon.png";
+		add_option(options, icon_option, 1);
+		add_option(options, "-title=Fiji", 1);
+	}
+
 	/* handle "--headless script.ijm" gracefully */
 	if (headless && !strcmp(main_class, "ij.ImageJ")) {
 		if (main_argc < 2) {
