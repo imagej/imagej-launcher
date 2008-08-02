@@ -205,6 +205,18 @@ static size_t mystrlcpy(char *dest, const char *src, size_t size)
 	return ret;
 }
 
+char *last_slash(const char *path)
+{
+	char *slash = strrchr(path, '/');
+#ifdef WIN32
+	char *backslash = strrchr(path, '\\');
+
+	if (backslash && slash < backslash)
+		slash = backslash;
+#endif
+	return slash;
+}
+
 static const char *make_absolute_path(const char *path)
 {
 	static char bufs[2][PATH_MAX + 1], *buf = bufs[0], *next_buf = bufs[1];
@@ -222,10 +234,10 @@ static const char *make_absolute_path(const char *path)
 
 	while (depth--) {
 		if (stat(buf, &st) || !S_ISDIR(st.st_mode)) {
-			char *last_slash = strrchr(buf, '/');
-			if (last_slash) {
-				*last_slash = '\0';
-				last_elem = strdup(last_slash + 1);
+			char *slash = last_slash(buf);
+			if (slash) {
+				*slash = '\0';
+				last_elem = strdup(slash + 1);
 			} else {
 				last_elem = strdup(buf);
 				*buf = '\0';
@@ -347,19 +359,13 @@ static const char *get_fiji_dir(const char *argv0)
 	if (buffer != "")
 		return buffer.c_str();
 
-	if (!strchr(argv0, '/'))
+	if (!last_slash(argv0))
 		buffer = find_in_path(argv0);
 	else
 		buffer = make_absolute_path(argv0);
 	argv0 = buffer.c_str();
-	const char *slash = strrchr(argv0, '/');
-#ifdef WIN32
-	const char *backslash = strrchr(argv0, '\\');
 
-	if (backslash && slash < backslash)
-		slash = backslash;
-#endif
-
+	const char *slash = last_slash(argv0);
 	if (!slash) {
 		cerr << "Could not get absolute path for executable" << endl;
 		exit(1);
