@@ -372,7 +372,8 @@ static const char *get_fiji_dir(const char *argv0)
 	}
 
 	int len = slash - argv0;
-	if (!suffixcmp(argv0, len, "/precompiled")) {
+	if (!suffixcmp(argv0, len, "/precompiled") ||
+			!suffixcmp(argv0, len, "\\precompiled")) {
 		slash -= strlen("/precompiled");
 		run_precompiled = true;
 	}
