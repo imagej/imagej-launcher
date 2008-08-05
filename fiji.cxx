@@ -806,7 +806,11 @@ static void /* no-return */ usage(void)
 }
 
 /* the maximal size of the heap on 32-bit systems, in megabyte */
+#ifdef WIN32
+#define MAX_32BIT_HEAP 1638
+#else
 #define MAX_32BIT_HEAP 1920
+#endif
 
 static int start_ij(void)
 {
