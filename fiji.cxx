@@ -1355,16 +1355,11 @@ static int start_ij_macosx(void)
  * a x86_64 machine, even if neither CoreFoundation nor Java can be linked,
  * and sure enough, the executable will crash.
  *
- * It does not even reach main(), so we have to provide an _extra_ executable
- * to detect if we're on Tiger, and even worse!  We have to have _yet another_
- * executable, namely a universal binary containing only 32-bit versions,
- * since the Apple software designers -- again, in their infinite wisdom --
- * did not provide a way to force execution of the i386 part of a universal
- * binary if we run on x86_64.
- *
- * So we wrote this program to detect whether we are really running on
- * a MacOSX that can rightfully claim 64-bit support, and hope that we meet
- * the Apple software designers some night, with a baseball bat in our hands.
+ * It does not even reach main(), so we have to have a binary that does _not_
+ * provide 64-bit support, detect if it is actually on Leopard, and execute
+ * another binary in that case that _does_ provide 64-bit support, even if
+ * we'd rather meet the Apple software designers some night, with a baseball
+ * bat in our hands, than execute an innocent binary that is not to blame.
  */
 static int is_leopard(void)
 {
