@@ -908,6 +908,8 @@ static void /* no-return */ usage(void)
 		<< "\tstart Fake instead of ImageJ" << endl
 		<< "--javac" << endl
 		<< "\tstart JavaC, the Java Compiler, instead of ImagJ" << endl
+		<< "--retrotranslator" << endl
+		<< "\tuse Retrotranslator to support Java < 1.6" << endl
 		<< endl;
 	exit(1);
 }
@@ -918,6 +920,8 @@ static void /* no-return */ usage(void)
 #else
 #define MAX_32BIT_HEAP 1920
 #endif
+
+bool retrotranslator = false;
 
 static int start_ij(void)
 {
@@ -1024,6 +1028,9 @@ static int start_ij(void)
 			class_path += "/javac.jar" PATH_SEP;
 			main_class = "com.sun.tools.javac.Main";
 		}
+		else if (!strcmp(main_argv[i], "--retrotranslator") ||
+				!strcmp(main_argv[i], "--retro"))
+			retrotranslator = true;
 		else if (handle_one_option(i, "--fiji-dir", arg))
 			fiji_dir = strdup(arg.c_str());
 		else if (!strcmp("--help", main_argv[i]) ||
@@ -1089,6 +1096,9 @@ static int start_ij(void)
 		if (build_classpath(class_path, string(fiji_dir) + "/jars", 0))
 			return 1;
 	}
+	if (retrotranslator && build_classpath(class_path,
+				string(fiji_dir) + "/retro", 0))
+		return 1;
 	add_option(options, class_path, 0);
 
 	if (plugin_path.str() == "")
@@ -1146,6 +1156,13 @@ static int start_ij(void)
 	if (jdb) {
 		add_option(options, main_class, 1);
 		main_class = "com.sun.tools.example.debug.tty.TTY";
+	}
+
+	if (retrotranslator) {
+		add_option(options, "-advanced", 1);
+		add_option(options, main_class, 1);
+		main_class =
+			"net.sf.retrotranslator.transformer.JITRetrotranslator";
 	}
 
 	if (allow_multiple && !strcmp(main_class, "ij.ImageJ"))
@@ -1469,14 +1486,24 @@ static int start_ij_macosx(void)
  * we'd rather meet the Apple software designers some night, with a baseball
  * bat in our hands, than execute an innocent binary that is not to blame.
  */
-static int is_leopard(void)
+static int is_osrelease(int min)
 {
 	int mib[2] = { CTL_KERN, KERN_OSRELEASE };
 	char os_release[128];
 	size_t len = sizeof(os_release);;
 
 	return sysctl(mib, 2, os_release, &len, NULL, 0) != -1 &&
-		atoi(os_release) > 8;
+		atoi(os_release) > min;
+}
+
+static int is_leopard(void)
+{
+	return is_osrelease(9);
+}
+
+static int is_tiger(void)
+{
+	return is_osrelease(8);
 }
 
 static int launch_32bit_on_tiger(int argc, char **argv)
@@ -1488,6 +1515,8 @@ static int launch_32bit_on_tiger(int argc, char **argv)
 		replace = "-macosx";
 	}
 	else { /* Tiger */
+		if (!is_tiger())
+			retrotranslator = true;
 		match = "-macosx";
 		replace = "-tiger";
 		if (sizeof(void *) < 8)
