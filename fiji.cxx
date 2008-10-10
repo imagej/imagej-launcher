@@ -21,6 +21,7 @@ using std::ifstream;
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <errno.h>
 
 #ifdef MACOSX
 #include <stdlib.h>
@@ -825,6 +826,37 @@ bool handle_one_option(int &i, const char *option, string &arg)
 	return false;
 }
 
+static bool update_files(string relative_path)
+{
+	string absolute_path = string(fiji_dir) + "/update" + relative_path;
+	DIR *directory = opendir(absolute_path.c_str());
+	if (!directory)
+		return false;
+	struct dirent *entry;
+	while (NULL != (entry = readdir(directory))) {
+		string filename(entry->d_name);
+		if (filename == "." || filename == ".." ||
+				update_files(relative_path + "/" + filename))
+			continue;
+
+		string source = absolute_path + "/" + filename;
+		string target = string(fiji_dir) + relative_path
+			+ "/" + filename;
+		if (rename(source.c_str(), target.c_str())) {
+			cerr << "Could not move " << source << " to "
+				<< target << ": " << strerror(errno) << endl;
+			exit(1);
+		}
+	}
+	rmdir(absolute_path.c_str());
+	return true;
+}
+
+static void update_files(void)
+{
+	update_files(string(""));
+}
+
 static void /* no-return */ usage(void)
 {
 	cerr << "Usage: " << main_argv[0] << " [<Java options>.. --] "
@@ -1120,6 +1152,7 @@ static int start_ij(void)
 		add_option(options, "-port0", 1);
 
 	if (!strcmp(main_class, "ij.ImageJ")) {
+		update_files();
 		stringstream icon_option;
 		icon_option << "-icon=" << fiji_dir << "/images/icon.png";
 		add_option(options, icon_option, 1);
