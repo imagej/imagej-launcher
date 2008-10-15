@@ -807,6 +807,15 @@ bool file_exists(string path)
 	return true;
 }
 
+bool file_is_newer(string path, string than)
+{
+	struct stat st1, st2;
+
+	if (stat(path.c_str(), &st1))
+		return false;
+	return stat(than.c_str(), &st2) || st1.st_mtime > st2.st_mtime;
+}
+
 bool handle_one_option(int &i, const char *option, string &arg)
 {
 	if (!strcmp(main_argv[i], option)) {
@@ -1009,11 +1018,14 @@ static int start_ij(void)
 		else if (!strcmp(main_argv[i], "--fake")) {
 			skip_build_classpath = true;
 			headless = 1;
-			class_path += fiji_dir;
-			if (run_precompiled || !file_exists(string(fiji_dir)
-						+ "/fake.jar"))
-				class_path += "/precompiled";
-			class_path += "/fake.jar" PATH_SEP;
+			string fake_jar = string(fiji_dir) + "/fake.jar";
+			string precompiled_fake_jar = string(fiji_dir)
+				+ "/precompiled/fake.jar";
+			if (run_precompiled || !file_exists(fake_jar) ||
+					file_is_newer(precompiled_fake_jar,
+						fake_jar))
+				fake_jar = precompiled_fake_jar;
+			class_path += fake_jar + PATH_SEP;
 			main_class = "Fake";
 		}
 		else if (!strcmp(main_argv[i], "--javac")) {
