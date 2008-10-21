@@ -883,6 +883,10 @@ static void /* no-return */ usage(void)
 		<< "\tshow the command line, but do not run anything" << endl
 		<< "--system" << endl
 		<< "\tdo not try to run bundled Java" << endl
+#ifdef WIN32
+		<< "--console" << endl
+		<< "\talways open an error console" << endl
+#endif
 		<< "--headless" << endl
 		<< "\trun in text mode" << endl
 		<< "--fiji-dir <path>" << endl
@@ -978,6 +982,10 @@ static int start_ij(void)
 			options.debug++;
 		else if (!strcmp(main_argv[i], "--system"))
 			options.use_system_jvm++;
+#ifdef WIN32
+		else if (!strcmp(main_argv[i], "--console"))
+			open_win_console();
+#endif
 		else if (!strcmp(main_argv[i], "--jdb")) {
 			add_class_path_option = true;
 			jdb = true;
