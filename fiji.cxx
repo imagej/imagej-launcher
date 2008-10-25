@@ -915,7 +915,8 @@ static void /* no-return */ usage(void)
 		<< "--jruby" << endl
 		<< "\tstart JRuby instead of ImageJ (this is the" << endl
 		<< "\tdefault when called with a file ending in .rb)" << endl
-		<< "--main-class <class name>" << endl
+		<< "--main-class <class name> (this is the" << endl
+		<< "\tdefault when called with a file ending in .class)" << endl
 		<< "\tstart the given class instead of ImageJ" << endl
 		<< "--fake" << endl
 		<< "\tstart Fake instead of ImageJ" << endl
