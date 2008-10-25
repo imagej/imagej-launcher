@@ -235,13 +235,14 @@ static long long parse_memory(const char *amount)
 	return result;
 }
 
+// Currently unused, so comment out to suppress the -Wall warning:
+/*
 static bool parse_bool(string &value)
 {
 	return value != "0" && value != "false" &&
 		value != "False" && value != "FALSE";
 }
-
-
+*/
 
 /* Java stuff */
 
@@ -779,7 +780,7 @@ static void add_options(struct options &options, string &cmd_line, int for_ij)
 		add_option(options, current, for_ij);
 }
 
-static int read_file_as_string(string file_name, string &contents)
+static void read_file_as_string(string file_name, string &contents)
 {
 	char buffer[1024];
 	ifstream in(file_name.c_str());
