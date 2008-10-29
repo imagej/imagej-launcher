@@ -140,7 +140,7 @@ static int setenv(const char *name, const char *value, int overwrite)
 		return 0;
 	stringstream p;
 	p << name << "=" << value;
-	return putenv(strdup(p.c_str()));
+	return putenv(strdup(p.str().c_str()));
 }
 
 #else
