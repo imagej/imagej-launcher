@@ -235,14 +235,11 @@ static long long parse_memory(const char *amount)
 	return result;
 }
 
-// Currently unused, so comment out to suppress the -Wall warning:
-/*
 static bool parse_bool(string &value)
 {
 	return value != "0" && value != "false" &&
 		value != "False" && value != "FALSE";
 }
-*/
 
 /* Java stuff */
 
