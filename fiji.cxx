@@ -66,7 +66,9 @@ static win_cerr fake_cerr;
 #endif
 
 static const char *relative_java_home = JAVA_HOME;
+#ifndef MACOSX
 static const char *library_path = JAVA_LIB_PATH;
+#endif
 
 /* Dynamic library loading stuff */
 
@@ -450,13 +452,13 @@ static const char *get_fiji_dir(const char *argv0)
 
 static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 {
+#ifdef MACOSX
+	set_path_to_JVM();
+#else
 	// Save the original value of JAVA_HOME: if creating the JVM this
 	// way doesn't work, set it back so that calling the system JVM
 	// can use the JAVA_HOME variable if it's set...
 	char *original_java_home_env = getenv("JAVA_HOME");
-#ifdef MACOSX
-	set_path_to_JVM();
-#else
 	stringstream java_home, buffer;
 	void *handle;
 	char *err;
@@ -779,6 +781,7 @@ static void add_options(struct options &options, string &cmd_line, int for_ij)
 		add_option(options, current, for_ij);
 }
 
+#ifndef MACOSX
 static void read_file_as_string(string file_name, string &contents)
 {
 	char buffer[1024];
@@ -789,6 +792,7 @@ static void read_file_as_string(string file_name, string &contents)
 	}
 	in.close();
 }
+#endif
 
 static string quote_if_necessary(const char *option)
 {
