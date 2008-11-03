@@ -1210,8 +1210,12 @@ static int start_ij(void)
 			"net.sf.retrotranslator.transformer.JITRetrotranslator";
 	}
 
-	if (allow_multiple && !strcmp(main_class, "ij.ImageJ"))
-		add_option(options, "-port0", 1);
+	if (!strcmp(main_class, "ij.ImageJ")) {
+		if (allow_multiple)
+			add_option(options, "-port0", 1);
+		else
+			add_option(options, "-port7", 1);
+	}
 
 	if (!strcmp(main_class, "ij.ImageJ")) {
 		update_files();
