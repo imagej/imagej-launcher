@@ -235,11 +235,13 @@ static long long parse_memory(const char *amount)
 	return result;
 }
 
+#ifdef MACOSX
 static bool parse_bool(string &value)
 {
 	return value != "0" && value != "false" &&
 		value != "False" && value != "FALSE";
 }
+#endif
 
 /* Java stuff */
 
