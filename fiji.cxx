@@ -1555,7 +1555,7 @@ static int is_osrelease(int min)
 	size_t len = sizeof(os_release);;
 
 	return sysctl(mib, 2, os_release, &len, NULL, 0) != -1 &&
-		atoi(os_release) > min;
+		atoi(os_release) >= min;
 }
 
 static int is_leopard(void)
