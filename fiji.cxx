@@ -96,18 +96,8 @@ static char *get_win_error(void)
 static void *dlopen(const char *name, int flags)
 {
 	void *result = LoadLibrary(name);
-	DWORD error_code = GetLastError();
-	LPSTR buffer;
 
-	FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
-			FORMAT_MESSAGE_FROM_SYSTEM |
-			FORMAT_MESSAGE_IGNORE_INSERTS,
-			NULL,
-			error_code,
-			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-			(LPSTR)&buffer,
-			0, NULL);
-	dlerror_value = buffer;
+	dlerror_value = get_win_error();
 
 	return result;
 }
@@ -283,9 +273,12 @@ char *last_slash(const char *path)
 
 static const char *make_absolute_path(const char *path)
 {
-	static char bufs[2][PATH_MAX + 1], *buf = bufs[0], *next_buf = bufs[1];
+	static char bufs[2][PATH_MAX + 1], *buf = bufs[0];
 	char cwd[1024] = "";
+#ifndef WIN32
+	static char *next_buf = bufs[1];
 	int buf_index = 1, len;
+#endif
 
 	int depth = 20;
 	char *last_elem = NULL;
@@ -525,7 +518,7 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 #ifdef WIN32
 static void sleep_a_while(void)
 {
-	Sleep(60 * 1000);
+	sleep(60);
 }
 
 static void open_win_console(void)
