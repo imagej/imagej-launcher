@@ -373,9 +373,38 @@ static bool is_absolute_path(const char *path)
 	return path[0] == '/';
 }
 
+bool file_exists(string path)
+{
+	ifstream test(path.c_str());
+	if (!test.is_open())
+		return false;
+	test.close();
+	return true;
+}
+
+static inline int suffixcmp(const char *string, int len, const char *suffix)
+{
+	int suffix_len = strlen(suffix);
+	if (len < suffix_len)
+		return -1;
+	return strncmp(string + len - suffix_len, suffix, suffix_len);
+}
+
 static string find_in_path(const char *path)
 {
 	const char *p = getenv("PATH");
+
+#ifdef WIN32
+	int len = strlen(path);
+	string path_with_suffix;
+	if (suffixcmp(path, len, ".exe")) {
+		path_with_suffix = string(path) + ".exe";
+		path = path_with_suffix.c_str();
+	}
+	string in_cwd = string(make_absolute_path(path));
+	if (file_exists(in_cwd))
+		return in_cwd;
+#endif
 
 	if (!p) {
 		cerr << "Could not get PATH" << endl;
@@ -406,14 +435,6 @@ static string find_in_path(const char *path)
 				(st.st_mode & S_IX))
 			return make_absolute_path(buffer);
 	}
-}
-
-static inline int suffixcmp(const char *string, int len, const char *suffix)
-{
-	int suffix_len = strlen(suffix);
-	if (len < suffix_len)
-		return -1;
-	return strncmp(string + len - suffix_len, suffix, suffix_len);
 }
 
 static const char *get_fiji_dir(const char *argv0)
@@ -824,15 +845,6 @@ static void show_commandline(struct options& options)
 	for (int j = 0; j < options.ij_options.nr; j++)
 		cerr << " " << quote_if_necessary(options.ij_options.list[j]);
 	cerr << endl;
-}
-
-bool file_exists(string path)
-{
-	ifstream test(path.c_str());
-	if (!test.is_open())
-		return false;
-	test.close();
-	return true;
 }
 
 bool file_is_newer(string path, string than)
