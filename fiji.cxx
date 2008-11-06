@@ -516,6 +516,8 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 /* Windows specific stuff */
 
 #ifdef WIN32
+static bool console_opened = false;
+
 static void sleep_a_while(void)
 {
 	sleep(60);
@@ -538,6 +540,7 @@ static void open_win_console(void)
 			dlsym(kernel32_dll, "AttachConsole");
 	if (!attach_console || !attach_console((DWORD)-1)) {
 		AllocConsole();
+		console_opened = true;
 		atexit(sleep_a_while);
 	}
 
@@ -1333,6 +1336,10 @@ static int start_ij(void)
 			java_binary += "bin/java";
 		}
 		cerr << "Using java binary: " << java_binary << endl;
+#ifdef WIN32
+		if (console_opened)
+			sleep(5); // sleep 5 seconds
+#endif
 		if (execvp(java_binary.c_str(), options.java_options.list))
 			cerr << "Could not launch system-wide Java" << endl;
 		exit(1);
