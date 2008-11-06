@@ -242,6 +242,7 @@ static bool parse_bool(string &value)
 #endif
 
 const char *fiji_dir;
+char *main_argv0;
 char **main_argv;
 int main_argc;
 const char *main_class;
@@ -971,6 +972,53 @@ static void /* no-return */ usage(void)
 #define MAX_32BIT_HEAP 1920
 #endif
 
+string make_memory_option(size_t memory_size)
+{
+	memory_size >>= 20;
+	if (sizeof(void *) == 4 && memory_size > MAX_32BIT_HEAP)
+		memory_size = MAX_32BIT_HEAP;
+	stringstream heap_size;
+	heap_size << "-Xmx"<< memory_size << "m";
+	return heap_size.str();
+}
+
+static void try_with_less_memory(struct options &options)
+{
+	char **new_argv = (char **)malloc((1
+				+ options.java_options.nr + 1
+				+ options.ij_options.nr + 1)
+			* sizeof(char *));
+
+	/* Find the last memory option */
+	int i;
+	for (i = options.java_options.nr - 1; i > 0; i--)
+		if (!strncmp(options.java_options.list[i], "-Xmx", 4))
+			break;
+	if (i < 0)
+		return;
+
+	/* Try again, with 25% less memory */
+	size_t memory_size = parse_memory(options.java_options.list[i] + 4);
+	int subtract = memory_size >> 2;
+	if (!subtract)
+		return;
+	memory_size -= subtract;
+	options.java_options.list[i] =
+		strdup(make_memory_option(memory_size).c_str());
+	cerr << "Trying with a smaller heap: "
+		<< options.java_options.list[i] << endl;
+
+	int j = 0;
+	new_argv[j++] = main_argv0;
+	for (i = 0; i < options.java_options.nr; i++)
+		new_argv[j++] = options.java_options.list[i];
+	new_argv[j++] = "--";
+	for (i = 0; i < options.ij_options.nr; i++)
+		new_argv[j++] = options.ij_options.list[i];
+	new_argv[j++] = NULL;
+	execv(new_argv[0], new_argv);
+}
+
 bool retrotranslator = false;
 
 static int start_ij(void)
@@ -1158,14 +1206,8 @@ static int start_ij(void)
 		memory_size -= memory_size >> 2;
 	}
 
-	if (memory_size > 0) {
-		memory_size >>= 20;
-		if (sizeof(void *) == 4 && memory_size > MAX_32BIT_HEAP)
-			memory_size = MAX_32BIT_HEAP;
-		stringstream heap_size;
-		heap_size << "-Xmx"<< memory_size << "m";
-		add_option(options, heap_size, 0);
-	}
+	if (memory_size > 0)
+		add_option(options, make_memory_option(memory_size).c_str(), 0);
 
 	if (headless)
 		add_option(options, "-Djava.awt.headless=true", 0);
@@ -1265,15 +1307,22 @@ static int start_ij(void)
 
 	if (options.use_system_jvm)
 		env = NULL;
-	else if (create_java_vm(&vm, (void **)&env, &args)) {
-		cerr << "Warning: falling back to System JVM" << endl;
-		env = NULL;
-	} else {
-		stringstream java_home_path;
-		java_home_path << "-Djava.home=" << fiji_dir << "/"
-			<< relative_java_home;
-		prepend_string(options.java_options,
-			java_home_path.str().c_str());
+	else {
+		int result = create_java_vm(&vm, (void **)&env, &args);
+		if (result == JNI_ENOMEM) {
+			try_with_less_memory(options);
+			cerr << "Out of memory!" << endl;
+		}
+		if (result) {
+			cerr << "Warning: falling back to System JVM" << endl;
+			env = NULL;
+		} else {
+			stringstream java_home_path;
+			java_home_path << "-Djava.home=" << fiji_dir << "/"
+				<< relative_java_home;
+			prepend_string(options.java_options,
+				java_home_path.str().c_str());
+		}
 	}
 
 	if (env) {
@@ -1624,6 +1673,7 @@ int main(int argc, char **argv, char **e)
 		open_win_console();
 #endif
 	fiji_dir = get_fiji_dir(argv[0]);
+	main_argv0 = argv[0];
 	main_argv = argv;
 	main_argc = argc;
 	return start_ij();
