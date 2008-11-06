@@ -412,7 +412,7 @@ static string find_in_path(const char *path)
 	}
 
 	for (;;) {
-		const char *colon = strchr(p, ':'), *orig_p = p;
+		const char *colon = strchr(p, PATH_SEP[0]), *orig_p = p;
 		int len = colon ? colon - p : strlen(p);
 		struct stat st;
 		char buffer[PATH_MAX];
