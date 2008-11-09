@@ -152,6 +152,9 @@ void setenv_or_exit(const char *name, const char *value, int overwrite)
 {
 	int result;
 	if (!value) {
+#ifdef MACOSX
+		unsetenv(name);
+#else
 		result = unsetenv(name);
 		if (result) {
 			cerr << "Unsetting environment variable " <<
@@ -159,6 +162,7 @@ void setenv_or_exit(const char *name, const char *value, int overwrite)
 			exit(1);
 		}
 		return;
+#endif
 	}
 	result = setenv(name, value, overwrite);
 	if (result) {
