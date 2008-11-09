@@ -142,7 +142,17 @@ static int setenv(const char *name, const char *value, int overwrite)
 // A wrapper for setenv that exits on error
 void setenv_or_exit(const char *name, const char *value, int overwrite)
 {
-	int result = setenv(name, value, overwrite);
+	int result;
+	if (!value) {
+		result = unsetenv(name);
+		if (result) {
+			cerr << "Unsetting environment variable " <<
+				name << "failed" << endl;
+			exit(1);
+		}
+		return;
+	}
+	result = setenv(name, value, overwrite);
 	if (result) {
 		cerr << "Setting environment variable " << name <<
 			" to " << value << " failed" << endl;
