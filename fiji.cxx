@@ -1406,7 +1406,6 @@ static int start_ij(void)
 			}
 			java_binary += "bin/java";
 		}
-		cerr << "Using java binary: " << java_binary << endl;
 #ifdef WIN32
 		if (console_opened)
 			sleep(5); // sleep 5 seconds
