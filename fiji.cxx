@@ -1042,6 +1042,11 @@ static void try_with_less_memory(struct options &options)
 		new_argv[j++] = options.ij_options.list[i];
 	new_argv[j++] = NULL;
 	execv(new_argv[0], new_argv);
+	cerr << "ERROR: failed to launch:" << endl;
+	for (int i = 0; i < j; i++)
+		cerr << new_argv[i] << " ";
+	cerr << endl;
+	exit(1);
 }
 
 bool retrotranslator = false;
