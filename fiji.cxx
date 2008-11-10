@@ -161,8 +161,8 @@ void setenv_or_exit(const char *name, const char *value, int overwrite)
 				name << "failed" << endl;
 			exit(1);
 		}
-		return;
 #endif
+		return;
 	}
 	result = setenv(name, value, overwrite);
 	if (result) {
