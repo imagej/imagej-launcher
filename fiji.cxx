@@ -513,12 +513,15 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 
 	handle = dlopen(buffer.str().c_str(), RTLD_LAZY);
 	if (!handle) {
+		setenv_or_exit("JAVA_HOME", original_java_home_env, 1);
+		if (!file_exists(buffer.str()))
+			return 2;
+
 		const char *error = dlerror();
 		if (!error)
 			error = "(unknown error)";
 		cerr << "Could not load Java library '" <<
 			buffer.str() << "': " << error << endl;
-		setenv_or_exit("JAVA_HOME", original_java_home_env, 1);
 		return 1;
 	}
 	dlerror(); /* Clear any existing error */
@@ -1336,7 +1339,9 @@ static int start_ij(void)
 			cerr << "Out of memory!" << endl;
 		}
 		if (result) {
-			cerr << "Warning: falling back to System JVM" << endl;
+			if (result != 2)
+				cerr << "Warning: falling back to System JVM"
+					<< endl;
 			env = NULL;
 		} else {
 			stringstream java_home_path;
