@@ -1034,7 +1034,7 @@ static void try_with_less_memory(struct options &options)
 	new_argv[j++] = main_argv0;
 	for (i = 0; i < options.java_options.nr; i++)
 		new_argv[j++] = options.java_options.list[i];
-	new_argv[j++] = "--";
+	new_argv[j++] = strdup("--");
 	for (i = 0; i < options.ij_options.nr; i++)
 		new_argv[j++] = options.ij_options.list[i];
 	new_argv[j++] = NULL;
