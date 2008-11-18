@@ -977,6 +977,9 @@ static void /* no-return */ usage(void)
 		<< "--jruby" << endl
 		<< "\tstart JRuby instead of ImageJ (this is the" << endl
 		<< "\tdefault when called with a file ending in .rb)" << endl
+		<< "--clojure" << endl
+		<< "\tstart Clojure instead of ImageJ (this is the "<< endl
+		<< "\tdefault when called with a file ending in .clj)" << endl
 		<< "--main-class <class name> (this is the" << endl
 		<< "\tdefault when called with a file ending in .class)" << endl
 		<< "\tstart the given class instead of ImageJ" << endl
@@ -1123,6 +1126,8 @@ static int start_ij(void)
 			main_class = "org.python.util.jython";
 		else if (!strcmp(main_argv[i], "--jruby"))
 			main_class = "org.jruby.Main";
+		else if (!strcmp(main_argv[i], "--clojure"))
+			main_class = "clojure.lang.Repl";
 		else if (handle_one_option(i, "--main-class", arg)) {
 			class_path += "." PATH_SEP;
 			main_class = strdup(arg.c_str());
@@ -1262,6 +1267,8 @@ static int start_ij(void)
 			main_class = "org.python.util.jython";
 		else if (len > 3 && !strcmp(first + len - 3, ".rb"))
 			main_class = "org.jruby.Main";
+		else if (len > 4 && !strcmp(first + len - 4, ".clj"))
+			main_class = "clojure.lang.Script";
 		else if (len > 6 && !strcmp(first + len - 6, ".class")) {
 			class_path += "." PATH_SEP;
 			string dotted = first;
