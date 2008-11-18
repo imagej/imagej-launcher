@@ -986,7 +986,7 @@ static void /* no-return */ usage(void)
 		<< "--fake" << endl
 		<< "\tstart Fake instead of ImageJ" << endl
 		<< "--javac" << endl
-		<< "\tstart JavaC, the Java Compiler, instead of ImagJ" << endl
+		<< "\tstart JavaC, the Java Compiler, instead of ImageJ" << endl
 		<< "--retrotranslator" << endl
 		<< "\tuse Retrotranslator to support Java < 1.6" << endl
 		<< endl;
