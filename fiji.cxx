@@ -1700,6 +1700,49 @@ static int launch_32bit_on_tiger(int argc, char **argv)
 }
 #endif
 
+static string get_newest_subdir(string relative_path)
+{
+	string path = string(fiji_dir) + "/" + relative_path;
+	string result = "";
+	DIR *dir = opendir(path.c_str());
+	if (!dir)
+		return result;
+	long mtime = 0;
+	struct dirent *entry;
+	while (NULL != (entry = readdir(dir))) {
+		string filename(entry->d_name);
+		if (filename == "." || filename == "..")
+			continue;
+		struct stat st;
+		if (stat((path + "/" + filename).c_str(), &st))
+			continue;
+		if (!S_ISDIR(st.st_mode))
+			continue;
+		if (mtime < st.st_mtime) {
+			mtime = st.st_mtime;
+			result = relative_path + "/" + filename;
+		}
+	}
+	closedir(dir);
+	return result;
+}
+
+static void adjust_java_home_if_necessary(void)
+{
+	string path = string(fiji_dir) + "/" + relative_java_home;
+	DIR *dir = opendir(path.c_str());
+	if (dir) {
+		closedir(dir);
+		return;
+	}
+	string platform_subdir = get_newest_subdir(string("java"));
+	if (platform_subdir == "")
+		return;
+	string jdk_subdir = get_newest_subdir(platform_subdir);
+	if (jdk_subdir != "")
+		relative_java_home = jdk_subdir.c_str();
+}
+
 int main(int argc, char **argv, char **e)
 {
 #if defined(MACOSX)
@@ -1711,6 +1754,7 @@ int main(int argc, char **argv, char **e)
 		open_win_console();
 #endif
 	fiji_dir = get_fiji_dir(argv[0]);
+	adjust_java_home_if_necessary();
 	main_argv0 = argv[0];
 	main_argv = argv;
 	main_argc = argc;
