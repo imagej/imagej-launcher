@@ -413,7 +413,7 @@ static string find_in_path(const char *path)
 #ifdef WIN32
 	int len = strlen(path);
 	string path_with_suffix;
-	if (suffixcmp(path, len, ".exe")) {
+	if (suffixcmp(path, len, ".exe") && suffixcmp(path, len, ".EXE")) {
 		path_with_suffix = string(path) + ".exe";
 		path = path_with_suffix.c_str();
 	}
