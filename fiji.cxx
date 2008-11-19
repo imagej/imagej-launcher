@@ -1740,7 +1740,7 @@ static void adjust_java_home_if_necessary(void)
 		return;
 	string jdk_subdir = get_newest_subdir(platform_subdir);
 	if (jdk_subdir != "")
-		relative_java_home = jdk_subdir.c_str();
+		relative_java_home = strdup(jdk_subdir.c_str());
 }
 
 int main(int argc, char **argv, char **e)
