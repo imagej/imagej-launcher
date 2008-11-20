@@ -1748,6 +1748,12 @@ int main(int argc, char **argv, char **e)
 #if defined(MACOSX)
 	launch_32bit_on_tiger(argc, argv);
 #elif defined(WIN32)
+#ifdef WIN64
+	/* work around MinGW64 breakage */
+	argc = __argc;
+	argv = __argv;
+	argv[0] = _pgmptr;
+#endif
 	int len = strlen(argv[0]);
 	if (!suffixcmp(argv[0], len, "fiji.exe") ||
 			!suffixcmp(argv[0], len, "fiji"))
