@@ -1132,6 +1132,13 @@ static int start_ij(void)
 			class_path += "." PATH_SEP;
 			main_class = strdup(arg.c_str());
 		}
+		else if (handle_one_option(i, "--jar", arg)) {
+			class_path += string(fiji_dir)
+				+ "/misc/Fiji.jar" PATH_SEP
+				+ arg + PATH_SEP;
+			main_class = "fiji.JarLauncher";
+			main_argv[count++] = strdup(arg.c_str());
+		}
 		else if (handle_one_option(i, "--class-path", arg) ||
 				handle_one_option(i, "--classpath", arg) ||
 				handle_one_option(i, "-classpath", arg) ||
