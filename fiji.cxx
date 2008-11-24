@@ -514,7 +514,7 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 	handle = dlopen(buffer.str().c_str(), RTLD_LAZY);
 	if (!handle) {
 		setenv_or_exit("JAVA_HOME", original_java_home_env, 1);
-		if (!file_exists(buffer.str()))
+		if (!file_exists(java_home.str()))
 			return 2;
 
 		const char *error = dlerror();
@@ -636,6 +636,16 @@ int close_dir(struct dir *dir)
 #else
 #include <dirent.h>
 #endif
+
+bool dir_exists(string path)
+{
+	DIR *dir = opendir(path.c_str());
+	if (dir) {
+		closedir(dir);
+		return true;
+	}
+	return false;
+}
 
 static int headless;
 
@@ -945,6 +955,10 @@ static void /* no-return */ usage(void)
 		<< "\tshow the command line, but do not run anything" << endl
 		<< "--system" << endl
 		<< "\tdo not try to run bundled Java" << endl
+		<< "--print-java-home" << endl
+		<< "\tprint Fiji's idea of JAVA_HOME" << endl
+		<< "--print-fiji-dir" << endl
+		<< "\tprint where Fiji thinks it is located" << endl
 #ifdef WIN32
 		<< "--console" << endl
 		<< "\talways open an error console" << endl
@@ -1180,6 +1194,15 @@ static int start_ij(void)
 			retrotranslator = true;
 		else if (handle_one_option(i, "--fiji-dir", arg))
 			fiji_dir = strdup(arg.c_str());
+		else if (!strcmp("--print-fiji-dir", main_argv[i])) {
+			cerr << fiji_dir << endl;
+			exit(0);
+		}
+		else if (!strcmp("--print-java-home", main_argv[i])) {
+			cerr << string(fiji_dir) + "/" + relative_java_home
+				<< endl;
+			exit(0);
+		}
 		else if (!strcmp("--help", main_argv[i]) ||
 				!strcmp("-h", main_argv[i]))
 			usage();
@@ -1736,17 +1759,16 @@ static string get_newest_subdir(string relative_path)
 
 static void adjust_java_home_if_necessary(void)
 {
-	string path = string(fiji_dir) + "/" + relative_java_home;
-	DIR *dir = opendir(path.c_str());
-	if (dir) {
-		closedir(dir);
+	if (dir_exists(string(fiji_dir) + "/" + relative_java_home))
 		return;
-	}
 	string platform_subdir = get_newest_subdir(string("java"));
 	if (platform_subdir == "")
 		return;
 	string jdk_subdir = get_newest_subdir(platform_subdir);
-	if (jdk_subdir != "")
+	if (jdk_subdir == "")
+		return;
+	jdk_subdir += "/jre";
+	if (dir_exists(jdk_subdir))
 		relative_java_home = strdup(jdk_subdir.c_str());
 }
 
