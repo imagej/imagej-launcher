@@ -668,9 +668,11 @@ int build_classpath(string &result, string jar_directory, int no_error) {
 		unsigned int extension_start = n - extension_length;
 		if (!filename.compare(extension_start,
 					extension_length,
-					extension))
-			result += PATH_SEP + jar_directory + "/" + filename;
-		else {
+					extension)) {
+			if (result != "")
+				result += PATH_SEP;
+			result += jar_directory + "/" + filename;
+		} else {
 			if (filename != "." && filename != ".." &&
 					build_classpath(result, jar_directory
 						+ "/" + filename, 1))
@@ -973,6 +975,9 @@ static void /* no-return */ usage(void)
 		<< "--class-path, --classpath, -classpath, --cp, -cp <path>"
 			<< endl
 		<< "\tappend <path> to the class path" << endl
+		<< "--jar-path, --jarpath, -jarpath <path>"
+			<< endl
+		<< "\tappend .jar files in <path> to the class path" << endl
 		<< "--ext <path>" << endl
 		<< "\tset Java's extension directory to <path>" << endl
 		<< endl
@@ -1159,6 +1164,10 @@ static int start_ij(void)
 				handle_one_option(i, "--cp", arg) ||
 				handle_one_option(i, "-cp", arg))
 			class_path += arg + PATH_SEP;
+		else if (handle_one_option(i, "--jar-path", arg) ||
+				handle_one_option(i, "--jarpath", arg) ||
+				handle_one_option(i, "-jarpath", arg))
+			build_classpath(class_path, arg, 0);
 		else if (handle_one_option(i, "--ext", arg)) {
 			if (ext_option != "")
 				ext_option += PATH_SEP;
