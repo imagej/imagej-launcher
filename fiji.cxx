@@ -1174,6 +1174,9 @@ static int start_ij(void)
 			ext_option += arg;
 		}
 		else if (!strcmp(main_argv[i], "--fake")) {
+#ifdef WIN32
+			open_win_console();
+#endif
 			skip_build_classpath = true;
 			headless = 1;
 			string fake_jar = string(fiji_dir) + "/fake.jar";
