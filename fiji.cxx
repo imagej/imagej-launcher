@@ -1473,9 +1473,22 @@ static int start_ij(void)
 #ifdef WIN32
 		if (console_opened)
 			sleep(5); // sleep 5 seconds
+
+		FreeConsole(); // java.exe cannot reuse the console anyway
 #endif
+		options.java_options.list[0] = (char *)java_binary.c_str();
 		if (execvp(java_binary.c_str(), options.java_options.list))
-			cerr << "Could not launch system-wide Java" << endl;
+			cerr << "Could not launch system-wide Java ("
+				<< strerror(errno) << ")" << endl;
+#ifdef WIN32
+		char message[16384];
+		int off = sprintf(message, "Error: '%s' while executing\n\n",
+				strerror(errno));
+		for (int i = 0; options.java_options.list[i]; i++)
+			off += sprintf(message + off, "'%s'\n",
+					options.java_options.list[i]);
+		MessageBox(NULL, message, "Error", MB_OK);
+#endif
 		exit(1);
 	}
 	return 0;
