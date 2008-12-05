@@ -568,6 +568,11 @@ static void open_win_console(void)
 		AllocConsole();
 		console_opened = true;
 		atexit(sleep_a_while);
+	} else {
+		char title[1024];
+		if (GetConsoleTitle(title, sizeof(title)) &&
+				!strncmp(title, "rxvt", 4))
+			return; // console already opened
 	}
 
 	freopen("CONOUT$", "wt", stdout);
