@@ -557,7 +557,7 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 	// Save the original value of JAVA_HOME: if creating the JVM this
 	// way doesn't work, set it back so that calling the system JVM
 	// can use the JAVA_HOME variable if it's set...
-	char *original_java_home_env = getenv("JAVA_HOME");
+	char *original_java_home_env = strdup(getenv("JAVA_HOME"));
 	stringstream java_home, buffer;
 	void *handle;
 	char *err;
