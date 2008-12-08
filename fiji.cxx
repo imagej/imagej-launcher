@@ -937,6 +937,33 @@ static string quote_if_necessary(const char *option)
 	return result;
 }
 
+/* fantastic win32 quoting */
+static char *quote_win32(char *option)
+{
+	char *p, *result, *r1;
+	int backslashes = 0;
+
+	for (p = option; *p; p++)
+		if (strchr(" \"\t", *p))
+			backslashes++;
+
+	if (!backslashes)
+		return option;
+
+	result = (char *)malloc(strlen(option) + backslashes + 2 + 1);
+	r1 = result;
+	*(r1++) = '"';
+	for (p = option; *p; p++) {
+		if (*p == '"')
+			*(r1++) = '\\';
+		*(r1++) = *p;
+	}
+	*(r1++) = '"';
+	*(r1++) = '\0';
+
+	return result;
+}
+
 static void show_commandline(struct options& options)
 {
 	cerr << "java";
@@ -1535,13 +1562,16 @@ static int start_ij(void)
 			}
 			java_binary += "bin/java";
 		}
+		options.java_options.list[0] = (char *)java_binary.c_str();
 #ifdef WIN32
 		if (console_opened)
 			sleep(5); // sleep 5 seconds
 
 		FreeConsole(); // java.exe cannot reuse the console anyway
+		for (int i = 0; i < options.java_options.nr - 1; i++)
+			options.java_options.list[i] =
+				quote_win32(options.java_options.list[i]);
 #endif
-		options.java_options.list[0] = (char *)java_binary.c_str();
 		if (execvp(java_binary.c_str(), options.java_options.list))
 			cerr << "Could not launch system-wide Java ("
 				<< strerror(errno) << ")" << endl;
