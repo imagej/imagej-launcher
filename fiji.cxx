@@ -257,6 +257,68 @@ static bool parse_bool(string &value)
 }
 #endif
 
+/* work around a SuSE IPv6 setup bug */
+
+#ifdef IPV6_MAYBE_BROKEN
+#include <netinet/ip6.h>
+#include <fcntl.h>
+#endif
+
+static bool is_ipv6_broken(void)
+{
+#ifndef IPV6_MAYBE_BROKEN
+	return false;
+#else
+	int sock = socket(AF_INET6, SOCK_STREAM, 0);
+	struct sockaddr_in6 address = {
+		AF_INET6, 57294 + 7, 0, in6addr_loopback, 0
+	};
+	long flags;
+
+	if (sock < 0)
+		return true;
+
+	flags = fcntl(sock, F_GETFL, NULL);
+	if (fcntl(sock, F_SETFL, flags | O_NONBLOCK) < 0) {
+		close(sock);
+		return true;
+	}
+	
+
+	bool result = false;
+	if (connect(sock, (struct sockaddr *)&address, sizeof(address)) < 0) {
+		if (errno == EINPROGRESS) {
+			struct timeval tv;
+			fd_set fdset;
+
+			tv.tv_sec = 0;
+			tv.tv_usec = 50000;
+			FD_ZERO(&fdset);
+			FD_SET(sock, &fdset);
+			if (select(sock + 1, NULL, &fdset, NULL, &tv) > 0) {
+				int error;
+				socklen_t length = sizeof(int);
+				if (getsockopt(sock, SOL_SOCKET, SO_ERROR,
+						(void*)&error, &length) < 0)
+					result = true;
+				else
+					result = error == EACCES |
+						error == EPERM |
+						error == EAFNOSUPPORT |
+						error == EINPROGRESS;
+			} else
+				result = true;
+		} else
+			result = errno == EACCES | errno == EPERM |
+				errno == EAFNOSUPPORT;
+	}
+
+	close(sock);
+	return result;
+#endif
+}
+
+
 /* Java stuff */
 
 #ifndef JNI_CREATEVM
@@ -1293,6 +1355,9 @@ static int start_ij(void)
 
 	if (headless)
 		add_option(options, "-Djava.awt.headless=true", 0);
+
+	if (is_ipv6_broken())
+		add_option(options, "-Djava.net.preferIPv4Stack=true", 0);
 
 	if (jvm_options != "")
 		add_options(options, jvm_options, 0);
