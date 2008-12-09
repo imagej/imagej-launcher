@@ -557,20 +557,23 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 	// Save the original value of JAVA_HOME: if creating the JVM this
 	// way doesn't work, set it back so that calling the system JVM
 	// can use the JAVA_HOME variable if it's set...
-	char *original_java_home_env = strdup(getenv("JAVA_HOME"));
+	char *original_java_home_env = getenv("JAVA_HOME");
 	stringstream java_home, buffer;
 	void *handle;
 	char *err;
 	static jint (*JNI_CreateJavaVM)(JavaVM **pvm, void **penv, void *args);
 
 	java_home << fiji_dir << "/" << relative_java_home;
-	setenv_or_exit("JAVA_HOME", java_home.str().c_str(), 1);
 #ifdef WIN32
 	/* Windows automatically adds the path of the executable to PATH */
 	stringstream path;
 	path << getenv("PATH") << ";" << java_home.str() << "/bin";
 	setenv_or_exit("PATH", path.str().c_str(), 1);
+	// on Windows, a setenv() invalidates strings obtained by getenv()
+	if (original_java_home_env)
+		original_java_home_env = strdup(original_java_home_env);
 #endif
+	setenv_or_exit("JAVA_HOME", java_home.str().c_str(), 1);
 	buffer << java_home.str() << "/" << library_path;
 
 	handle = dlopen(buffer.str().c_str(), RTLD_LAZY);
