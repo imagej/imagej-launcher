@@ -327,8 +327,8 @@ static bool is_ipv6_broken(void)
 
 const char *fiji_dir;
 char *main_argv0;
-char **main_argv;
-int main_argc;
+char **main_argv, **main_argv_backup;
+int main_argc, main_argc_backup;
 const char *main_class;
 bool run_precompiled = false;
 
@@ -940,6 +940,7 @@ static string quote_if_necessary(const char *option)
 	return result;
 }
 
+#ifdef WIN32
 /* fantastic win32 quoting */
 static char *quote_win32(char *option)
 {
@@ -966,6 +967,7 @@ static char *quote_win32(char *option)
 
 	return result;
 }
+#endif
 
 static void show_commandline(struct options& options)
 {
@@ -1126,45 +1128,46 @@ string make_memory_option(size_t memory_size)
 	return heap_size.str();
 }
 
-static void try_with_less_memory(struct options &options)
+static void try_with_less_memory(size_t memory_size)
 {
-	char **new_argv = (char **)malloc((1
-				+ options.java_options.nr + 1
-				+ options.ij_options.nr + 1)
-			* sizeof(char *));
-
-	/* Find the last memory option */
-	int i;
-	for (i = options.java_options.nr - 1; i > 0; i--)
-		if (!strncmp(options.java_options.list[i], "-Xmx", 4))
-			break;
-	if (i < 0)
-		return;
-
 	/* Try again, with 25% less memory */
-	size_t memory_size = parse_memory(options.java_options.list[i] + 4);
-	int subtract = memory_size >> 2;
+	if (memory_size < 0)
+		return;
+	memory_size >>= 20; // turn into megabytes
+	size_t subtract = memory_size >> 2;
 	if (!subtract)
 		return;
 	memory_size -= subtract;
-	options.java_options.list[i] =
-		strdup(make_memory_option(memory_size).c_str());
-	cerr << "Trying with a smaller heap: "
-		<< options.java_options.list[i] << endl;
+	stringstream option;
+	option << "--mem=" << memory_size << "m";
+	char *memory_option = strdup(option.str().c_str());
 
-	int j = 0;
-	new_argv[j++] = main_argv0;
-	for (i = 0; i < options.java_options.nr; i++)
-		new_argv[j++] = options.java_options.list[i];
-	new_argv[j++] = strdup("--");
-	for (i = 0; i < options.ij_options.nr; i++)
-		new_argv[j++] = options.ij_options.list[i];
-	new_argv[j++] = NULL;
-	execv(new_argv[0], new_argv);
-	cerr << "ERROR: failed to launch:" << endl;
-	for (int i = 0; i < j; i++)
-		cerr << new_argv[i] << " ";
-	cerr << endl;
+	char **new_argv = (char **)malloc((3 + main_argc_backup)
+			* sizeof(char *));
+	memcpy(new_argv, main_argv_backup, main_argc_backup * sizeof(char *));
+	new_argv[main_argc_backup] = memory_option;
+	new_argv[main_argc_backup + 1] = NULL;
+
+	cerr << "Trying with a smaller heap: " << memory_option << endl;
+
+#ifdef WIN32
+	for (int k = 0; k < main_argc_backup + 1; k++)
+		new_argv[k] = quote_win32(new_argv[k]);
+#endif
+	execve(new_argv[0], new_argv, NULL);
+
+	stringstream error;
+
+	error << "ERROR: failed to launch (errno=" << errno << ";"
+		<< strerror(errno) << "):" << endl;
+	for (int i = 0; i < main_argc_backup + 1; i++)
+		error << new_argv[i] << " ";
+	error << endl;
+#ifdef WIN32
+	MessageBox(NULL, error.str().c_str(), "Error executing Fiji", MB_OK);
+#else
+	cerr << error.str();
+#endif
 	exit(1);
 }
 
@@ -1489,7 +1492,7 @@ static int start_ij(void)
 	else {
 		int result = create_java_vm(&vm, (void **)&env, &args);
 		if (result == JNI_ENOMEM) {
-			try_with_less_memory(options);
+			try_with_less_memory(memory_size);
 			cerr << "Out of memory!" << endl;
 		}
 		if (result) {
@@ -1921,5 +1924,12 @@ int main(int argc, char **argv, char **e)
 	main_argv0 = argv[0];
 	main_argv = argv;
 	main_argc = argc;
+
+	/* save arguments in case we have to try with a smaller heap */
+	int size = (argc + 1) * sizeof(char *);
+	main_argv_backup = (char **)malloc(size);
+	memcpy(main_argv_backup, main_argv, size);
+	main_argc_backup = argc;
+
 	return start_ij();
 }
