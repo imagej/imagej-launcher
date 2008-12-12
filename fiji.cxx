@@ -515,6 +515,16 @@ static string find_in_path(const char *path)
 	}
 }
 
+#ifdef WIN32
+static char *dos_path(const char *path)
+{
+	int size = GetShortPathName(path, NULL, 0);
+	char *buffer = (char *)malloc(size);
+	GetShortPathName(path, buffer, size);
+	return buffer;
+}
+#endif
+
 static const char *get_fiji_dir(const char *argv0)
 {
 	static string buffer;
@@ -546,6 +556,9 @@ static const char *get_fiji_dir(const char *argv0)
 #endif
 
 	buffer = buffer.substr(0, slash - argv0);
+#ifdef WIN32
+	buffer = dos_path(buffer.c_str());
+#endif
 	return buffer.c_str();
 }
 
@@ -1151,6 +1164,7 @@ static void try_with_less_memory(size_t memory_size)
 	cerr << "Trying with a smaller heap: " << memory_option << endl;
 
 #ifdef WIN32
+	new_argv[0] = dos_path(new_argv[0]);
 	for (int k = 0; k < main_argc_backup + 1; k++)
 		new_argv[k] = quote_win32(new_argv[k]);
 #endif
