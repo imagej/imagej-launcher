@@ -1303,7 +1303,8 @@ static int start_ij(void)
 			class_path += fake_jar + PATH_SEP;
 			main_class = "Fake";
 		}
-		else if (!strcmp(main_argv[i], "--javac")) {
+		else if (!strcmp(main_argv[i], "--javac") ||
+				!strcmp(main_argv[i], "--javap")) {
 			add_class_path_option = true;
 			headless = 1;
 			class_path += fiji_dir;
@@ -1312,8 +1313,15 @@ static int start_ij(void)
 				class_path += "/precompiled";
 			else
 				class_path += "/jars";
-			class_path += "/javac.jar" PATH_SEP;
-			main_class = "com.sun.tools.javac.Main";
+			class_path += string("/javac.jar" PATH_SEP)
+				+ fiji_dir + "/" + relative_java_home
+					+ "/../lib/tools.jar" PATH_SEP;
+			if (!strcmp(main_argv[i], "--javac"))
+				main_class = "com.sun.tools.javac.Main";
+			else if (!strcmp(main_argv[i], "--javap"))
+				main_class = "sun.tools.javap.Main";
+			else
+				cerr << main_argv[i] << "!\n";
 		}
 		else if (!strcmp(main_argv[i], "--retrotranslator") ||
 				!strcmp(main_argv[i], "--retro"))
@@ -1465,9 +1473,7 @@ static int start_ij(void)
 			add_option(options, "-port0", 1);
 		else
 			add_option(options, "-port7", 1);
-	}
 
-	if (!strcmp(main_class, "ij.ImageJ")) {
 		update_files();
 		stringstream icon_option;
 		icon_option << "-icon=" << fiji_dir << "/images/icon.png";
