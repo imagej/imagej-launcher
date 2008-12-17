@@ -1037,6 +1037,13 @@ static bool update_files(string relative_path)
 		string source = absolute_path + "/" + filename;
 		string target = string(fiji_dir) + relative_path
 			+ "/" + filename;
+#ifdef WIN32
+		if (file_exists(target.c_str()) && unlink(target.c_str())) {
+			cerr << "Could not remove old version of " << target
+				<< ".  Please remove manually!" << endl;
+			exit(1);
+		}
+#endif
 		if (rename(source.c_str(), target.c_str())) {
 			cerr << "Could not move " << source << " to "
 				<< target << ": " << strerror(errno) << endl;
