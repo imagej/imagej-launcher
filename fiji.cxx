@@ -302,15 +302,15 @@ static bool is_ipv6_broken(void)
 						(void*)&error, &length) < 0)
 					result = true;
 				else
-					result = error == EACCES |
-						error == EPERM |
-						error == EAFNOSUPPORT |
-						error == EINPROGRESS;
+					result = (error == EACCES) |
+						(error == EPERM) |
+						(error == EAFNOSUPPORT) |
+						(error == EINPROGRESS);
 			} else
 				result = true;
 		} else
-			result = errno == EACCES | errno == EPERM |
-				errno == EAFNOSUPPORT;
+			result = (errno == EACCES) | (errno == EPERM) |
+				(errno == EAFNOSUPPORT);
 	}
 
 	close(sock);
