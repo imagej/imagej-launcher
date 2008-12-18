@@ -1121,8 +1121,8 @@ static void /* no-return */ usage(void)
 		<< "--main-class <class name> (this is the" << endl
 		<< "\tdefault when called with a file ending in .class)" << endl
 		<< "\tstart the given class instead of ImageJ" << endl
-		<< "--fake" << endl
-		<< "\tstart Fake instead of ImageJ" << endl
+		<< "--build" << endl
+		<< "\tstart Fiji's build instead of ImageJ" << endl
 		<< "--javac" << endl
 		<< "\tstart JavaC, the Java Compiler, instead of ImageJ" << endl
 		<< "--retrotranslator" << endl
@@ -1294,7 +1294,8 @@ static int start_ij(void)
 				ext_option += PATH_SEP;
 			ext_option += arg;
 		}
-		else if (!strcmp(main_argv[i], "--fake")) {
+		else if (!strcmp(main_argv[i], "--build") ||
+				!strcmp(main_argv[i], "--fake")) {
 #ifdef WIN32
 			open_win_console();
 #endif
