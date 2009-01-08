@@ -1889,6 +1889,23 @@ static int launch_32bit_on_tiger(int argc, char **argv)
 }
 #endif
 
+static bool is_dir_empty(string path)
+{
+	DIR *dir = opendir(path.c_str());
+	if (!dir)
+		return false;
+
+	struct dirent *entry;
+	while (NULL != (entry = readdir(dir)))
+		if (entry->d_name[0] != '.') {
+			closedir(dir);
+			return false;
+		}
+
+	closedir(dir);
+	return true;
+}
+
 static string get_newest_subdir(string relative_path)
 {
 	string path = string(fiji_dir) + "/" + relative_path;
@@ -1906,6 +1923,8 @@ static string get_newest_subdir(string relative_path)
 		if (stat((path + "/" + filename).c_str(), &st))
 			continue;
 		if (!S_ISDIR(st.st_mode))
+			continue;
+		if (is_dir_empty(relative_path + "/" + filename))
 			continue;
 		if (mtime < st.st_mtime) {
 			mtime = st.st_mtime;
