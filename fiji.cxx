@@ -1900,7 +1900,7 @@ static string get_newest_subdir(string relative_path)
 	struct dirent *entry;
 	while (NULL != (entry = readdir(dir))) {
 		string filename(entry->d_name);
-		if (filename == "." || filename == "..")
+		if (filename == "." || filename == ".." || filename == ".git")
 			continue;
 		struct stat st;
 		if (stat((path + "/" + filename).c_str(), &st))
@@ -1918,7 +1918,8 @@ static string get_newest_subdir(string relative_path)
 
 static void adjust_java_home_if_necessary(void)
 {
-	if (dir_exists(string(fiji_dir) + "/" + relative_java_home))
+	if (file_exists(string(fiji_dir) + "/" + relative_java_home
+			+ "/" + library_path))
 		return;
 	string platform_subdir = get_newest_subdir(string("java"));
 	if (platform_subdir == "")
