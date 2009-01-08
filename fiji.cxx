@@ -1937,6 +1937,9 @@ static string get_newest_subdir(string relative_path)
 
 static void adjust_java_home_if_necessary(void)
 {
+#ifdef MACOSX
+	return;
+#else
 	if (file_exists(string(fiji_dir) + "/" + relative_java_home
 			+ "/" + library_path))
 		return;
@@ -1949,6 +1952,7 @@ static void adjust_java_home_if_necessary(void)
 	jdk_subdir += "/jre";
 	if (dir_exists(jdk_subdir))
 		relative_java_home = strdup(jdk_subdir.c_str());
+#endif
 }
 
 int main(int argc, char **argv, char **e)
