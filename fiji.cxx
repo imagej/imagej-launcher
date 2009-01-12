@@ -667,6 +667,13 @@ static void open_win_console(void)
 }
 
 
+static int fake_posix_mkdir(const char *name, int mode)
+{
+	return mkdir(name);
+}
+#define mkdir fake_posix_mkdir
+
+
 struct entry {
 	char d_name[PATH_MAX];
 	int d_namlen;
