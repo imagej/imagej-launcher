@@ -720,7 +720,7 @@ int close_dir(struct dir *dir)
 #include <dirent.h>
 #endif
 
-bool dir_exists(string path)
+static bool dir_exists(string path)
 {
 	DIR *dir = opendir(path.c_str());
 	if (dir) {
@@ -728,6 +728,18 @@ bool dir_exists(string path)
 		return true;
 	}
 	return false;
+}
+
+static int mkdir_p(string path)
+{
+	if (dir_exists(path))
+		return 0;
+
+	size_t slash = path.find_last_of("/\\");
+	if (slash != 0 && slash != path.npos && mkdir_p(path.substr(0, slash)))
+		return -1;
+
+	return mkdir(path.c_str(), 0777);
 }
 
 static int headless;
@@ -1027,6 +1039,10 @@ static bool update_files(string relative_path)
 	DIR *directory = opendir(absolute_path.c_str());
 	if (!directory)
 		return false;
+	if (mkdir_p(string(fiji_dir) + relative_path)) {
+		cerr << "Could not create directory: " << relative_path << endl;
+		exit(1);
+	}
 	struct dirent *entry;
 	while (NULL != (entry = readdir(directory))) {
 		string filename(entry->d_name);
