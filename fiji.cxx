@@ -65,6 +65,7 @@ static win_cerr fake_cerr;
 #define PATH_SEP ":"
 #endif
 
+string absolute_java_home; // if set, overrides relative_java_home
 static const char *relative_java_home = JAVA_HOME;
 #ifndef MACOSX
 static const char *library_path = JAVA_LIB_PATH;
@@ -576,7 +577,10 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 	char *err;
 	static jint (*JNI_CreateJavaVM)(JavaVM **pvm, void **penv, void *args);
 
-	java_home << fiji_dir << "/" << relative_java_home;
+	if (absolute_java_home != "")
+		java_home << absolute_java_home;
+	else
+		java_home << fiji_dir << "/" << relative_java_home;
 #ifdef WIN32
 	/* Windows automatically adds the path of the executable to PATH */
 	stringstream path;
@@ -1092,6 +1096,8 @@ static void /* no-return */ usage(void)
 		<< "\tshow the command line, but do not run anything" << endl
 		<< "--system" << endl
 		<< "\tdo not try to run bundled Java" << endl
+		<< "--java-home <path>" << endl
+		<< "\tspecify JAVA_HOME explicitly" << endl
 		<< "--print-java-home" << endl
 		<< "\tprint Fiji's idea of JAVA_HOME" << endl
 		<< "--print-fiji-dir" << endl
@@ -1254,6 +1260,10 @@ static int start_ij(void)
 			dashdash = count;
 		else if (!strcmp(main_argv[i], "--dry-run"))
 			options.debug++;
+		else if (handle_one_option(i, "--java-home", arg)) {
+			absolute_java_home = arg;
+			setenv_or_exit("JAVA_HOME", strdup(arg.c_str()), 1);
+		}
 		else if (!strcmp(main_argv[i], "--system"))
 			options.use_system_jvm++;
 #ifdef WIN32
