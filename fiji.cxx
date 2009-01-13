@@ -773,6 +773,33 @@ static int mkdir_p(string path)
 	return mkdir(path.c_str(), 0777);
 }
 
+static void add_java_home_to_path(void)
+{
+	string java_home = absolute_java_home;
+
+	if (java_home == "") {
+		const char *env = getenv("JAVA_HOME");
+		if (env)
+			java_home = env;
+		else {
+			java_home = string(fiji_dir) + "/" + relative_java_home;
+			int len = java_home.length();
+			if (len > 4 && java_home.substr(len - 4) == "/jre")
+				java_home = java_home.substr(0, len - 4);
+		}
+	}
+
+	string new_path;
+	if (dir_exists(java_home + "/bin"))
+		new_path += java_home + "/bin:";
+	if (dir_exists(java_home + "/jre/bin"))
+		new_path += java_home + "/jre/bin:";
+
+	const char *env = getenv("PATH");
+	new_path += env ? env : fiji_dir;
+	setenv_or_exit("PATH", new_path.c_str(), 1);
+}
+
 static int headless;
 
 int build_classpath(string &result, string jar_directory, int no_error) {
@@ -1174,6 +1201,8 @@ static void /* no-return */ usage(void)
 		<< "\tstart Fiji's build instead of ImageJ" << endl
 		<< "--javac" << endl
 		<< "\tstart JavaC, the Java Compiler, instead of ImageJ" << endl
+		<< "--ant" << endl
+		<< "\trun Apache Ant" << endl
 		<< "--retrotranslator" << endl
 		<< "\tuse Retrotranslator to support Java < 1.6" << endl
 		<< endl;
@@ -1396,6 +1425,8 @@ static int start_ij(void)
 			else
 				cerr << main_argv[i] << "!\n";
 		}
+		else if (!strcmp(main_argv[i], "--ant"))
+			main_class = "org.apache.tools.ant.Main";
 		else if (!strcmp(main_argv[i], "--retrotranslator") ||
 				!strcmp(main_argv[i], "--retro"))
 			retrotranslator = true;
@@ -1531,17 +1562,8 @@ static int start_ij(void)
 		add_option(options, class_path.substr(18).c_str(), 1);
 	}
 
-	if (jdb) {
-		add_option(options, main_class, 1);
-		main_class = "com.sun.tools.example.debug.tty.TTY";
-	}
-
-	if (retrotranslator) {
-		add_option(options, "-advanced", 1);
-		add_option(options, main_class, 1);
-		main_class =
-			"net.sf.retrotranslator.transformer.JITRetrotranslator";
-	}
+	if (!strcmp(main_class, "org.apache.tools.ant.Main"))
+		add_java_home_to_path();
 
 	if (!strcmp(main_class, "ij.ImageJ")) {
 		if (allow_multiple)
@@ -1565,6 +1587,18 @@ static int start_ij(void)
 		}
 		if (main_argc > 1 && *main_argv[1] != '-')
 			add_option(options, "-batch", 1);
+	}
+
+	if (jdb) {
+		add_option(options, main_class, 1);
+		main_class = "com.sun.tools.example.debug.tty.TTY";
+	}
+
+	if (retrotranslator) {
+		add_option(options, "-advanced", 1);
+		add_option(options, main_class, 1);
+		main_class =
+			"net.sf.retrotranslator.transformer.JITRetrotranslator";
 	}
 
 	for (int i = 1; i < main_argc; i++)
