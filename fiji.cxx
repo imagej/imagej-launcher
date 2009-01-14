@@ -65,7 +65,11 @@ static win_cerr fake_cerr;
 #define PATH_SEP ":"
 #endif
 
-string absolute_java_home; // if set, overrides relative_java_home
+/*
+ * If set, overrides the environment variable JAVA_HOME, which in turn
+ * overrides relative_java_home.
+ */
+string absolute_java_home;
 static const char *relative_java_home = JAVA_HOME;
 #ifndef MACOSX
 static const char *library_path = JAVA_LIB_PATH;
@@ -333,6 +337,27 @@ int main_argc, main_argc_backup;
 const char *main_class;
 bool run_precompiled = false;
 
+static string get_java_home(void)
+{
+	if (absolute_java_home != "")
+		return absolute_java_home;
+	const char *env = getenv("JAVA_HOME");
+	if (env)
+		return env;
+	return string(fiji_dir) + "/" + relative_java_home;
+}
+
+static bool dir_exists(string directory);
+
+static string get_jre_home(void)
+{
+	string result = get_java_home();
+	int len = result.length();
+	if (len > 4 && result.substr(len - 4) == "/jre")
+		return result;
+	return dir_exists(result + "/jre") ? result + "/jre" : result;
+}
+
 static size_t mystrlcpy(char *dest, const char *src, size_t size)
 {
 	size_t ret = strlen(src);
@@ -572,31 +597,28 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 	// way doesn't work, set it back so that calling the system JVM
 	// can use the JAVA_HOME variable if it's set...
 	char *original_java_home_env = getenv("JAVA_HOME");
-	stringstream java_home, buffer;
+	stringstream buffer;
 	void *handle;
 	char *err;
 	static jint (*JNI_CreateJavaVM)(JavaVM **pvm, void **penv, void *args);
 
-	if (absolute_java_home != "")
-		java_home << absolute_java_home;
-	else
-		java_home << fiji_dir << "/" << relative_java_home;
+	string java_home = get_jre_home();
 #ifdef WIN32
 	/* Windows automatically adds the path of the executable to PATH */
 	stringstream path;
-	path << getenv("PATH") << ";" << java_home.str() << "/bin";
+	path << getenv("PATH") << ";" << java_home << "/bin";
 	setenv_or_exit("PATH", path.str().c_str(), 1);
 	// on Windows, a setenv() invalidates strings obtained by getenv()
 	if (original_java_home_env)
 		original_java_home_env = strdup(original_java_home_env);
 #endif
-	setenv_or_exit("JAVA_HOME", java_home.str().c_str(), 1);
-	buffer << java_home.str() << "/" << library_path;
+	setenv_or_exit("JAVA_HOME", java_home.c_str(), 1);
+	buffer << java_home << "/" << library_path;
 
 	handle = dlopen(buffer.str().c_str(), RTLD_LAZY);
 	if (!handle) {
 		setenv_or_exit("JAVA_HOME", original_java_home_env, 1);
-		if (!file_exists(java_home.str()))
+		if (!file_exists(java_home))
 			return 2;
 
 		const char *error = dlerror();
@@ -1249,8 +1271,7 @@ static int start_ij(void)
 			atol(value.c_str()) > 0)
 		options.use_system_jvm++;
 	if (get_fiji_bundle_variable("ext", ext_option))
-		ext_option = string(fiji_dir)
-			+ "/" + relative_java_home + "/Home/lib/ext:"
+		ext_option = get_java_home() + "/Home/lib/ext:"
 			"/Library/Java/Extensions:"
 			"/System/Library/Java/Extensions:"
 			"/System/Library/Frameworks/JavaVM.framework";
@@ -1355,8 +1376,8 @@ static int start_ij(void)
 			else
 				class_path += "/jars";
 			class_path += string("/javac.jar" PATH_SEP)
-				+ fiji_dir + "/" + relative_java_home
-					+ "/../lib/tools.jar" PATH_SEP;
+				+ get_jre_home()
+				+ "/../lib/tools.jar" PATH_SEP;
 			if (!strcmp(main_argv[i], "--javac"))
 				main_class = "com.sun.tools.javac.Main";
 			else if (!strcmp(main_argv[i], "--javap"))
@@ -1374,8 +1395,7 @@ static int start_ij(void)
 			exit(0);
 		}
 		else if (!strcmp("--print-java-home", main_argv[i])) {
-			cerr << string(fiji_dir) + "/" + relative_java_home
-				<< endl;
+			cerr << get_java_home() << endl;
 			exit(0);
 		}
 		else if (!strcmp("--help", main_argv[i]) ||
@@ -1561,13 +1581,9 @@ static int start_ij(void)
 				cerr << "Warning: falling back to System JVM"
 					<< endl;
 			env = NULL;
-		} else {
-			stringstream java_home_path;
-			java_home_path << "-Djava.home=" << fiji_dir << "/"
-				<< relative_java_home;
+		} else
 			prepend_string(options.java_options,
-				java_home_path.str().c_str());
-		}
+				("-Djava.home=" + get_java_home()).c_str());
 	}
 
 	if (env) {
