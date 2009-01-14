@@ -1983,7 +1983,7 @@ static void adjust_java_home_if_necessary(void)
 	if (jdk_subdir == "")
 		return;
 	jdk_subdir += "/jre";
-	if (dir_exists(jdk_subdir))
+	if (dir_exists(string(fiji_dir) + "/" + jdk_subdir))
 		relative_java_home = strdup(jdk_subdir.c_str());
 #endif
 }
