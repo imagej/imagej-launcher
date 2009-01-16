@@ -71,9 +71,7 @@ static win_cerr fake_cerr;
  */
 string absolute_java_home;
 static const char *relative_java_home = JAVA_HOME;
-#ifndef MACOSX
 static const char *library_path = JAVA_LIB_PATH;
-#endif
 
 /* Dynamic library loading stuff */
 
@@ -1987,8 +1985,9 @@ static string get_newest_subdir(string relative_path)
 static void adjust_java_home_if_necessary(void)
 {
 #ifdef MACOSX
+	/* On MacOSX, we use the system Java anyway. */
 	return;
-#else
+#endif
 	if (file_exists(string(fiji_dir) + "/" + relative_java_home
 			+ "/" + library_path))
 		return;
@@ -2001,7 +2000,6 @@ static void adjust_java_home_if_necessary(void)
 	jdk_subdir += "/jre";
 	if (dir_exists(string(fiji_dir) + "/" + jdk_subdir))
 		relative_java_home = strdup(jdk_subdir.c_str());
-#endif
 }
 
 int main(int argc, char **argv, char **e)
