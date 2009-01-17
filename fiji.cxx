@@ -1190,8 +1190,6 @@ static void /* no-return */ usage(void)
 string make_memory_option(size_t memory_size)
 {
 	memory_size >>= 20;
-	if (sizeof(void *) == 4 && memory_size > MAX_32BIT_HEAP)
-		memory_size = MAX_32BIT_HEAP;
 	stringstream heap_size;
 	heap_size << "-Xmx"<< memory_size << "m";
 	return heap_size.str();
@@ -1462,6 +1460,9 @@ static int start_ij(void)
 		memory_size = get_memory_size(0);
 		/* 0.75x, but avoid multiplication to avoid overflow */
 		memory_size -= memory_size >> 2;
+		if (sizeof(void *) == 4 &&
+				(memory_size >> 20) > MAX_32BIT_HEAP)
+			memory_size = (MAX_32BIT_HEAP << 20);
 	}
 
 	if (memory_size > 0)
