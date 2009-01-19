@@ -1253,6 +1253,17 @@ static int start_ij(void)
 	bool allow_multiple = false, skip_build_classpath = false;
 	bool jdb = false, add_class_path_option = false;
 
+#ifdef WIN32
+#define EXE_EXTENSION ".exe"
+#else
+#define EXE_EXTENSION
+#endif
+	if (file_exists(string(fiji_dir) + "/fiji" EXE_EXTENSION) &&
+			file_is_newer(string(fiji_dir) + "/fiji.cxx",
+				string(fiji_dir) + "/fiji" EXE_EXTENSION))
+		cerr << "Warning: your Fiji executable is not up-to-date"
+			<< endl;
+
 	size_t memory_size = 0;
 
 	memset(&options, 0, sizeof(options));
@@ -1358,6 +1369,10 @@ static int start_ij(void)
 					file_is_newer(precompiled_fake_jar,
 						fake_jar))
 				fake_jar = precompiled_fake_jar;
+			if (file_is_newer(string(fiji_dir) + "/fake/Fake.java",
+					fake_jar))
+				cerr << "Warning: fake.jar is not up-to-date"
+					<< endl;
 			class_path += fake_jar + PATH_SEP;
 			main_class = "Fake";
 		}
