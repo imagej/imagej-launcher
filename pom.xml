@@ -6,16 +6,19 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
-		<groupId>net.imagej</groupId>
-		<artifactId>pom-ij-base</artifactId>
-		<version>2.0.0-SNAPSHOT</version>
+		<groupId>org.scijava</groupId>
+		<artifactId>pom-scijava</artifactId>
+		<version>1.45</version>
+		<relativePath />
 	</parent>
 
 	<artifactId>ij-launcher</artifactId>
 	<packaging>nar</packaging>
 
 	<name>ImageJ Launcher</name>
-	<description>The artist formerly known as the Fiji launcher. This is the executable which runs ImageJ2. Its purpose is also to make sure that updates downloaded by the ImageJ Updater will be put into place before starting the Java Virtual Machine.</description>
+	<description>The executable which runs ImageJ. Its purpose is also to make sure that updates downloaded by the ImageJ Updater will be put into place before starting the Java Virtual Machine. It was formerly known as the Fiji launcher.</description>
+	<url>http://developer.imagej.net/</url>
+	<inceptionYear>2009</inceptionYear>
 
 	<properties>
 		<project.rootdir>${basedir}/..</project.rootdir>
@@ -26,7 +29,6 @@
 		<subsystem.option/>
 		<libdl.name>dl</libdl.name>
 		<debug.option/>
-		<nar.version>3.0.0-scijava-2</nar.version>
 	</properties>
 
 	<dependencies>
@@ -50,6 +52,9 @@
 						</manifest>
 					</archive>
 				</configuration>
+			</plugin>
+			<plugin>
+				<artifactId>maven-source-plugin</artifactId>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -94,6 +99,10 @@
 			</plugin>
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>buildnumber-maven-plugin</artifactId>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>exec-maven-plugin</artifactId>
 				<executions>
 					<execution>
@@ -111,6 +120,22 @@
 					</arguments>
 					<classpathScope>test</classpathScope>
 					<includePluginDependencies>true</includePluginDependencies>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>license-maven-plugin</artifactId>
+				<configuration>
+					<licenseName>imagej</licenseName>
+					<licenseResolver>file://${project.rootdir}/license</licenseResolver>
+					<inceptionYear>2009</inceptionYear>
+					<organizationName>Board of Regents of the University of
+Wisconsin-Madison, Broad Institute of MIT and Harvard, and Max Planck
+Institute of Molecular Cell Biology and Genetics.</organizationName>
+					<projectName>ImageJ software for multidimensional image processing and analysis.</projectName>
+					<addJavaLicenseAfterPackage>false</addJavaLicenseAfterPackage>
+					<canUpdateDescription>true</canUpdateDescription>
+					<canUpdateCopyright>true</canUpdateCopyright>
 				</configuration>
 			</plugin>
 		</plugins>
@@ -173,6 +198,99 @@
 			</plugins>
 		</pluginManagement>
 	</build>
+
+	<licenses>
+		<license>
+			<name>Simplified BSD License</name>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+
+	<organization>
+		<name>ImageJDev.org</name>
+		<url>http://developer.imagej.net/</url>
+	</organization>
+
+	<developers>
+		<developer>
+			<id>dscho</id>
+			<name>Johannes Schindelin</name>
+			<email>schindelin@wisc.edu</email>
+			<url>http://loci.wisc.edu/people/johannes-schindelin</url>
+			<organization>UW-Madison LOCI</organization>
+			<organizationUrl>http://loci.wisc.edu/</organizationUrl>
+			<roles>
+				<role>architect</role>
+				<role>developer</role>
+			</roles>
+			<timezone>-6</timezone>
+		</developer>
+		<developer>
+			<id>ctrueden</id>
+			<name>Curtis Rueden</name>
+			<email>ctrueden@wisc.edu</email>
+			<url>http://loci.wisc.edu/people/curtis-rueden</url>
+			<organization>UW-Madison LOCI</organization>
+			<organizationUrl>http://loci.wisc.edu/</organizationUrl>
+			<roles>
+				<role>developer</role>
+			</roles>
+			<timezone>-6</timezone>
+		</developer>
+	</developers>
+
+	<issueManagement>
+		<system>Trac</system>
+		<url>http://trac.imagej.net/</url>
+	</issueManagement>
+
+	<ciManagement>
+		<system>Jenkins</system>
+		<url>http://jenkins.imagej.net/</url>
+	</ciManagement>
+
+	<mailingLists>
+		<mailingList>
+			<name>ImageJ</name>
+			<subscribe>http://imagej.net/list.html</subscribe>
+			<unsubscribe>http://imagej.net/list.html</unsubscribe>
+			<post>imagej@list.nih.gov</post>
+			<archive>http://list.nih.gov/archives/imagej.html</archive>
+		</mailingList>
+		<mailingList>
+			<name>ImageJ-devel</name>
+			<subscribe>http://imagej.net/mailman/listinfo/imagej-devel</subscribe>
+			<unsubscribe>http://imagej.net/mailman/listinfo/imagej-devel</unsubscribe>
+			<post>imagej-devel@imagej.net</post>
+			<archive>http://imagej.net/pipermail/imagej-devel/</archive>
+		</mailingList>
+		<mailingList>
+			<name>Fiji-devel</name>
+			<subscribe>http://groups.google.com/group/fiji-devel</subscribe>
+			<unsubscribe>http://groups.google.com/group/fiji-devel</unsubscribe>
+			<post>fiji@fiji.sc</post>
+			<archive>http://groups.google.com/group/fiji-devel</archive>
+		</mailingList>
+	</mailingLists>
+
+	<scm>
+		<connection>scm:git:git://github.com/imagej/imagej</connection>
+		<developerConnection>scm:git:git@github.com:imagej/imagej</developerConnection>
+		<tag>HEAD</tag>
+		<url>https://github.com/imagej/imagej</url>
+	</scm>
+
+	<!-- NB: for project parent -->
+	<repositories>
+		<repository>
+			<id>imagej.releases</id>
+			<url>http://maven.imagej.net/content/repositories/releases</url>
+		</repository>
+		<repository>
+			<id>imagej.snapshots</id>
+			<url>http://maven.imagej.net/content/repositories/snapshots</url>
+		</repository>
+	</repositories>
 
 	<profiles>
 		<profile>
