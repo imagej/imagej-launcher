@@ -2314,13 +2314,19 @@ static void keep_only_one_memory_option(struct string_array *options)
 	options->nr = j;
 }
 
-static const char* has_memory_option(struct string_array *options)
+static const char* has_option_with_prefix(struct string_array *options,
+	const char *prefix)
 {
 	int i;
 	for (i = options->nr - 1; i >= 0; i--)
-		if (!prefixcmp(options->list[i], "-Xm"))
+		if (!prefixcmp(options->list[i], prefix))
 			return options->list[i];
 	return NULL;
+}
+
+static const char* has_memory_option(struct string_array *options)
+{
+	return has_option_with_prefix(options, "-Xm");
 }
 
 static MAYBE_UNUSED void read_file_as_string(const char *file_name, struct string *contents)
