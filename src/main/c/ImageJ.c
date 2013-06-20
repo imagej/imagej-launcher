@@ -2329,6 +2329,11 @@ static const char* has_memory_option(struct string_array *options)
 	return has_option_with_prefix(options, "-Xm");
 }
 
+static const char* has_plugins_dir_option(struct string_array *options)
+{
+	return has_option_with_prefix(options, "-Dplugins.dir=");
+}
+
 static MAYBE_UNUSED void read_file_as_string(const char *file_name, struct string *contents)
 {
 	char buffer[1024];
@@ -3683,9 +3688,11 @@ static void parse_command_line(void)
 
 	/* Avoid Jython's huge startup cost: */
 	add_option(&options, "-Dpython.cachedir.skip=true", 0);
-	if (!plugin_path.length)
+	if (!plugin_path.length &&
+			!has_plugins_dir_option(&options.java_options))
 		string_setf(&plugin_path, "-Dplugins.dir=%s", ij_dir);
-	add_option(&options, plugin_path.buffer, 0);
+	if (plugin_path.length)
+		add_option(&options, plugin_path.buffer, 0);
 
 	if (legacy_ij1_options && is_default_ij1_class(main_class)) {
 		struct options dummy;
