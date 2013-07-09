@@ -2051,7 +2051,7 @@ static int add_retrotranslator_to_path(struct string *path)
 	return counter;
 }
 
-static int headless, headless_argc;
+static int headless, headless_argc, batch;
 
 static struct string *set_property(JNIEnv *env,
 		const char *key, const char *value)
@@ -3411,6 +3411,10 @@ static int handle_one_option2(int *i, int argc, const char **argv)
 		megabytes = parse_memory(arg.buffer);
 	else if (!strcmp(argv[*i], "--headless"))
 		headless = 1;
+	else if (!strcmp(argv[*i], "-batch")) {
+		batch = 1;
+		return 0; /* Do not mark the argument as handled. */
+	}
 	else if (handle_one_option(i, argv, "--main-class", &arg)) {
 		add_launcher_option(&options, "-classpath", ".");
 		main_class = xstrdup(arg.buffer);
@@ -3849,8 +3853,10 @@ static void parse_command_line(void)
 			if (!options.dry_run)
 				exit(1);
 		}
-		if (main_argc > 1 && *main_argv[1] != '-')
-			add_option(&options, "-batch", 1);
+		/* The -batch flag is required when --headless is given! */
+		if (!batch) {
+			batch = -1;
+		}
 	}
 
 	if (jdb)
@@ -3858,6 +3864,11 @@ static void parse_command_line(void)
 
 	for (i = 1; i < main_argc; i++)
 		add_option(&options, main_argv[i], 1);
+
+	if (batch < 0) {
+		/* Appending missing -batch flag as the final argument. */
+		add_option(&options, "-batch", 1);
+	}
 
 	i = 0;
 	properties[i++] = "imagej.dir";
