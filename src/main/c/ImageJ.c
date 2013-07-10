@@ -3866,7 +3866,8 @@ static void parse_command_line(void)
 		add_option(&options, main_argv[i], 1);
 
 	if (batch < 0) {
-		/* Appending missing -batch flag as the final argument. */
+		if (debug)
+			error("Appending missing -batch flag for headless operation.");
 		add_option(&options, "-batch", 1);
 	}
 
