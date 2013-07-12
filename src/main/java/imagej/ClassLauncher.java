@@ -124,9 +124,7 @@ public class ClassLauncher {
 			!mainClass.equals("imagej.Main") &&
 			!mainClass.equals("imagej.build.MiniMaven"))
 		{
-			classLoader =
-				ClassLoaderPlus.getInImageJDirectory(null, "jars/fiji-compat.jar",
-					"jars/ij.jar", "jars/javassist.jar");
+			classLoader = ClassLoaderPlus.getInImageJDirectory(null, "jars/fiji-compat.jar");
 			try {
 				patchIJ1(classLoader);
 			}

@@ -37,6 +37,7 @@ package imagej;
 
 import java.io.File;
 import java.io.FilenameFilter;
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -44,9 +45,13 @@ import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.jar.Attributes;
+import java.util.jar.JarFile;
+import java.util.jar.Manifest;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -67,15 +72,38 @@ public class ClassLoaderPlus extends URLClassLoader {
 	{
 		try {
 			final File directory = new File(getImageJDir());
-			final URL[] urls = new URL[relativePaths.length];
-			for (int i = 0; i < urls.length; i++) {
-				urls[i] = getPossiblyVersionedFile(new File(directory, relativePaths[i])).toURI().toURL();
+			final Set<URL> urls = new LinkedHashSet<URL>(relativePaths.length);
+			for (final String path : relativePaths) {
+				discoverDependencies(new File(directory, path), urls);
 			}
-			return get(classLoader, urls);
+			return get(classLoader, urls.toArray(new URL[urls.size()]));
 		}
 		catch (final Exception e) {
 			e.printStackTrace();
 			throw new RuntimeException("Uh oh: " + e.getMessage());
+		}
+	}
+
+	private static void discoverDependencies(final File jarFile, final Set<URL> result) {
+		final File versioned = getPossiblyVersionedFile(jarFile);
+		if (!versioned.exists()) return;
+		try {
+			final URL url = versioned.toURI().toURL();
+			if (result.contains(url)) return;
+			result.add(url);
+			final Manifest manifest = new JarFile(versioned).getManifest();
+			if (manifest == null) return;
+			final String classPath = (String)manifest.getMainAttributes().get(Attributes.Name.CLASS_PATH);
+			if (classPath == null) return;
+			File directory = jarFile.getParentFile();
+			if (directory == null) directory = jarFile.getAbsoluteFile().getParentFile();
+			for (final String path : classPath.split(" +")) {
+				discoverDependencies(new File(directory, path), result);
+			}
+		} catch (MalformedURLException e) {
+			// ignore this class path element
+		} catch (IOException e) {
+			// ignore this class path element
 		}
 	}
 
