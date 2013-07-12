@@ -292,7 +292,7 @@ public class ClassLoaderPlus extends URLClassLoader {
 				return matcher.matches() && matcher.group(1).equals(baseName);
 			}
 		});
-		if (list.length < 1) return file;
+		if (list == null || list.length < 1) return file;
 		if (list.length == 1) return list[0];
 
 		int newest = 0;
