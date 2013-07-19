@@ -3737,8 +3737,10 @@ static void parse_command_line(void)
 	if (megabytes > 0)
 		add_option(&options, make_memory_option(megabytes)->buffer, 0);
 
-	if (headless)
+	if (headless) {
 		add_option(&options, "-Djava.awt.headless=true", 0);
+		add_option(&options, "-Dapple.awt.UIElement=true", 0);
+	}
 
 	if (is_ipv6_broken())
 		add_option(&options, "-Djava.net.preferIPv4Stack=true", 0);
