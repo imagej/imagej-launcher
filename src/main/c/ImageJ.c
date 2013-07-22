@@ -4013,6 +4013,7 @@ static int write_desktop_file(const char *path, const char *title, const char *e
 	fprintf(f, "TryExec=%s\n", executable_path);
 	fprintf(f, "Terminal=false\n");
 	fprintf(f, "StartupNotify=true\n");
+	fprintf(f, "MimeType=image/*;\n");
 	if (icon_path)
 		fprintf(f, "Icon=%s\n", icon_path);
 	if (wm_class)
