@@ -4011,10 +4011,11 @@ static int write_desktop_file(const char *path, const char *title, const char *e
 	fprintf(f, "Comment=Scientific Image Analysis\n");
 	fprintf(f, "Type=Application\n");
 	fprintf(f, "Categories=Education;Science;ImageProcessing;\n");
-	fprintf(f, "Exec=%s\n", executable_path);
+	fprintf(f, "Exec=%s %%f\n", executable_path);
 	fprintf(f, "TryExec=%s\n", executable_path);
 	fprintf(f, "Terminal=false\n");
 	fprintf(f, "StartupNotify=true\n");
+	fprintf(f, "MimeType=image/*;\n");
 	if (icon_path)
 		fprintf(f, "Icon=%s\n", icon_path);
 	if (wm_class)
@@ -4097,7 +4098,7 @@ static void maybe_write_desktop_file(void)
 			write_desktop_file(path->buffer, title, executable_path->buffer, icon_path ? icon_path->buffer : NULL, wm_class);
 		}
 		else if (debug)
-			error("iKeep existing '%s'", path->buffer);
+			error("Keep existing '%s'", path->buffer);
 	}
 	else if (debug)
 		error("Skipping user-wide .desktop file: '%s' does not exist", path->buffer);
