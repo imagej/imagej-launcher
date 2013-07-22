@@ -4095,7 +4095,7 @@ static void maybe_write_desktop_file(void)
 			write_desktop_file(path->buffer, title, executable_path->buffer, icon_path ? icon_path->buffer : NULL, wm_class);
 		}
 		else if (debug)
-			error("iKeep existing '%s'", path->buffer);
+			error("Keep existing '%s'", path->buffer);
 	}
 	else if (debug)
 		error("Skipping user-wide .desktop file: '%s' does not exist", path->buffer);
