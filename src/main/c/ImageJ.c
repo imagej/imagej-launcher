@@ -4009,7 +4009,7 @@ static int write_desktop_file(const char *path, const char *title, const char *e
 	fprintf(f, "Comment=Scientific Image Analysis\n");
 	fprintf(f, "Type=Application\n");
 	fprintf(f, "Categories=Education;Science;ImageProcessing;\n");
-	fprintf(f, "Exec=%s\n", executable_path);
+	fprintf(f, "Exec=%s %%f\n", executable_path);
 	fprintf(f, "TryExec=%s\n", executable_path);
 	fprintf(f, "Terminal=false\n");
 	fprintf(f, "StartupNotify=true\n");
