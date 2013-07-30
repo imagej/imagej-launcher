@@ -3087,7 +3087,7 @@ static void __attribute__((__noreturn__)) usage(void)
 		"\tuse the G1 garbage collector\n"
 		"--debug-gc\n"
 		"\tshow debug info about the garbage collector on stderr\n"
-		"--debugger=<port>\n"
+		"--debugger=<port>[,suspend]\n"
 		"\tstart the JVM in a mode so Eclipse's debugger can attach to it\n"
 		"--no-splash\n"
 		"\tsuppress showing a splash screen upon startup\n"
@@ -3506,7 +3506,18 @@ static int handle_one_option2(int *i, int argc, const char **argv)
 	else if (!strcmp("--debug-gc", argv[*i]))
 		debug_gc = 1;
 	else if (handle_one_option(i, argv, "--debugger", &arg)) {
-		string_replace_range(&arg, 0, 0, "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=localhost:");
+		struct string *replace = string_copy("-agentlib:"
+			"jdwp=transport=dt_socket,server=y,suspend=");
+		if (suffixcmp(arg.buffer, arg.length, ",suspend")) {
+			string_add_char(replace, 'n');
+		} else {
+			string_add_char(replace, 'y');
+			string_set_length(&arg,
+				arg.length - strlen(",suspend"));
+		}
+		string_append(replace, ",address=localhost:");
+		string_replace_range(&arg, 0, 0, replace->buffer);
+		string_release(replace);
 		add_option_string(&options, &arg, 0);
 	}
 	else if (!strcmp("--no-splash", argv[*i]))
