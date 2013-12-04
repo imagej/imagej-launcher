@@ -55,7 +55,7 @@
 				<artifactId>maven-source-plugin</artifactId>
 			</plugin>
 			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
+				<groupId>${nar.groupId}</groupId>
 				<artifactId>nar-maven-plugin</artifactId>
 				<version>${nar.version}</version>
 				<extensions>true</extensions>
@@ -163,7 +163,7 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 								</pluginExecution>
 								<pluginExecution>
 									<pluginExecutionFilter>
-										<groupId>org.apache.maven.plugins</groupId>
+										<groupId>${nar.groupId}</groupId>
 										<artifactId>nar-maven-plugin</artifactId>
 										<versionRange>${nar.version}</versionRange>
 										<goals>
