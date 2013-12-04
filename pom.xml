@@ -415,7 +415,9 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 			<build>
 				<plugins>
 					<plugin>
+						<groupId>${nar.groupId}</groupId>
 						<artifactId>nar-maven-plugin</artifactId>
+						<version>${nar.version}</version>
 						<configuration>
 							<c>
 								<name>gcc</name>
