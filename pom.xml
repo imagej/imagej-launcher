@@ -20,13 +20,13 @@
 	<inceptionYear>2009</inceptionYear>
 
 	<properties>
-		<skipTests>true</skipTests>
-		<java.os.include />
-		<stack.protector.option />
 		<architecture.option />
-		<subsystem.option />
-		<libdl.name>dl</libdl.name>
 		<debug.option />
+		<java.os.include />
+		<libdl.name>dl</libdl.name>
+		<skipTests>true</skipTests>
+		<stack.protector.option />
+		<subsystem.option />
 	</properties>
 
 	<dependencies>
