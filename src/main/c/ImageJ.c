@@ -4512,7 +4512,7 @@ static void set_path_to_JVM(void)
 	/* Append to the path the Versions Component. */
 	CFURLRef JavaVMBundlerVersionsDirURL =
 		CFURLCreateCopyAppendingPathComponent(kCFAllocatorDefault,
-				JavaVMBundleURL, CFSTR("Versions"), 1);
+			JavaVMBundleURL, CFSTR("Versions"), 1);
 	CFRelease(JavaVMBundleURL);
 	if (!JavaVMBundlerVersionsDirURL) {
 		fprintf(stderr, "Warning: could not detect Java versions\n");
@@ -4531,7 +4531,7 @@ static void set_path_to_JVM(void)
 	if (is_intel() && sizeof(void *) > 4) {
 		targetJVM = CFSTR("1.6");
 		TargetJavaVM =
-		CFURLCreateCopyAppendingPathComponent(kCFAllocatorDefault,
+			CFURLCreateCopyAppendingPathComponent(kCFAllocatorDefault,
 				JavaVMBundlerVersionsDirURL, targetJVM, 1);
 	}
 
@@ -4539,7 +4539,7 @@ static void set_path_to_JVM(void)
 		retrotranslator = 1;
 		targetJVM = CFSTR("1.5");
 		TargetJavaVM =
-		CFURLCreateCopyAppendingPathComponent(kCFAllocatorDefault,
+			CFURLCreateCopyAppendingPathComponent(kCFAllocatorDefault,
 				JavaVMBundlerVersionsDirURL, targetJVM, 1);
 	}
 
