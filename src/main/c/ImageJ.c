@@ -4164,6 +4164,15 @@ static int start_ij(void)
 				if (!suffixcmp(buffer->buffer, buffer->length, "/"))
 					string_set_length(buffer, buffer->length - 1);
 				if (!suffixcmp(buffer->buffer, buffer->length, "/jre")) {
+					// NB: It is technically incorrect to strip the jre suffix, since
+					// according to Oracle's Java Tutorials, java.home should point to
+					// the "Installation directory for Java Runtime Environment (JRE)".
+					//
+					// http://docs.oracle.com/javase/tutorial/essential/environment/sysprop.html
+					//
+					// However, we do this so that we can access JDK-only libraries
+					// (particularly tools.jar) below java.home without resorting to
+					// "${java.home}/.." or similar hacks.
 					string_set_length(buffer, buffer->length - 4);
 					string_replace_range(buffer, 0, 0, "-Djava.home=");
 					if (debug)
