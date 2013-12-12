@@ -130,6 +130,9 @@ static void win_verror(const char *fmt, va_list ap);
 #include "glibc-compat.h"
 #endif
 
+/*
+ * Issues a message to the console. On Windows, opens a console as needed.
+ */
 __attribute__((format (printf, 1, 2)))
 static void error(const char *fmt, ...)
 {
