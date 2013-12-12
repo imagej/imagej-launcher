@@ -4345,6 +4345,19 @@ static void append_icon_path(struct string *str)
 #include <sys/param.h>
 #include <string.h>
 
+static void print_cfurl(const char *message, CFURLRef cfurl)
+{
+	UInt8 bytes[PATH_MAX] = "";
+	Boolean result = CFURLGetFileSystemRepresentation(cfurl, 1,
+		bytes, PATH_MAX);
+	if (result) {
+		error("%s: %s", message, (const char *)bytes);
+	}
+	else {
+		error("%s: <error>\n", message);
+	}
+}
+
 static struct string *convert_cfstring(CFStringRef ref, struct string *buffer)
 {
 	string_ensure_alloc(buffer, (int)CFStringGetLength(ref) * 6);
@@ -4505,6 +4518,9 @@ static void set_path_to_JVM(void)
 		fprintf(stderr, "Warning: could not detect Java versions\n");
 		return;
 	}
+	else if (debug) {
+		print_cfurl("JavaVMBundlerVersionsDirURL", JavaVMBundlerVersionsDirURL);
+	}
 
 	/* Append to the path the target JVM's Version. */
 	CFURLRef TargetJavaVM = NULL;
@@ -4531,6 +4547,9 @@ static void set_path_to_JVM(void)
 	if (!TargetJavaVM) {
 		fprintf(stderr, "Warning: Could not instantiate Java\n");
 		return;
+	}
+	else if (debug) {
+		print_cfurl("TargetJavaVM", TargetJavaVM);
 	}
 
 	UInt8 pathToTargetJVM[PATH_MAX] = "";
