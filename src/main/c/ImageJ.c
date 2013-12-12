@@ -4548,7 +4548,7 @@ static void set_path_to_JVM(void)
 	 * variable JAVA_JVM_VERSION to the target JVM.
 	 */
 	if (access((const char *)pathToTargetJVM, R_OK)) {
-		fprintf(stderr, "Warning: Could not access Java VM\n");
+		fprintf(stderr, "Warning: Could not access Java VM: %s\n", (const char *)pathToTargetJVM);
 		return;
 	}
 
