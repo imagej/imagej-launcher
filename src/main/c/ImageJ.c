@@ -4583,6 +4583,7 @@ static void set_path_to_JVM(void)
 	 */
 	if (CFStringGetCString(targetJVM, (char *)pathToTargetJVM,
 				PATH_MAX, kCFStringEncodingUTF8))
+		error("Setting JAVA_JVM_VERSION to %s\n", (const char *)pathToTargetJVM);
 		setenv("JAVA_JVM_VERSION",
 				(const char *)pathToTargetJVM, 1);
 
