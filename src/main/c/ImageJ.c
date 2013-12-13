@@ -4968,7 +4968,7 @@ static void set_default_library_path(void)
 {
 	default_library_path =
 #if defined(__APPLE__)
-		"";
+		"lib/server/libjvm.dylib";
 #elif defined(WIN32)
 		sizeof(void *) < 8 ? "bin/client/jvm.dll" : "bin/server/jvm.dll";
 #else
