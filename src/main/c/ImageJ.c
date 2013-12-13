@@ -4983,15 +4983,8 @@ static void adjust_java_home_if_necessary(void)
 	const char *prefix = "jre/";
 	int depth = 2;
 
-#ifdef __APPLE__
-	/* On MacOSX, we look for libjogl.jnilib instead. */
-	library_path = "Home/lib/ext/libjogl.jnilib";
-	prefix = "";
-	depth = 1;
-#else
 	set_default_library_path();
 	library_path = default_library_path;
-#endif
 
 	buffer = string_copy("java");
 	result = string_init(32);
