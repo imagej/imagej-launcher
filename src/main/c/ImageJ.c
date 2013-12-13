@@ -4549,6 +4549,11 @@ static int set_path_to_apple_JVM(void)
 	 * simpleJavaLauncher code.
 	 */
 
+	if (get_java_home_env()) {
+		/* JAVA_HOME is set, and must point to a *non-Apple* JVM. */
+		return 2;
+	}
+
 	/* Look for the JavaVM bundle using its identifier. */
 	CFBundleRef JavaVMBundle =
 		CFBundleGetBundleWithIdentifier(CFSTR("com.apple.JavaVM"));
