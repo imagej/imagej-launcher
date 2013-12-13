@@ -1650,6 +1650,11 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 	static jint (*JNI_CreateJavaVM)(JavaVM **pvm, void **penv, void *args);
 	const char *java_home = get_jre_home();
 
+	if (!java_home) {
+		error("No known JRE; cannot link to Java library");
+		return 1;
+	}
+
 #ifdef WIN32
 	/* On Windows, a setenv() invalidates strings obtained by getenv(). */
 	if (original_java_home_env)
