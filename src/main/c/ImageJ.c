@@ -91,7 +91,7 @@
 
 struct string;
 static void append_icon_path(struct string *str);
-static void set_path_to_JVM(void);
+static void set_path_to_apple_JVM(void);
 static int get_fiji_bundle_variable(const char *key, struct string *value);
 #endif
 
@@ -1636,7 +1636,7 @@ static const char *get_ij_dir(const char *argv0)
 static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 {
 #ifdef __APPLE__
-	set_path_to_JVM();
+	set_path_to_apple_JVM();
 #else
 	/*
 	 * Save the original value of JAVA_HOME: if creating the JVM this
@@ -4481,7 +4481,7 @@ release_buffer:
 	return result;
 }
 
-static void set_path_to_JVM(void)
+static void set_path_to_apple_JVM(void)
 {
 	/*
 	 * MacOSX specific stuff for system java
