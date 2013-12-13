@@ -21,7 +21,7 @@
 
 	<properties>
 		<architecture.option />
-		<debug.option />
+		<debug.option/>
 		<java.os.include />
 		<libdl.name>dl</libdl.name>
 		<skipTests>true</skipTests>
@@ -503,6 +503,13 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 					</plugin>
 				</plugins>
 			</build>
+		</profile>
+
+		<profile>
+			<id>debug</id>
+			<properties>
+				<debug.option>-g</debug.option>
+			</properties>
 		</profile>
 	</profiles>
 
