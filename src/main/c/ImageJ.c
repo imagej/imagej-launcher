@@ -1636,8 +1636,22 @@ static const char *get_ij_dir(const char *argv0)
 static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 {
 #ifdef __APPLE__
-	set_path_to_apple_JVM();
-#else
+	if (!set_path_to_apple_JVM()) {
+		/* We found an Apple Framework JVM (pre-Java-1.7). */
+		return JNI_CreateJavaVM(vm, env, args);
+	}
+#endif
+
+	/*
+	 * At this point, we are either not on OS X, or on a
+	 * newer OS X that is missing the Apple Framework paths:
+	 *
+	 *     /System/Library/Frameworks/JavaVM.framework/Versions/1.6
+	 *     /System/Library/Frameworks/JavaVM.framework/Versions/1.5
+	 *
+	 * So we'll do things the good ol' fashioned way: dlopen and dlsym.
+	 */
+
 	/*
 	 * Save the original value of JAVA_HOME: if creating the JVM this
 	 * way doesn't work, set it back so that calling the system JVM
@@ -1696,7 +1710,6 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 		string_release(buffer);
 		return 1;
 	}
-#endif
 
 	return JNI_CreateJavaVM(vm, env, args);
 }
