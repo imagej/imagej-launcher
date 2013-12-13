@@ -91,7 +91,7 @@
 
 struct string;
 static void append_icon_path(struct string *str);
-static void set_path_to_apple_JVM(void);
+static int set_path_to_apple_JVM(void);
 static int get_fiji_bundle_variable(const char *key, struct string *value);
 #endif
 
@@ -4481,7 +4481,7 @@ release_buffer:
 	return result;
 }
 
-static void set_path_to_apple_JVM(void)
+static int set_path_to_apple_JVM(void)
 {
 	/*
 	 * MacOSX specific stuff for system java
@@ -4502,7 +4502,7 @@ static void set_path_to_apple_JVM(void)
 
 	if (!JavaVMBundle) {
 		fprintf(stderr, "Warning: could not find Java bundle\n");
-		return;
+		return 3;
 	}
 
 	/* Get a path for the JavaVM bundle. */
@@ -4510,7 +4510,7 @@ static void set_path_to_apple_JVM(void)
 	CFRelease(JavaVMBundle);
 	if (!JavaVMBundleURL) {
 		fprintf(stderr, "Warning: could not get path for Java\n");
-		return;
+		return 5;
 	}
 
 	/* Append to the path the Versions Component. */
@@ -4520,7 +4520,7 @@ static void set_path_to_apple_JVM(void)
 	CFRelease(JavaVMBundleURL);
 	if (!JavaVMBundlerVersionsDirURL) {
 		fprintf(stderr, "Warning: could not detect Java versions\n");
-		return;
+		return 7;
 	}
 	else if (debug) {
 		print_cfurl("JavaVMBundlerVersionsDirURL", JavaVMBundlerVersionsDirURL);
@@ -4550,7 +4550,7 @@ static void set_path_to_apple_JVM(void)
 	CFRelease(JavaVMBundlerVersionsDirURL);
 	if (!TargetJavaVM) {
 		fprintf(stderr, "Warning: Could not instantiate Java\n");
-		return;
+		return 11;
 	}
 	else if (debug) {
 		print_cfurl("TargetJavaVM", TargetJavaVM);
@@ -4562,7 +4562,7 @@ static void set_path_to_apple_JVM(void)
 	CFRelease(TargetJavaVM);
 	if (!result) {
 		fprintf(stderr, "Warning: could not get path for Java VM\n");
-		return;
+		return 13;
 	}
 
 	/*
@@ -4572,7 +4572,7 @@ static void set_path_to_apple_JVM(void)
 	 */
 	if (access((const char *)pathToTargetJVM, R_OK)) {
 		fprintf(stderr, "Warning: Could not access Java VM: %s\n", (const char *)pathToTargetJVM);
-		return;
+		return 17;
 	}
 
 	/*
@@ -4586,12 +4586,13 @@ static void set_path_to_apple_JVM(void)
 		PATH_MAX, kCFStringEncodingUTF8))
 	{
 		fprintf(stderr, "Warning: Could not set JAVA_JVM_VERSION\n");
-		return;
+		return 19;
 	}
 
 	error("Setting JAVA_JVM_VERSION to %s\n", (const char *)pathToTargetJVM);
 	setenv("JAVA_JVM_VERSION",
 		(const char *)pathToTargetJVM, 1);
+	return 0;
 }
 
 static int get_fiji_bundle_variable(const char *key, struct string *value)
