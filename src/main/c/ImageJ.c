@@ -3813,11 +3813,12 @@ static void parse_command_line(void)
 		add_launcher_option(&options, "-ijjarpath", "plugins");
 	}
 	else if (is_default_ij1_class(main_class)) {
-		char *ij1_jar = find_jar(ij_path("jars/"), "ij");
+		const char *jar_path = ij_path("jars/");
+		char *ij1_jar = find_jar(jar_path, "ij");
 		if (!ij1_jar)
 			ij1_jar = find_jar(ij_dir, "ij");
 		if (!ij1_jar)
-			die("Could not find ij.jar");
+			die("Could not find ij.jar in %s", jar_path);
 		add_launcher_option(&options, "-classpath", ij1_jar);
 	}
 
