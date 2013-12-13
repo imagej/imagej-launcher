@@ -2444,6 +2444,29 @@ static char *discover_system_java_home(void)
 #else
 	const char *java_executable = find_in_path(get_java_command(), 0);
 
+#ifdef __APPLE__
+	int len = strlen(java_executable);
+	if (len > 14 && !suffixcmp(java_executable, len, "/Commands/java")) {
+		/*
+		 * Containing folder is not a JRE or JDK, it's an Apple Framework. Bah!
+		 * For example, the path:
+		 *
+		 *     /System/Library/Frameworks/JavaVM.framework/Versions/A/Commands
+		 *
+		 * does not actually contain a proper JRE. It is merely a Framework
+		 * for the current version of Apple Java on the system.
+		 *
+		 * Unfortunately, on OS X, /usr/bin/java is typically symlinked to
+		 * /System/Library/Frameworks/JavaVM.framework/Versions/Current/Commands/java,
+		 * with Current symlinked to A, resulting in a failure of this PATH-based
+		 * strategy to find the actual JRE. So we simply give up in that case.
+		 */
+		if (debug)
+			error("Ignoring Apple Framework java executable: '%s'", java_executable);
+		return NULL;
+	}
+#endif
+
 	if (java_executable) {
 		char *path = strdup(java_executable);
 		const char *suffixes[] = {
