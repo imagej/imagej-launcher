@@ -4582,12 +4582,16 @@ static void set_path_to_apple_JVM(void)
 	 * We can reuse the pathToTargetJVM buffer to set the environment
 	 * varable.
 	 */
-	if (CFStringGetCString(targetJVM, (char *)pathToTargetJVM,
-				PATH_MAX, kCFStringEncodingUTF8))
-		error("Setting JAVA_JVM_VERSION to %s\n", (const char *)pathToTargetJVM);
-		setenv("JAVA_JVM_VERSION",
-				(const char *)pathToTargetJVM, 1);
+	if (!CFStringGetCString(targetJVM, (char *)pathToTargetJVM,
+		PATH_MAX, kCFStringEncodingUTF8))
+	{
+		fprintf(stderr, "Warning: Could not set JAVA_JVM_VERSION\n");
+		return;
+	}
 
+	error("Setting JAVA_JVM_VERSION to %s\n", (const char *)pathToTargetJVM);
+	setenv("JAVA_JVM_VERSION",
+		(const char *)pathToTargetJVM, 1);
 }
 
 static int get_fiji_bundle_variable(const char *key, struct string *value)
