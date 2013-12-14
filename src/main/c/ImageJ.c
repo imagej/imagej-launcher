@@ -4605,6 +4605,23 @@ static int set_path_to_apple_JVM(void)
 				JavaVMBundlerVersionsDirURL, targetJVM, 1);
 	}
 
+	if (!cfurl_dir_exists(TargetJavaVM)) {
+		/* No 1.6 or 1.5, so look for the default Versions/A. */
+		targetJVM = CFSTR("A");
+		TargetJavaVM =
+			CFURLCreateCopyAppendingPathComponent(kCFAllocatorDefault,
+				JavaVMBundlerVersionsDirURL, targetJVM, 1);
+		if (cfurl_dir_exists(TargetJavaVM)) {
+			/**
+			 * Folder found; return success without setting JAVA_JVM_VERSION.
+			 *
+			 * This will hopefully result in JNI_CreateJavaVM being called
+			 * and linking against the default Apple Framework JVM.
+			 */
+			return 0;
+		}
+	}
+
 	CFRelease(JavaVMBundlerVersionsDirURL);
 	if (!cfurl_dir_exists(TargetJavaVM)) {
 		fprintf(stderr, "Warning: Could not locate compatible Apple Java VM\n");
