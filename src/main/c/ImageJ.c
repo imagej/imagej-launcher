@@ -4597,8 +4597,10 @@ static int set_path_to_apple_JVM(void)
 				JavaVMBundlerVersionsDirURL, targetJVM, 1);
 	}
 
+	int needs_retrotranslator = 0;
+
 	if (!cfurl_dir_exists(TargetJavaVM)) {
-		retrotranslator = 1;
+		needs_retrotranslator = 1;
 		targetJVM = CFSTR("1.5");
 		TargetJavaVM =
 			CFURLCreateCopyAppendingPathComponent(kCFAllocatorDefault,
@@ -4607,6 +4609,7 @@ static int set_path_to_apple_JVM(void)
 
 	if (!cfurl_dir_exists(TargetJavaVM)) {
 		/* No 1.6 or 1.5, so look for the default Versions/A. */
+		needs_retrotranslator = 0;
 		targetJVM = CFSTR("A");
 		TargetJavaVM =
 			CFURLCreateCopyAppendingPathComponent(kCFAllocatorDefault,
@@ -4668,6 +4671,10 @@ static int set_path_to_apple_JVM(void)
 	error("Setting JAVA_JVM_VERSION to %s\n", (const char *)pathToTargetJVM);
 	setenv("JAVA_JVM_VERSION",
 		(const char *)pathToTargetJVM, 1);
+
+	if (needs_retrotranslator)
+		retrotranslator = 1;
+
 	return 0;
 }
 
