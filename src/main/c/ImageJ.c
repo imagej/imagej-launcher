@@ -4362,6 +4362,18 @@ static void print_cfurl(const char *message, CFURLRef cfurl)
 	}
 }
 
+static int cfurl_dir_exists(const CFURLRef cfurl)
+{
+	UInt8 bytes[PATH_MAX] = "";
+	Boolean result = CFURLGetFileSystemRepresentation(cfurl, 1,
+		bytes, PATH_MAX);
+	if (!result) {
+		/* Invalid CFURL. */
+		return 0;
+	}
+	return dir_exists((const char *)bytes);
+}
+
 static struct string *convert_cfstring(CFStringRef ref, struct string *buffer)
 {
 	string_ensure_alloc(buffer, (int)CFStringGetLength(ref) * 6);
@@ -4539,7 +4551,7 @@ static int set_path_to_apple_JVM(void)
 				JavaVMBundlerVersionsDirURL, targetJVM, 1);
 	}
 
-	if (!TargetJavaVM) {
+	if (!cfurl_dir_exists(TargetJavaVM)) {
 		retrotranslator = 1;
 		targetJVM = CFSTR("1.5");
 		TargetJavaVM =
@@ -4548,7 +4560,7 @@ static int set_path_to_apple_JVM(void)
 	}
 
 	CFRelease(JavaVMBundlerVersionsDirURL);
-	if (!TargetJavaVM) {
+	if (!cfurl_dir_exists(TargetJavaVM)) {
 		fprintf(stderr, "Warning: Could not locate compatible Apple Java VM\n");
 		return 11;
 	}
