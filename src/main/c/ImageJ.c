@@ -4549,7 +4549,7 @@ static int set_path_to_apple_JVM(void)
 
 	CFRelease(JavaVMBundlerVersionsDirURL);
 	if (!TargetJavaVM) {
-		fprintf(stderr, "Warning: Could not instantiate Java\n");
+		fprintf(stderr, "Warning: Could not locate compatible Apple Java VM\n");
 		return 11;
 	}
 	else if (debug) {
