@@ -58,27 +58,24 @@
  */
 
 #define _BSD_SOURCE
-#include <stdlib.h>
-#include "jni.h"
-#include <stdlib.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <limits.h>
+#include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#if !defined(WIN32) || !defined(__TINYC__)
+#include <unistd.h>
+#endif
+
+#include "jni.h"
 
 #include "common.h"
 #include "string-funcs.h"
 #include "xalloc.h"
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#if !defined(WIN32) || !defined(__TINYC__)
-#include <unistd.h>
-#endif
-#include <errno.h>
-
-
 #ifdef __APPLE__
-#include <stdlib.h>
 #include <pthread.h>
 #include <CoreFoundation/CoreFoundation.h>
 #include <ApplicationServices/ApplicationServices.h>
