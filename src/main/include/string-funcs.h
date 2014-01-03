@@ -36,6 +36,7 @@
 #define STRING_FUNCS_H
 
 #include <stdarg.h>
+#include <stdlib.h>
 
 /**
  * String functions.
@@ -78,5 +79,7 @@ extern struct string *string_initf(const char *fmt, ...);
 extern void string_replace(struct string *string, char from, char to);
 extern int string_read_file(struct string *string, const char *path);
 extern void string_escape(struct string *string, const char *characters);
+
+extern size_t mystrlcpy(char *dest, const char *src, size_t size);
 
 #endif
