@@ -445,7 +445,6 @@ static const char *main_class, *startup_class;
 static int dir_exists(const char *directory);
 static int is_native_library(const char *path);
 static int file_exists(const char *path);
-static inline int suffixcmp(const char *string, int len, const char *suffix);
 
 static int is_jre_home(const char *directory)
 {
@@ -712,21 +711,6 @@ static int is_absolute_path(const char *path)
 static int file_exists(const char *path)
 {
 	return !access(path, R_OK);
-}
-
-static inline int prefixcmp(const char *string, const char *prefix)
-{
-	return strncmp(string, prefix, strlen(prefix));
-}
-
-static inline int suffixcmp(const char *string, int len, const char *suffix)
-{
-	int suffix_len = strlen(suffix);
-	if (len < 0)
-		len = strlen(string);
-	if (len < suffix_len)
-		return -1;
-	return strncmp(string + len - suffix_len, suffix, suffix_len);
 }
 
 static const char *find_in_path(const char *path, int die_if_not_found)

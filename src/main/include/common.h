@@ -36,6 +36,7 @@
 #define COMMON_H
 
 #include <stdarg.h>
+#include <string.h>
 
 #if defined(__linux__) && !defined(__TINYC__)
 #include "glibc-compat.h"
@@ -78,5 +79,20 @@ extern void win_verror(const char *fmt, va_list ap);
 #else
 #define MAYBE_UNUSED
 #endif
+
+static inline int prefixcmp(const char *string, const char *prefix)
+{
+	return strncmp(string, prefix, strlen(prefix));
+}
+
+static inline int suffixcmp(const char *string, int len, const char *suffix)
+{
+	int suffix_len = strlen(suffix);
+	if (len < 0)
+		len = strlen(string);
+	if (len < suffix_len)
+		return -1;
+	return strncmp(string + len - suffix_len, suffix, suffix_len);
+}
 
 #endif
