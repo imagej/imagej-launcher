@@ -80,6 +80,10 @@ extern void win_verror(const char *fmt, va_list ap);
 #define MAYBE_UNUSED
 #endif
 
+#ifndef PATH_MAX
+#define PATH_MAX 1024
+#endif
+
 static inline int prefixcmp(const char *string, const char *prefix)
 {
 	return strncmp(string, prefix, strlen(prefix));

@@ -600,10 +600,6 @@ const char *last_slash(const char *path)
 	return slash;
 }
 
-#ifndef PATH_MAX
-#define PATH_MAX 1024
-#endif
-
 static void follow_symlinks(struct string *path, int max_recursion)
 {
 #ifndef WIN32
