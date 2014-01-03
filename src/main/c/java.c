@@ -315,3 +315,25 @@ const char *get_library_path(void)
 {
 	return library_path;
 }
+
+void add_java_home_to_path(void)
+{
+	const char *java_home = get_java_home();
+	struct string *new_path = string_init(32), *buffer;
+	const char *env;
+
+	if (!java_home)
+		return;
+	buffer = string_initf("%s/bin", java_home);
+	if (dir_exists(buffer->buffer))
+		string_append_path_list(new_path, buffer->buffer);
+	string_setf(buffer, "%s/jre/bin", java_home);
+	if (dir_exists(buffer->buffer))
+		string_append_path_list(new_path, buffer->buffer);
+
+	env = getenv("PATH");
+	string_append_path_list(new_path, env ? env : get_ij_dir());
+	setenv_or_exit("PATH", new_path->buffer, 1);
+	string_release(buffer);
+	string_release(new_path);
+}

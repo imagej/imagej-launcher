@@ -52,4 +52,6 @@ extern const char *get_default_library_path(void);
 extern void set_library_path(const char *path);
 extern const char *get_library_path(void);
 
+extern void add_java_home_to_path(void);
+
 #endif
