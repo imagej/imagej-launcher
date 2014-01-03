@@ -437,10 +437,10 @@ static const char *ij_path(const char *relative_path)
 	return string[counter]->buffer;
 }
 
-char *main_argv0;
-char **main_argv, **main_argv_backup;
-int main_argc, main_argc_backup;
-const char *main_class, *startup_class;
+static char *main_argv0;
+static char **main_argv, **main_argv_backup;
+static int main_argc, main_argc_backup;
+static const char *main_class, *startup_class;
 
 static int dir_exists(const char *directory);
 static int is_native_library(const char *path);
