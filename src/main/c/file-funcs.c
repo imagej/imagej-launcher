@@ -308,6 +308,100 @@ int read_exactly(int fd, unsigned char *buffer, int size)
 	return 1;
 }
 
+int mkdir_recursively(struct string *buffer)
+{
+	int slash = buffer->length - 1, save_length;
+	char save_char;
+	while (slash > 0 && !is_slash(buffer->buffer[slash]))
+		slash--;
+	while (slash > 0 && is_slash(buffer->buffer[slash - 1]))
+		slash--;
+	if (slash <= 0)
+		return -1;
+	save_char = buffer->buffer[slash];
+	save_length = buffer->length;
+	buffer->buffer[slash] = '\0';
+	buffer->length = slash;
+	if (!dir_exists(buffer->buffer)) {
+		int result = mkdir_recursively(buffer);
+		if (result)
+			return result;
+	}
+	buffer->buffer[slash] = save_char;
+	buffer->length = save_length;
+	return mkdir(buffer->buffer, 0777);
+}
+
+/*
+   Ensures that a directory exists in the manner of "mkdir -p", creating
+   components with file mode 777 (& umask) where they do not exist.
+   Returns 0 on success, or the return code of mkdir in the case of
+   failure.
+*/
+int mkdir_p(const char *path)
+{
+	int result;
+	struct string *buffer;
+	if (dir_exists(path))
+		return 0;
+
+	buffer = string_copy(path);
+	result = mkdir_recursively(buffer);
+	string_release(buffer);
+	return result;
+}
+
+char *find_jar(const char *jars_directory, const char *prefix)
+{
+	int prefix_length = strlen(prefix);
+	struct string *buffer;
+	int length;
+	time_t mtime = 0;
+	DIR *directory = opendir(jars_directory);
+	struct dirent *entry;
+	struct stat st;
+	char *result = NULL;
+
+	if (directory == NULL)
+		return NULL;
+
+	buffer = string_initf("%s", jars_directory);
+	length = buffer->length;
+	if (length == 0 || buffer->buffer[length - 1] != '/') {
+		string_add_char(buffer, '/');
+		length++;
+	}
+	while ((entry = readdir(directory))) {
+		const char *name = entry->d_name;
+		if (prefixcmp(name, prefix) ||
+			(strcmp(name + prefix_length, ".jar") &&
+			 (name[prefix_length] != '-' ||
+			  !isdigit(name[prefix_length + 1]) ||
+			  suffixcmp(name + prefix_length + 2, -1, ".jar"))))
+			continue;
+		string_set_length(buffer, length);
+		string_append(buffer, name);
+		if (!stat(buffer->buffer, &st) && st.st_mtime > mtime) {
+			free(result);
+			result = strdup(buffer->buffer);
+			mtime = st.st_mtime;
+		}
+	}
+	closedir(directory);
+	string_release(buffer);
+	return result;
+}
+
+int has_jar(const char *jars_directory, const char *prefix)
+{
+	char *result = find_jar(jars_directory, prefix);
+
+	if (!result)
+		return 0;
+	free(result);
+	return 1;
+}
+
 /* The path to the top-level ImageJ.app/ directory */
 
 static const char *ij_dir;

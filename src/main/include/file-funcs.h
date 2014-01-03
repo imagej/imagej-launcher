@@ -49,6 +49,11 @@ extern int dir_exists(const char *path);
 extern const char *find_in_path(const char *path, int die_if_not_found);
 extern int read_exactly(int fd, unsigned char *buffer, int size);
 
+extern int mkdir_recursively(struct string *buffer);
+extern int mkdir_p(const char *path);
+extern char *find_jar(const char *jars_directory, const char *prefix);
+extern int has_jar(const char *jars_directory, const char *prefix);
+
 extern const char *get_ij_dir(void);
 extern void set_ij_dir(const char *path);
 extern void infer_ij_dir(const char *main_argv0);
