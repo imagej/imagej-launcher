@@ -410,41 +410,13 @@ static int is_ipv6_broken(void)
 #define JNI_CREATEVM "JNI_CreateJavaVM"
 #endif
 
-static int is_slash(char c)
-{
-#ifdef WIN32
-	if (c == '\\')
-		return 1;
-#endif
-	return c == '/';
-}
-
-static const char *ij_dir;
 static char *ij_launcher_jar;
-
-static const char *ij_path(const char *relative_path)
-{
-	static struct string *string[3];
-	static int counter;
-
-	counter = ((counter + 1) % (sizeof(string) / sizeof(string[0])));
-	if (!string[counter])
-		string[counter] = string_initf("%s%s%s", ij_dir,
-			is_slash(*relative_path) ? "" : "/", relative_path);
-	else
-		string_setf(string[counter], "%s%s%s", ij_dir,
-			is_slash(*relative_path) ? "" : "/", relative_path);
-	return string[counter]->buffer;
-}
-
 static char *main_argv0;
 static char **main_argv, **main_argv_backup;
 static int main_argc, main_argc_backup;
 static const char *main_class, *startup_class;
 
-static int dir_exists(const char *directory);
 static int is_native_library(const char *path);
-static int file_exists(const char *path);
 
 static int is_jre_home(const char *directory)
 {
@@ -586,179 +558,6 @@ static const char *get_jre_home(void)
 	if (debug)
 		error("JAVA_HOME appears to be a JRE: '%s'", jre->buffer);
 	return jre->buffer;
-}
-
-const char *last_slash(const char *path)
-{
-	const char *slash = strrchr(path, '/');
-#ifdef WIN32
-	const char *backslash = strrchr(path, '\\');
-
-	if (backslash && slash < backslash)
-		slash = backslash;
-#endif
-	return slash;
-}
-
-static void follow_symlinks(struct string *path, int max_recursion)
-{
-#ifndef WIN32
-	char buffer[PATH_MAX];
-	int count = readlink(path->buffer, buffer, sizeof(buffer) - 1);
-	if (count < 0)
-		return;
-	string_set_length(path, 0);
-	string_addf(path, "%.*s", count, buffer);
-	if (max_recursion > 0)
-		follow_symlinks(path, max_recursion - 1);
-#endif
-}
-
-static const char *make_absolute_path(const char *path)
-{
-	static char bufs[2][PATH_MAX + 1], *buf = bufs[0];
-	char cwd[PATH_MAX] = "";
-#ifndef WIN32
-	static char *next_buf = bufs[1];
-	int buf_index = 1, len;
-#endif
-
-	int depth = 20;
-	char *last_elem = NULL;
-	struct stat st;
-
-	if (mystrlcpy(buf, path, PATH_MAX) >= PATH_MAX)
-		die("Too long path: %s", path);
-
-	while (depth--) {
-		if (stat(buf, &st) || !S_ISDIR(st.st_mode)) {
-			const char *slash = last_slash(buf);
-			if (slash) {
-				buf[slash-buf] = '\0';
-				last_elem = xstrdup(slash + 1);
-			} else {
-				last_elem = xstrdup(buf);
-				*buf = '\0';
-			}
-		}
-
-		if (*buf) {
-			if (!*cwd && !getcwd(cwd, sizeof(cwd)))
-				die("Could not get current working dir");
-
-			if (chdir(buf))
-				die("Could not switch to %s", buf);
-		}
-		if (!getcwd(buf, PATH_MAX))
-			die("Could not get current working directory");
-
-		if (last_elem) {
-			int len = strlen(buf);
-			if (len + strlen(last_elem) + 2 > PATH_MAX)
-				die("Too long path name: %s/%s", buf, last_elem);
-			buf[len] = '/';
-			strcpy(buf + len + 1, last_elem);
-			free(last_elem);
-			last_elem = NULL;
-		}
-
-#ifndef WIN32
-		if (!lstat(buf, &st) && S_ISLNK(st.st_mode)) {
-			len = readlink(buf, next_buf, PATH_MAX);
-			if (len < 0)
-				die("Invalid symlink: %s", buf);
-			next_buf[len] = '\0';
-			buf = next_buf;
-			buf_index = 1 - buf_index;
-			next_buf = bufs[buf_index];
-		} else
-#endif
-			break;
-	}
-
-	if (*cwd && chdir(cwd))
-		die("Could not change back to %s", cwd);
-
-	return buf;
-}
-
-static int is_absolute_path(const char *path)
-{
-#ifdef WIN32
-	if (((path[0] >= 'A' && path[0] <= 'Z') ||
-			(path[0] >= 'a' && path[0] <= 'z')) && path[1] == ':')
-		return 1;
-#endif
-	return path[0] == '/';
-}
-
-static int file_exists(const char *path)
-{
-	return !access(path, R_OK);
-}
-
-static const char *find_in_path(const char *path, int die_if_not_found)
-{
-	const char *p = getenv("PATH");
-	struct string *buffer;
-
-#ifdef WIN32
-	int len = strlen(path);
-	struct string *path_with_suffix = NULL;
-	const char *in_cwd;
-
-	if (suffixcmp(path, len, ".exe") && suffixcmp(path, len, ".EXE")) {
-		path_with_suffix = string_initf("%s.exe", path);
-		path = path_with_suffix->buffer;
-	}
-	in_cwd = make_absolute_path(path);
-	if (file_exists(in_cwd)) {
-		string_release(path_with_suffix);
-		return in_cwd;
-	}
-#endif
-
-	if (!p) {
-		if (die_if_not_found)
-			die("Could not get PATH");
-		if (debug)
-			error("Could not get PATH");
-		return NULL;
-	}
-
-	buffer = string_init(32);
-	for (;;) {
-		const char *colon = strchr(p, PATH_SEP[0]), *orig_p = p;
-		int len = colon ? colon - p : strlen(p);
-		struct stat st;
-
-		if (!len) {
-			if (die_if_not_found)
-				die("Could not find %s in PATH", path);
-			if (debug)
-				error("Could not find '%s' in the PATH", path);
-			return NULL;
-		}
-
-		p += len + !!colon;
-		if (!is_absolute_path(orig_p))
-			continue;
-		string_setf(buffer, "%.*s/%s", len, orig_p, path);
-#ifdef WIN32
-#define S_IX S_IXUSR
-#else
-#define S_IX (S_IXUSR | S_IXGRP | S_IXOTH)
-#endif
-		if (!stat(buffer->buffer, &st) && S_ISREG(st.st_mode) &&
-				(st.st_mode & S_IX)) {
-			const char *result = make_absolute_path(buffer->buffer);
-			string_release(buffer);
-#ifdef WIN32
-			string_release(path_with_suffix);
-#endif
-			return result;
-		}
-	}
 }
 
 #ifdef WIN32
@@ -923,8 +722,6 @@ static MAYBE_UNUSED struct string *get_parent_directory(const char *path)
 	return string_initf("%.*s", (int)(slash - path), path);
 }
 
-static int find_file(struct string *search_root, int max_depth, const char *file, struct string *result);
-
 /* Splash screen */
 
 static int no_splash;
@@ -1087,46 +884,6 @@ static void maybe_reexec_with_correct_lib_path(struct string *java_library_path)
 	execvp(main_argv_backup[0], main_argv_backup);
 	die("Could not re-exec with correct library lookup: %d (%s)", errno, strerror(errno));
 #endif
-}
-
-static const char *get_ij_dir(const char *argv0)
-{
-	static const char *buffer;
-	const char *slash;
-	int len;
-
-	if (buffer)
-		return buffer;
-
-	if (!last_slash(argv0))
-		buffer = find_in_path(argv0, 1);
-	else
-		buffer = make_absolute_path(argv0);
-	argv0 = buffer;
-
-	slash = last_slash(argv0);
-	if (!slash)
-		die("Could not get absolute path for executable");
-
-	len = slash - argv0;
-#ifdef __APPLE__
-	if (!suffixcmp(argv0, len, "/Contents/MacOS")) {
-		struct string *scratch;
-		len -= strlen("/Contents/MacOS");
-		scratch = string_initf("%.*s/jars", len, argv0);
-		if (len && !dir_exists(scratch->buffer))
-			while (--len && argv0[len] != '/')
-				; /* ignore */
-		slash = argv0 + len;
-		string_release(scratch);
-	}
-#endif
-
-	buffer = xstrndup(buffer, slash - argv0);
-#ifdef WIN32
-	buffer = dos_path(buffer);
-#endif
-	return buffer;
 }
 
 static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
@@ -1345,180 +1102,9 @@ int close_dir(struct dir *dir)
 #include <dirent.h>
 #endif
 
-static int dir_exists(const char *path)
-{
-	DIR *dir = opendir(path);
-	if (dir) {
-		closedir(dir);
-		return 1;
-	}
-	return 0;
-}
-
-static int mkdir_recursively(struct string *buffer)
-{
-	int slash = buffer->length - 1, save_length;
-	char save_char;
-	while (slash > 0 && !is_slash(buffer->buffer[slash]))
-		slash--;
-	while (slash > 0 && is_slash(buffer->buffer[slash - 1]))
-		slash--;
-	if (slash <= 0)
-		return -1;
-	save_char = buffer->buffer[slash];
-	save_length = buffer->length;
-	buffer->buffer[slash] = '\0';
-	buffer->length = slash;
-	if (!dir_exists(buffer->buffer)) {
-		int result = mkdir_recursively(buffer);
-		if (result)
-			return result;
-	}
-	buffer->buffer[slash] = save_char;
-	buffer->length = save_length;
-	return mkdir(buffer->buffer, 0777);
-}
-
-/*
-   Ensures that a directory exists in the manner of "mkdir -p", creating
-   components with file mode 777 (& umask) where they do not exist.
-   Returns 0 on success, or the return code of mkdir in the case of
-   failure.
-*/
-static int mkdir_p(const char *path)
-{
-	int result;
-	struct string *buffer;
-	if (dir_exists(path))
-		return 0;
-
-	buffer = string_copy(path);
-	result = mkdir_recursively(buffer);
-	string_release(buffer);
-	return result;
-}
-
-static char *find_jar(const char *jars_directory, const char *prefix)
-{
-	int prefix_length = strlen(prefix);
-	struct string *buffer;
-	int length;
-	time_t mtime = 0;
-	DIR *directory = opendir(jars_directory);
-	struct dirent *entry;
-	struct stat st;
-	char *result = NULL;
-
-	if (directory == NULL)
-		return NULL;
-
-	buffer = string_initf("%s", jars_directory);
-	length = buffer->length;
-	if (length == 0 || buffer->buffer[length - 1] != '/') {
-		string_add_char(buffer, '/');
-		length++;
-	}
-	while ((entry = readdir(directory))) {
-		const char *name = entry->d_name;
-		if (prefixcmp(name, prefix) ||
-			(strcmp(name + prefix_length, ".jar") &&
-			 (name[prefix_length] != '-' ||
-			  !isdigit(name[prefix_length + 1]) ||
-			  suffixcmp(name + prefix_length + 2, -1, ".jar"))))
-			continue;
-		string_set_length(buffer, length);
-		string_append(buffer, name);
-		if (!stat(buffer->buffer, &st) && st.st_mtime > mtime) {
-			free(result);
-			result = strdup(buffer->buffer);
-			mtime = st.st_mtime;
-		}
-	}
-	closedir(directory);
-	string_release(buffer);
-	return result;
-}
-
-static int has_jar(const char *jars_directory, const char *prefix)
-{
-	char *result = find_jar(jars_directory, prefix);
-
-	if (!result)
-		return 0;
-	free(result);
-	return 1;
-}
-
 static void initialize_ij_launcher_jar_path(void)
 {
 	ij_launcher_jar = find_jar(ij_path("jars/"), "ij-launcher");
-}
-
-static MAYBE_UNUSED int find_file(struct string *search_root, int max_depth, const char *file, struct string *result)
-{
-	int len = search_root->length;
-	DIR *directory;
-	struct dirent *entry;
-
-	string_add_char(search_root, '/');
-
-	string_append(search_root, file);
-	if (file_exists(search_root->buffer)) {
-		string_set(result, search_root->buffer);
-		string_set_length(search_root, len);
-		return 1;
-	}
-
-	if (max_depth <= 0)
-		return 0;
-
-	string_set_length(search_root, len);
-	directory = opendir(search_root->buffer);
-	if (!directory)
-		return 0;
-	string_add_char(search_root, '/');
-	while (NULL != (entry = readdir(directory))) {
-		if (entry->d_name[0] == '.')
-			continue;
-		string_append(search_root, entry->d_name);
-		if (dir_exists(search_root->buffer))
-			if (find_file(search_root, max_depth - 1, file, result)) {
-				string_set_length(search_root, len);
-				closedir(directory);
-				return 1;
-			}
-		string_set_length(search_root, len + 1);
-	}
-	closedir(directory);
-	string_set_length(search_root, len);
-	return 0;
-}
-
-static void detect_library_path(struct string *library_path, struct string *directory)
-{
-	int original_length = directory->length;
-	char found = 0;
-	DIR *dir = opendir(directory->buffer);
-	struct dirent *entry;
-
-	if (!dir)
-		return;
-
-	while ((entry = readdir(dir))) {
-		if (entry->d_name[0] == '.')
-			continue;
-		string_addf(directory, "/%s", entry->d_name);
-		if (dir_exists(directory->buffer))
-			detect_library_path(library_path, directory);
-		else if (!found && is_native_library(directory->buffer)) {
-			string_set_length(directory, original_length);
-			string_append_path_list(library_path, directory->buffer);
-			found = 1;
-			continue;
-		}
-		string_set_length(directory, original_length);
-	}
-	closedir(dir);
 }
 
 static void add_java_home_to_path(void)
@@ -1537,7 +1123,7 @@ static void add_java_home_to_path(void)
 		string_append_path_list(new_path, buffer->buffer);
 
 	env = getenv("PATH");
-	string_append_path_list(new_path, env ? env : ij_dir);
+	string_append_path_list(new_path, env ? env : get_ij_dir());
 	setenv_or_exit("PATH", new_path->buffer, 1);
 	string_release(buffer);
 	string_release(new_path);
@@ -2055,7 +1641,7 @@ static int update_files(struct string *relative_path)
 {
 	int len = relative_path->length, source_len, target_len;
 	struct string *source = string_initf("%s/update%s",
-		ij_dir, relative_path->buffer), *target;
+		get_ij_dir(), relative_path->buffer), *target;
 	DIR *directory = opendir(source->buffer);
 	struct dirent *entry;
 
@@ -3022,11 +2608,11 @@ static int handle_one_option2(int *i, int argc, const char **argv)
 			!strcmp(argv[*i], "--retro"))
 		retrotranslator = 1;
 	else if (handle_one_option(i, argv, "--fiji-dir", &arg))
-		ij_dir = xstrdup(arg.buffer);
+		set_ij_dir(xstrdup(arg.buffer));
 	else if (handle_one_option(i, argv, "--ij-dir", &arg))
-		ij_dir = xstrdup(arg.buffer);
+		set_ij_dir(xstrdup(arg.buffer));
 	else if (!strcmp("--print-ij-dir", argv[*i])) {
-		printf("%s\n", ij_dir);
+		printf("%s\n", get_ij_dir());
 		exit(0);
 	}
 	else if (!strcmp("--print-java-home", argv[*i])) {
@@ -3156,7 +2742,7 @@ static void parse_command_line(void)
 		 * the behavior of the regular ImageJ application which does
 		 * not start up in the filesystem root.
 		 */
-		chdir(ij_dir);
+		chdir(get_ij_dir());
 	}
 
 	if (!get_fiji_bundle_variable("heap", &arg) ||
@@ -3241,7 +2827,7 @@ static void parse_command_line(void)
 	add_option(&options, "-Dpython.cachedir.skip=true", 0);
 	if (!plugin_path.length &&
 			!has_plugins_dir_option(&options.java_options))
-		string_setf(&plugin_path, "-Dplugins.dir=%s", ij_dir);
+		string_setf(&plugin_path, "-Dplugins.dir=%s", get_ij_dir());
 	if (plugin_path.length)
 		add_option(&options, plugin_path.buffer, 0);
 
@@ -3349,7 +2935,7 @@ static void parse_command_line(void)
 		const char *jar_path = ij_path("jars/");
 		char *ij1_jar = find_jar(jar_path, "ij");
 		if (!ij1_jar)
-			ij1_jar = find_jar(ij_dir, "ij");
+			ij1_jar = find_jar(get_ij_dir(), "ij");
 		if (!ij1_jar)
 			die("Could not find ij.jar in %s", jar_path);
 		add_launcher_option(&options, "-classpath", ij1_jar);
@@ -3423,11 +3009,11 @@ static void parse_command_line(void)
 
 	i = 0;
 	properties[i++] = "imagej.dir";
-	properties[i++] =  ij_dir,
+	properties[i++] = get_ij_dir(),
 	properties[i++] = "ij.dir";
-	properties[i++] =  ij_dir,
+	properties[i++] = get_ij_dir(),
 	properties[i++] = "fiji.dir";
-	properties[i++] =  ij_dir,
+	properties[i++] = get_ij_dir(),
 	properties[i++] = "fiji.defaultLibPath";
 	properties[i++] = default_library_path;
 	properties[i++] = "fiji.executable";
@@ -4386,23 +3972,6 @@ static int launch_32bit_on_tiger(int argc, char **argv)
 }
 #endif
 
-/* check whether there a file is a native library */
-
-static int read_exactly(int fd, unsigned char *buffer, int size)
-{
-	while (size > 0) {
-		int count = read(fd, buffer, size);
-		if (count < 0)
-			return 0;
-		if (count == 0)
-			/* short file */
-			return 1;
-		buffer += count;
-		size -= count;
-	}
-	return 1;
-}
-
 /* returns bit-width (32, 64), or 0 if it is not a .dll */
 static int MAYBE_UNUSED is_dll(const char *path)
 {
@@ -4593,7 +4162,7 @@ int main(int argc, char **argv, char **e)
 #endif
 	}
 
-	ij_dir = get_ij_dir(argv[0]);
+	infer_ij_dir(argv[0]);
 
 	/* Handle update/ */
 	update_all_files();
