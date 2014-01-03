@@ -80,6 +80,17 @@ extern void string_replace(struct string *string, char from, char to);
 extern int string_read_file(struct string *string, const char *path);
 extern void string_escape(struct string *string, const char *characters);
 
+struct string_array {
+	char **list;
+	int nr, alloc;
+};
+
+extern void append_string(struct string_array *array, char *str);
+extern void prepend_string(struct string_array *array, char *str);
+extern void prepend_string_copy(struct string_array *array, const char *str);
+extern void append_string_array(struct string_array *target, struct string_array *source);
+extern void prepend_string_array(struct string_array *target, struct string_array *source);
+
 extern size_t mystrlcpy(char *dest, const char *src, size_t size);
 
 #endif

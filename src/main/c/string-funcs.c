@@ -368,6 +368,60 @@ void string_escape(struct string *string, const char *characters)
 	}
 }
 
+void append_string(struct string_array *array, char *str)
+{
+	if (array->nr >= array->alloc) {
+		array->alloc = 2 * array->nr + 16;
+		array->list = (char **)xrealloc(array->list,
+				array->alloc * sizeof(str));
+	}
+	array->list[array->nr++] = str;
+}
+
+void prepend_string(struct string_array *array, char *str)
+{
+	if (array->nr >= array->alloc) {
+		array->alloc = 2 * array->nr + 16;
+		array->list = (char **)xrealloc(array->list,
+				array->alloc * sizeof(str));
+	}
+	memmove(array->list + 1, array->list, array->nr * sizeof(str));
+	array->list[0] = str;
+	array->nr++;
+}
+
+void prepend_string_copy(struct string_array *array, const char *str)
+{
+	prepend_string(array, xstrdup(str));
+}
+
+void append_string_array(struct string_array *target,
+		struct string_array *source)
+{
+	if (target->alloc - target->nr < source->nr) {
+		target->alloc += source->nr;
+		target->list = (char **)xrealloc(target->list,
+				target->alloc * sizeof(target->list[0]));
+	}
+	memcpy(target->list + target->nr, source->list, source->nr * sizeof(target->list[0]));
+	target->nr += source->nr;
+}
+
+void prepend_string_array(struct string_array *target,
+		struct string_array *source)
+{
+	if (source->nr <= 0)
+		return;
+	if (target->alloc - target->nr < source->nr) {
+		target->alloc += source->nr;
+		target->list = (char **)xrealloc(target->list,
+				target->alloc * sizeof(target->list[0]));
+	}
+	memmove(target->list + source->nr, target->list, target->nr * sizeof(target->list[0]));
+	memcpy(target->list, source->list, source->nr * sizeof(target->list[0]));
+	target->nr += source->nr;
+}
+
 size_t mystrlcpy(char *dest, const char *src, size_t size)
 {
 	size_t ret = strlen(src);
