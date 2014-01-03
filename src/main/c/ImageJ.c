@@ -571,93 +571,6 @@ static MAYBE_UNUSED struct string *get_parent_directory(const char *path)
 	return string_initf("%.*s", (int)(slash - path), path);
 }
 
-/* Splash screen */
-
-static int no_splash;
-static void (*SplashClose)(void);
-
-struct string *get_splashscreen_lib_path(void)
-{
-	const char *jre_home = get_jre_home();
-#if defined(WIN32)
-	return !jre_home ? NULL : string_initf("%s/bin/splashscreen.dll", jre_home);
-#elif defined(__linux__)
-	return !jre_home ? NULL : string_initf("%s/lib/%s/libsplashscreen.so", jre_home, sizeof(void *) == 8 ? "amd64" : "i386");
-#elif defined(__APPLE__)
-	struct string *search_root = string_initf("/System/Library/Java/JavaVirtualMachines");
-	struct string *result = string_init(32);
-	if (!find_file(search_root, 4, "libsplashscreen.jnilib", result)) {
-		string_release(result);
-		result = NULL;
-	}
-	string_release(search_root);
-	return result;
-#else
-	return NULL;
-#endif
-}
-
-#define SPLASH_PATH "images/icon.png"
-/* So far, only Windows and MacOSX support splash with alpha, Linux does not */
-#if defined(WIN32) || defined(__APPLE__)
-#define FLAT_SPLASH_PATH NULL
-#else
-#define FLAT_SPLASH_PATH "images/icon-flat.png"
-#endif
-
-static void show_splash(void)
-{
-	const char *image_path = NULL;
-	struct string *lib_path = get_splashscreen_lib_path();
-	void *splashscreen;
-	int (*SplashInit)(void);
-	int (*SplashLoadFile)(const char *path);
-	int (*SplashSetFileJarName)(const char *file_path, const char *jar_path);
-
-	if (no_splash || !lib_path || SplashClose)
-		return;
-
-	if (FLAT_SPLASH_PATH)
-		image_path = ij_path(FLAT_SPLASH_PATH);
-	if (!image_path || !file_exists(image_path))
-		image_path = ij_path(SPLASH_PATH);
-	if (!image_path || !file_exists(image_path))
-		return;
-
-	splashscreen = dlopen(lib_path->buffer, RTLD_LAZY);
-	if (!splashscreen) {
-		if (debug)
-			error("Splashscreen library not found: '%s'", lib_path->buffer);
-		string_release(lib_path);
-		return;
-	}
-	SplashInit = dlsym(splashscreen, "SplashInit");
-	SplashLoadFile = dlsym(splashscreen, "SplashLoadFile");
-	SplashSetFileJarName = dlsym(splashscreen, "SplashSetFileJarName");
-	SplashClose = dlsym(splashscreen, "SplashClose");
-	if (!SplashInit || !SplashLoadFile || !SplashSetFileJarName || !SplashClose) {
-		if (debug)
-			error("Ignoring splashscreen:\ninit: %p\nload: %p\nsetFileJar: %p\nclose: %p", SplashInit, SplashLoadFile, SplashSetFileJarName, SplashClose);
-		string_release(lib_path);
-		SplashClose = NULL;
-		return;
-	}
-
-	SplashInit();
-	SplashLoadFile(image_path);
-	SplashSetFileJarName(image_path, ij_launcher_jar);
-
-	string_release(lib_path);
-}
-
-static void hide_splash(void)
-{
-	if (!SplashClose)
-		return;
-	SplashClose();
-	SplashClose = NULL;
-}
-
 static int is_lion(void);
 
 /*
@@ -2384,7 +2297,7 @@ static int handle_one_option2(int *i, int argc, const char **argv)
 		add_option_string(&options, &arg, 0);
 	}
 	else if (!strcmp("--no-splash", argv[*i]))
-		no_splash = 1;
+		disable_splash();
 	else if (!strcmp("--help", argv[*i]) ||
 			!strcmp("-h", argv[*i]))
 		usage();
@@ -2665,7 +2578,7 @@ static void parse_command_line(void)
 	maybe_reexec_with_correct_lib_path(java_library_path);
 
 	if (!options.dry_run && !options.use_system_jvm && !headless && (is_default_ij1_class(main_class) || !strcmp(default_main_class, main_class)))
-		show_splash();
+		show_splash(ij_launcher_jar);
 
 	/* set up class path */
 	if (full_class_path || !strcmp(default_main_class, main_class)) {
