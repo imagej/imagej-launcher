@@ -900,7 +900,6 @@ char *main_argv0;
 char **main_argv, **main_argv_backup;
 int main_argc, main_argc_backup;
 const char *main_class, *startup_class;
-int run_precompiled = 0;
 
 static int dir_exists(const char *directory);
 static int is_native_library(const char *path);
@@ -1601,13 +1600,8 @@ static const char *get_ij_dir(const char *argv0)
 		die("Could not get absolute path for executable");
 
 	len = slash - argv0;
-	if (!suffixcmp(argv0, len, "/precompiled") ||
-			!suffixcmp(argv0, len, "\\precompiled")) {
-		slash -= strlen("/precompiled");
-		run_precompiled = 1;
-	}
 #ifdef __APPLE__
-	else if (!suffixcmp(argv0, len, "/Contents/MacOS")) {
+	if (!suffixcmp(argv0, len, "/Contents/MacOS")) {
 		struct string *scratch;
 		len -= strlen("/Contents/MacOS");
 		scratch = string_initf("%.*s/jars", len, argv0);
@@ -1616,13 +1610,6 @@ static const char *get_ij_dir(const char *argv0)
 				; /* ignore */
 		slash = argv0 + len;
 		string_release(scratch);
-	}
-#endif
-#ifdef WIN32
-	else if (!suffixcmp(argv0, len, "/PRECOM~1") ||
-			!suffixcmp(argv0, len, "\\PRECOM~1")) {
-		slash -= strlen("/PRECOM~1");
-		run_precompiled = 1;
 	}
 #endif
 
@@ -3498,7 +3485,7 @@ static int handle_one_option2(int *i, int argc, const char **argv)
 		main_class = default_fiji1_class;
 	else if (!strcmp(argv[*i], "--build") ||
 			!strcmp(argv[*i], "--fake")) {
-		const char *fake_jar, *precompiled_fake_jar;
+		const char *fake_jar;
 #ifdef WIN32
 		open_win_console();
 #endif
@@ -3507,10 +3494,6 @@ static int handle_one_option2(int *i, int argc, const char **argv)
 		skip_class_launcher = 1;
 		headless = 1;
 		fake_jar = ij_path("jars/fake.jar");
-		precompiled_fake_jar = ij_path("precompiled/fake.jar");
-		if (run_precompiled || !file_exists(fake_jar) ||
-				file_is_newer(precompiled_fake_jar, fake_jar))
-			fake_jar = precompiled_fake_jar;
 		string_set_length(&arg, 0);
 		string_addf(&arg, "-Djava.class.path=%s", fake_jar);
 		add_option_string(&options, &arg, 0);
