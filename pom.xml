@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.scijava</groupId>
 		<artifactId>pom-scijava</artifactId>
-		<version>1.123</version>
+		<version>1.126</version>
 		<relativePath />
 	</parent>
 
@@ -52,9 +52,6 @@
 				</configuration>
 			</plugin>
 			<plugin>
-				<artifactId>maven-source-plugin</artifactId>
-			</plugin>
-			<plugin>
 				<groupId>${nar.groupId}</groupId>
 				<artifactId>nar-maven-plugin</artifactId>
 				<version>${nar.version}</version>
@@ -97,10 +94,6 @@
 			</plugin>
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>buildnumber-maven-plugin</artifactId>
-			</plugin>
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>exec-maven-plugin</artifactId>
 				<executions>
 					<execution>
@@ -129,9 +122,6 @@
 Wisconsin-Madison, Broad Institute of MIT and Harvard, and Max Planck
 Institute of Molecular Cell Biology and Genetics.</organizationName>
 					<projectName>ImageJ software for multidimensional image processing and analysis.</projectName>
-					<addJavaLicenseAfterPackage>false</addJavaLicenseAfterPackage>
-					<canUpdateDescription>true</canUpdateDescription>
-					<canUpdateCopyright>true</canUpdateCopyright>
 				</configuration>
 			</plugin>
 		</plugins>
