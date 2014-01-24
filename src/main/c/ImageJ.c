@@ -54,522 +54,35 @@
  */
 
 #define _BSD_SOURCE
-#include <stdlib.h>
-#include "jni.h"
-#include <stdlib.h>
-#include <limits.h>
-#include <string.h>
-
-#if defined(_WIN64) && !defined(WIN32)
-/* TinyCC's stdlib.h undefines WIN32 in 64-bit mode */
-#define WIN32 1
-#endif
-
-#include <sys/types.h>
-#include <sys/stat.h>
+#include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #if !defined(WIN32) || !defined(__TINYC__)
 #include <unistd.h>
 #endif
-#include <errno.h>
 
-#ifdef __GNUC__
-#define MAYBE_UNUSED __attribute__ ((unused))
-#else
-#define MAYBE_UNUSED
-#endif
+#include "jni.h"
 
-#ifdef __APPLE__
-#include <stdlib.h>
-#include <pthread.h>
-#include <CoreFoundation/CoreFoundation.h>
-#include <ApplicationServices/ApplicationServices.h>
+#include "common.h"
+#include "exe-ico.h"
+#include "file-funcs.h"
+#include "java.h"
+#include "platform.h"
+#include "splash.h"
+#include "string-funcs.h"
+#include "xalloc.h"
 
-struct string;
-static void append_icon_path(struct string *str);
-static int set_path_to_apple_JVM(void);
-static int get_fiji_bundle_variable(const char *key, struct string *value);
-#endif
-
-static const char *get_platform(void)
-{
-#ifdef __APPLE__
-	return "macosx";
-#endif
-#ifdef WIN32
-	return sizeof(void *) < 8 ? "win32" : "win64";
-#endif
-#ifdef __linux__
-	return sizeof(void *) < 8 ? "linux32" : "linux64";
-#endif
-	return NULL;
-}
-
-#ifdef WIN32
-#include <io.h>
-#include <process.h>
-#define PATH_SEP ";"
-
-static void open_win_console();
-static void win_error(const char *fmt, ...);
-static void win_verror(const char *fmt, va_list ap);
-
-/* TODO: use dup2() and freopen() and a thread to handle the output */
-#else
-#define PATH_SEP ":"
-#ifndef O_BINARY
-#define O_BINARY 0
-#endif
-#endif
-
-#if defined(__linux__) && !defined(__TINYC__)
-#include "glibc-compat.h"
-#endif
-
-/*
- * Issues a message to the console. On Windows, opens a console as needed.
- */
-__attribute__((format (printf, 1, 2)))
-static void error(const char *fmt, ...)
-{
-	va_list ap;
-#ifdef WIN32
-	const char *debug = getenv("WINDEBUG");
-	if (debug && *debug) {
-		va_start(ap, fmt);
-		win_verror(fmt, ap);
-		va_end(ap);
-		return;
-	}
-	open_win_console();
-#endif
-
-	va_start(ap, fmt);
-	vfprintf(stderr, fmt, ap);
-	va_end(ap);
-	fputc('\n', stderr);
-}
-
-__attribute__((__noreturn__))
-__attribute__((format (printf, 1, 2)))
-static void die(const char *fmt, ...)
-{
-	va_list ap;
-#ifdef WIN32
-	const char *debug = getenv("WINDEBUG");
-	if (debug && *debug) {
-		va_start(ap, fmt);
-		win_verror(fmt, ap);
-		va_end(ap);
-		exit(1);
-	}
-	open_win_console();
-#endif
-
-	va_start(ap, fmt);
-	vfprintf(stderr, fmt, ap);
-	va_end(ap);
-	fputc('\n', stderr);
-
-	exit(1);
-}
-
-static void *xmalloc(size_t size)
-{
-	void *result = malloc(size);
-	if (!result)
-		die("Out of memory");
-	return result;
-}
-
-static void *xcalloc(size_t size, size_t nmemb)
-{
-	void *result = calloc(size, nmemb);
-	if (!result)
-		die("Out of memory");
-	return result;
-}
-
-static void *xrealloc(void *p, size_t size)
-{
-	void *result = realloc(p, size);
-	if (!result)
-		die("Out of memory");
-	return result;
-}
-
-static char *xstrdup(const char *buffer)
-{
-	char *result = strdup(buffer);
-	if (!result)
-		die("Out of memory");
-	return result;
-}
-
-static char *xstrndup(const char *buffer, size_t max_length)
-{
-	char *eos = memchr(buffer, '\0', max_length - 1);
-	int len = eos ? eos - buffer : max_length;
-	char *result = xmalloc(len + 1);
-
-	if (!result)
-		die("Out of memory");
-
-	memcpy(result, buffer, len);
-	result[len] = '\0';
-
-	return result;
-}
-
-struct string {
-	int alloc, length;
-	char *buffer;
-};
-
-static void string_ensure_alloc(struct string *string, int length)
-{
-	if (string->alloc <= length) {
-		char *new_buffer = xrealloc(string->buffer, length + 1);
-
-		string->buffer = new_buffer;
-		string->alloc = length;
-	}
-}
-
-static void string_set_length(struct string *string, int length)
-{
-	if (length == string->length)
-		return;
-	if (length > string->length)
-		die("Cannot enlarge strings");
-	string->length = length;
-	string->buffer[length] = '\0';
-}
-
-static void string_set(struct string *string, const char *buffer)
-{
-	free(string->buffer);
-	string->buffer = xstrdup(buffer);
-	string->alloc = string->length = strlen(buffer);
-}
-
-static struct string *string_init(int length)
-{
-	struct string *string = xcalloc(sizeof(struct string), 1);
-
-	string_ensure_alloc(string, length);
-	string->buffer[0] = '\0';
-	return string;
-}
-
-static struct string *string_copy(const char *string)
-{
-	int len = strlen(string);
-	struct string *result = string_init(len);
-
-	memcpy(result->buffer, string, len + 1);
-	result->length = len;
-
-	return result;
-}
-
-static void string_release(struct string *string)
-{
-	if (string) {
-		free(string->buffer);
-		free(string);
-	}
-}
-
-static void string_add_char(struct string *string, char c)
-{
-	if (string->alloc == string->length)
-		string_ensure_alloc(string, 3 * (string->alloc + 16) / 2);
-	string->buffer[string->length++] = c;
-	string->buffer[string->length] = '\0';
-}
-
-static void string_append(struct string *string, const char *append)
-{
-	int len = strlen(append);
-
-	string_ensure_alloc(string, string->length + len);
-	memcpy(string->buffer + string->length, append, len + 1);
-	string->length += len;
-}
-
-static int path_list_contains(const char *list, const char *path)
-{
-	size_t len = strlen(path);
-	const char *p = list;
-	while (p && *p) {
-		if (!strncmp(p, path, len) &&
-				(p[len] == PATH_SEP[0] || !p[len]))
-			return 1;
-		p = strchr(p, PATH_SEP[0]);
-		if (!p)
-			break;
-		p++;
-	}
-	return 0;
-}
-
-static void string_append_path_list(struct string *string, const char *append)
-{
-	if (!append || path_list_contains(string->buffer, append))
-		return;
-
-	if (string->length)
-		string_append(string, PATH_SEP);
-	string_append(string, append);
-}
-
-static void string_append_at_most(struct string *string, const char *append, int length)
-{
-	int len = strlen(append);
-
-	if (len > length)
-		len = length;
-
-	string_ensure_alloc(string, string->length + len);
-	memcpy(string->buffer + string->length, append, len + 1);
-	string->length += len;
-	string->buffer[string->length] = '\0';
-}
-
-static void string_replace_range(struct string *string, int start, int end, const char *replacement)
-{
-	int length = strlen(replacement);
-	int total_length = string->length + length - (end - start);
-
-	if (end != start + length) {
-		string_ensure_alloc(string, total_length);
-		if (string->length > end)
-			memmove(string->buffer + start + length, string->buffer + end, string->length - end);
-	}
-
-	if (length)
-		memcpy(string->buffer + start, replacement, length);
-	string->buffer[total_length] = '\0';
-	string->length = total_length;
-}
-
-static int number_length(unsigned long number, long base)
-{
-        int length = 1;
-        while (number >= base) {
-                number /= base;
-                length++;
-        }
-        return length;
-}
-
-static inline int is_digit(char c)
-{
-	return c >= '0' && c <= '9';
-}
-
-static void string_vaddf(struct string *string, const char *fmt, va_list ap)
-{
-	while (*fmt) {
-		char fill = '\0';
-		int size = -1, max_size = -1;
-		char *p = (char *)fmt;
-
-		if (*p != '%' || *(++p) == '%') {
-			string_add_char(string, *p++);
-			fmt = p;
-			continue;
-		}
-		if (*p == ' ' || *p == '0')
-			fill = *p++;
-		if (is_digit(*p))
-			size = (int)strtol(p, &p, 10);
-		else if (p[0] == '.' && p[1] == '*') {
-			max_size = va_arg(ap, int);
-			p += 2;
-		}
-		switch (*p) {
-		case 's': {
-			const char *s = va_arg(ap, const char *);
-			if (!s)
-				s = "(null)";
-			if (fill) {
-				int len = size - strlen(s);
-				while (len-- > 0)
-					string_add_char(string, fill);
-			}
-			while (*s && max_size--)
-				string_add_char(string, *s++);
-			break;
-		}
-		case 'c':
-			{
-				char c = va_arg(ap, int);
-				string_add_char(string, c);
-			}
-			break;
-		case 'u':
-		case 'i':
-		case 'l':
-		case 'd':
-		case 'o':
-		case 'x':
-		case 'X': {
-			int base = *p == 'x' || *p == 'X' ? 16 :
-				*p == 'o' ? 8 : 10;
-			int negative = 0, len;
-			unsigned long number, power;
-
-			if (*p == 'u') {
-				number = va_arg(ap, unsigned int);
-			}
-			else {
-				long signed_number;
-				if (*p == 'l') {
-					signed_number = va_arg(ap, long);
-				}
-				else {
-					signed_number = va_arg(ap, int);
-				}
-				if (signed_number < 0) {
-					negative = 1;
-					number = -signed_number;
-				} else
-					number = signed_number;
-			}
-
-			/* pad */
-			len = number_length(number, base);
-			while (size-- > len + negative)
-				string_add_char(string, fill ? fill : ' ');
-			if (negative)
-				string_add_char(string, '-');
-
-			/* output number */
-			power = 1;
-			while (len-- > 1)
-				power *= base;
-			while (power) {
-				int digit = number / power;
-				string_add_char(string, digit < 10 ? '0' + digit
-					: *p + 'A' - 'X' + digit - 10);
-				number -= digit * power;
-				power /= base;
-			}
-
-			break;
-		}
-		default:
-			/* unknown / invalid format: copy verbatim */
-			string_append_at_most(string, fmt, p - fmt + 1);
-		}
-		fmt = p + (*p != '\0');
-	}
-}
-
-__attribute__((format (printf, 2, 3)))
-static void string_addf(struct string *string, const char *fmt, ...)
-{
-	va_list ap;
-
-	va_start(ap, fmt);
-	string_vaddf(string, fmt, ap);
-	va_end(ap);
-}
-
-__attribute__((format (printf, 2, 3)))
-static void string_setf(struct string *string, const char *fmt, ...)
-{
-	va_list ap;
-
-	string_ensure_alloc(string, strlen(fmt) + 64);
-	string->length = 0;
-	string->buffer[0] = '\0';
-	va_start(ap, fmt);
-	string_vaddf(string, fmt, ap);
-	va_end(ap);
-}
-
-__attribute__((format (printf, 1, 2)))
-static struct string *string_initf(const char *fmt, ...)
-{
-	struct string *string = string_init(strlen(fmt) + 64);
-	va_list ap;
-
-	va_start(ap, fmt);
-	string_vaddf(string, fmt, ap);
-	va_end(ap);
-
-	return string;
-}
-
-static void string_replace(struct string *string, char from, char to)
-{
-	int j;
-	for (j = 0; j < string->length; j++)
-		if (string->buffer[j] == from)
-			string->buffer[j] = to;
-}
-
-static MAYBE_UNUSED int string_read_file(struct string *string, const char *path) {
-	FILE *file = fopen(path, "rb");
-	char buffer[1024];
-	int result = 0;
-
-	if (!file) {
-		error("Could not open %s", path);
-		return -1;
-	}
-
-	for (;;) {
-		size_t count = fread(buffer, 1, sizeof(buffer), file);
-		string_ensure_alloc(string, string->length + count);
-		memcpy(string->buffer + string->length, buffer, count);
-		string->length += count;
-		if (count < sizeof(buffer))
-			break;
-	}
-	if (ferror(file) < 0)
-		result = -1;
-	fclose(file);
-	return result;
-}
-
-static void string_escape(struct string *string, const char *characters)
-{
-	int i, j = string->length;
-
-	for (i = 0; i < string->length; i++)
-		if (strchr(characters, string->buffer[i]))
-			j++;
-	if (i == j)
-		return;
-	string_ensure_alloc(string, j);
-	string->buffer[j] = '\0';
-	while (--i < --j) {
-		string->buffer[j] = string->buffer[i];
-		if (strchr(characters, string->buffer[j]))
-			string->buffer[--j] = '\\';
-	}
-}
-
-/*
- * If set, overrides the environment variable JAVA_HOME, which in turn
- * overrides relative_java_home.
- */
-static const char *absolute_java_home;
-static const char *relative_java_home;
-static const char *default_library_path;
-static const char *library_path;
 static const char *default_fiji1_class = "fiji.Main";
 static const char *default_main_class = "imagej.Main";
 static int legacy_mode;
-static int retrotranslator;
+int retrotranslator;
 static int debug;
 
 static const char *legacy_ij1_class = "ij.ImageJ";
-static struct string *legacy_jre_path;
 static struct string *legacy_ij1_options;
 
 static int is_default_ij1_class(const char *name)
@@ -577,191 +90,6 @@ static int is_default_ij1_class(const char *name)
 	return name && (!strcmp(name, default_fiji1_class) ||
 			!strcmp(name, legacy_ij1_class));
 }
-
-/* Dynamic library loading stuff */
-
-#ifdef WIN32
-#include <windows.h>
-#define RTLD_LAZY 0
-static char *dlerror_value;
-
-static char *get_win_error(void)
-{
-	DWORD error_code = GetLastError();
-	LPSTR buffer;
-
-	FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
-			FORMAT_MESSAGE_FROM_SYSTEM |
-			FORMAT_MESSAGE_IGNORE_INSERTS,
-			NULL,
-			error_code,
-			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-			(LPSTR)&buffer,
-			0, NULL);
-	return buffer;
-}
-
-static void *dlopen(const char *name, int flags)
-{
-	void *result = LoadLibrary(name);
-
-	dlerror_value = get_win_error();
-
-	return result;
-}
-
-static char *dlerror(void)
-{
-	/* We need to reset the error */
-	char *result = dlerror_value;
-	dlerror_value = NULL;
-	return result;
-}
-
-static void *dlsym(void *handle, const char *name)
-{
-	void *result = (void *)GetProcAddress((HMODULE)handle, name);
-	dlerror_value = result ? NULL : (char *)"function not found";
-	return result;
-}
-
-static void sleep(int seconds)
-{
-	Sleep(seconds * 1000);
-}
-
-/*
- * There is no setenv on Windows, so it should be safe for us to
- * define this compatible version.
- */
-static int setenv(const char *name, const char *value, int overwrite)
-{
-	struct string *string;
-
-	if (!overwrite && getenv(name))
-		return 0;
-	if ((!name) || (!value))
-		return 0;
-
-	string = string_initf("%s=%s", name, value);
-	return putenv(string->buffer);
-}
-
-/* Similarly we can do the same for unsetenv: */
-static int unsetenv(const char *name)
-{
-	struct string *string = string_initf("%s=", name);
-	return putenv(string->buffer);
-}
-
-static void win_verror(const char *fmt, va_list ap)
-{
-	struct string *string = string_init(32);
-
-	string_vaddf(string, fmt, ap);
-	MessageBox(NULL, string->buffer, "ImageJ Error", MB_OK);
-	string_release(string);
-}
-
-static MAYBE_UNUSED void win_error(const char *fmt, ...)
-{
-	va_list ap;
-
-	va_start(ap, fmt);
-	win_verror(fmt, ap);
-	va_end(ap);
-}
-
-#else
-#include <dlfcn.h>
-#endif
-
-/* A wrapper for setenv that exits on error */
-void setenv_or_exit(const char *name, const char *value, int overwrite)
-{
-	int result;
-	if (!value) {
-#ifdef __APPLE__
-		unsetenv(name);
-#else
-		result = unsetenv(name);
-		if (result)
-			die("Unsetting environment variable %s failed", name);
-#endif
-		return;
-	}
-	result = setenv(name, value, overwrite);
-	if (result)
-		die("Setting environment variable %s to %s failed", name, value);
-}
-
-/* Determining heap size */
-
-#ifdef __APPLE__
-#include <mach/mach_init.h>
-#include <mach/mach_host.h>
-
-size_t get_memory_size(int available_only)
-{
-	host_priv_t host = mach_host_self();
-	vm_size_t page_size;
-	vm_statistics_data_t host_info;
-	mach_msg_type_number_t host_count =
-		sizeof(host_info) / sizeof(integer_t);
-
-	host_page_size(host, &page_size);
-	return host_statistics(host, HOST_VM_INFO,
-			(host_info_t)&host_info, &host_count) ?
-		0 : ((size_t)(available_only ? host_info.free_count :
-				host_info.active_count +
-				host_info.inactive_count +
-				host_info.wire_count) * (size_t)page_size);
-}
-#elif defined(__linux__)
-static size_t get_kB(struct string *string, const char *key)
-{
-	const char *p = strstr(string->buffer, key);
-	if (!p)
-		return 0;
-	while (*p && *p != ' ')
-		p++;
-	return (size_t)strtoul(p, NULL, 10);
-}
-
-size_t get_memory_size(int available_only)
-{
-	ssize_t page_size, available_pages;
-	/* Avoid overallocation */
-	if (!available_only) {
-		struct string *string = string_init(32);
-		if (!string_read_file(string, "/proc/meminfo"))
-			return 1024 * (get_kB(string, "MemFree:")
-				+ get_kB(string, "Buffers:")
-				+ get_kB(string, "Cached:"));
-	}
-	page_size = sysconf(_SC_PAGESIZE);
-	available_pages = sysconf(available_only ?
-		_SC_AVPHYS_PAGES : _SC_PHYS_PAGES);
-	return page_size < 0 || available_pages < 0 ?
-		0 : (size_t)page_size * (size_t)available_pages;
-}
-#elif defined(WIN32)
-#include <windows.h>
-
-size_t get_memory_size(int available_only)
-{
-	MEMORYSTATUS status;
-
-	GlobalMemoryStatus(&status);
-	return available_only ? status.dwAvailPhys : status.dwTotalPhys;
-}
-#else
-size_t get_memory_size(int available_only)
-{
-	fprintf(stderr, "Cannot reserve optimal memory on this platform\n");
-	return 0;
-}
-#endif
 
 /* This returns the amount of megabytes */
 static long parse_memory(const char *amount)
@@ -794,613 +122,17 @@ static MAYBE_UNUSED int parse_bool(const char *value)
 		strcmp(value, "False") && strcmp(value, "FALSE");
 }
 
-/* work around a SuSE IPv6 setup bug */
-
-#ifdef IPV6_MAYBE_BROKEN
-#include <netinet/ip6.h>
-#include <fcntl.h>
-#endif
-
-static int is_ipv6_broken(void)
-{
-#ifndef IPV6_MAYBE_BROKEN
-	return 0;
-#else
-	int sock = socket(AF_INET6, SOCK_STREAM, 0);
-	static const struct in6_addr in6addr_loopback = {
-		{ { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1 } }
-	};
-	struct sockaddr_in6 address = {
-		AF_INET6, 57294 + 7, 0, in6addr_loopback, 0
-	};
-	int result = 0;
-	long flags;
-
-	if (sock < 0)
-		return 1;
-
-	flags = fcntl(sock, F_GETFL, NULL);
-	if (fcntl(sock, F_SETFL, flags | O_NONBLOCK) < 0) {
-		close(sock);
-		return 1;
-	}
-
-
-	if (connect(sock, (struct sockaddr *)&address, sizeof(address)) < 0) {
-		if (errno == EINPROGRESS) {
-			struct timeval tv;
-			fd_set fdset;
-
-			tv.tv_sec = 0;
-			tv.tv_usec = 50000;
-			FD_ZERO(&fdset);
-			FD_SET(sock, &fdset);
-			if (select(sock + 1, NULL, &fdset, NULL, &tv) > 0) {
-				int error;
-				socklen_t length = sizeof(int);
-				if (getsockopt(sock, SOL_SOCKET, SO_ERROR,
-						(void*)&error, &length) < 0)
-					result = 1;
-				else
-					result = (error == EACCES) |
-						(error == EPERM) |
-						(error == EAFNOSUPPORT) |
-						(error == EINPROGRESS);
-			} else
-				result = 1;
-		} else
-			result = (errno == EACCES) | (errno == EPERM) |
-				(errno == EAFNOSUPPORT);
-	}
-
-	close(sock);
-	return result;
-#endif
-}
-
-
 /* Java stuff */
 
 #ifndef JNI_CREATEVM
 #define JNI_CREATEVM "JNI_CreateJavaVM"
 #endif
 
-static int is_slash(char c)
-{
-#ifdef WIN32
-	if (c == '\\')
-		return 1;
-#endif
-	return c == '/';
-}
-
-static const char *ij_dir;
 static char *ij_launcher_jar;
-
-static const char *ij_path(const char *relative_path)
-{
-	static struct string *string[3];
-	static int counter;
-
-	counter = ((counter + 1) % (sizeof(string) / sizeof(string[0])));
-	if (!string[counter])
-		string[counter] = string_initf("%s%s%s", ij_dir,
-			is_slash(*relative_path) ? "" : "/", relative_path);
-	else
-		string_setf(string[counter], "%s%s%s", ij_dir,
-			is_slash(*relative_path) ? "" : "/", relative_path);
-	return string[counter]->buffer;
-}
-
-char *main_argv0;
-char **main_argv, **main_argv_backup;
-int main_argc, main_argc_backup;
-const char *main_class, *startup_class;
-int run_precompiled = 0;
-
-static int dir_exists(const char *directory);
-static int is_native_library(const char *path);
-static int file_exists(const char *path);
-static inline int suffixcmp(const char *string, int len, const char *suffix);
-
-static int is_jre_home(const char *directory)
-{
-	int result = 0;
-	if (dir_exists(directory)) {
-		struct string* libjvm = string_initf("%s/%s", directory, library_path);
-		if (!file_exists(libjvm->buffer)) {
-			if (debug)
-				error("Ignoring JAVA_HOME (does not exist): %s", libjvm->buffer);
-		}
-		else if (!is_native_library(libjvm->buffer)) {
-			if (debug)
-				error("Ignoring JAVA_HOME (wrong arch): %s", libjvm->buffer);
-		}
-		else
-			result = 1;
-		string_release(libjvm);
-	}
-	return result;
-}
-
-static int is_java_home(const char *directory)
-{
-	struct string *jre = string_initf("%s/jre", directory);
-	int result = is_jre_home(jre->buffer);
-	string_release(jre);
-	return result;
-}
-
-static const char *get_java_home_env(void)
-{
-	const char *env = getenv("JAVA_HOME");
-	if (env && is_java_home(env))
-		return env;
-	return NULL;
-}
-
-static char *discover_system_java_home(void);
-
-static const char *get_java_home(void)
-{
-	const char *result;
-	if (absolute_java_home)
-		return absolute_java_home;
-	result = !relative_java_home ? NULL : ij_path(relative_java_home);
-	if (result && is_java_home(result))
-		return result;
-	if (result && (!suffixcmp(result, -1, "/jre") ||
-			 !suffixcmp(result, -1, "/jre/")) &&
-			is_jre_home(result)) {
-		char *new_eol = (char *)(result + strlen(result) - 4);
-		*new_eol = '\0';
-		return result;
-	}
-	result = get_java_home_env();
-	if (result)
-		return result;
-	return discover_system_java_home();
-}
-
-static const char *get_jre_home(void)
-{
-	const char *result;
-	int len;
-	static struct string *jre;
-	static int initialized;
-
-	if (jre)
-		return jre->buffer;
-
-	if (initialized)
-		return NULL;
-	initialized = 1;
-
-	/* ImageJ 1.x ships the JRE in <ij.dir>/jre/ */
-	result = legacy_jre_path ? legacy_jre_path->buffer : ij_path("jre");
-	if (dir_exists(result)) {
-		struct string *libjvm = string_initf("%s/%s", result, default_library_path);
-		if (!file_exists(libjvm->buffer)) {
-			if (debug)
-				error("Invalid jre/: '%s' does not exist!",
-						libjvm->buffer);
-		}
-		else if (!is_native_library(libjvm->buffer)) {
-			if (debug)
-				error("Invalid jre/: '%s' is not a %s library!",
-						libjvm->buffer, get_platform());
-		}
-		else {
-			string_release(libjvm);
-			jre = string_initf("%s", result);
-			if (debug)
-				error("JRE found in '%s'", jre->buffer);
-			return jre->buffer;
-		}
-		string_release(libjvm);
-	}
-	else {
-		if (debug)
-			error("JRE not found in '%s'", result);
-	}
-
-	result = get_java_home();
-	if (!result) {
-		const char *jre_home = getenv("JRE_HOME");
-		if (jre_home && *jre_home && is_jre_home(jre_home)) {
-			jre = string_copy(jre_home);
-			if (debug)
-				error("Found a JRE in JRE_HOME: %s", jre->buffer);
-			return jre->buffer;
-		}
-		jre_home = getenv("JAVA_HOME");
-		if (jre_home && *jre_home && is_jre_home(jre_home)) {
-			jre = string_copy(jre_home);
-			if (debug)
-				error("Found a JRE in JAVA_HOME: %s", jre->buffer);
-			return jre->buffer;
-		}
-		if (debug)
-			error("No JRE was found in default locations");
-		return NULL;
-	}
-
-	len = strlen(result);
-	if (len > 4 && !suffixcmp(result, len, "/jre")) {
-		jre = string_copy(result);
-		if (debug)
-			error("JAVA_HOME points to a JRE: '%s'", result);
-		return jre->buffer;
-	}
-
-	jre = string_initf("%s/jre", result);
-	if (dir_exists(jre->buffer)) {
-		if (debug)
-			error("JAVA_HOME contains a JRE: '%s'", jre->buffer);
-		return jre->buffer;
-	}
-	string_set(jre, result);
-	if (debug)
-		error("JAVA_HOME appears to be a JRE: '%s'", jre->buffer);
-	return jre->buffer;
-}
-
-static size_t mystrlcpy(char *dest, const char *src, size_t size)
-{
-	size_t ret = strlen(src);
-
-	if (size) {
-		size_t len = (ret >= size) ? size - 1 : ret;
-		memcpy(dest, src, len);
-		dest[len] = '\0';
-	}
-	return ret;
-}
-
-const char *last_slash(const char *path)
-{
-	const char *slash = strrchr(path, '/');
-#ifdef WIN32
-	const char *backslash = strrchr(path, '\\');
-
-	if (backslash && slash < backslash)
-		slash = backslash;
-#endif
-	return slash;
-}
-
-#ifndef PATH_MAX
-#define PATH_MAX 1024
-#endif
-
-static void follow_symlinks(struct string *path, int max_recursion)
-{
-#ifndef WIN32
-	char buffer[PATH_MAX];
-	int count = readlink(path->buffer, buffer, sizeof(buffer) - 1);
-	if (count < 0)
-		return;
-	string_set_length(path, 0);
-	string_addf(path, "%.*s", count, buffer);
-	if (max_recursion > 0)
-		follow_symlinks(path, max_recursion - 1);
-#endif
-}
-
-static const char *make_absolute_path(const char *path)
-{
-	static char bufs[2][PATH_MAX + 1], *buf = bufs[0];
-	char cwd[PATH_MAX] = "";
-#ifndef WIN32
-	static char *next_buf = bufs[1];
-	int buf_index = 1, len;
-#endif
-
-	int depth = 20;
-	char *last_elem = NULL;
-	struct stat st;
-
-	if (mystrlcpy(buf, path, PATH_MAX) >= PATH_MAX)
-		die("Too long path: %s", path);
-
-	while (depth--) {
-		if (stat(buf, &st) || !S_ISDIR(st.st_mode)) {
-			const char *slash = last_slash(buf);
-			if (slash) {
-				buf[slash-buf] = '\0';
-				last_elem = xstrdup(slash + 1);
-			} else {
-				last_elem = xstrdup(buf);
-				*buf = '\0';
-			}
-		}
-
-		if (*buf) {
-			if (!*cwd && !getcwd(cwd, sizeof(cwd)))
-				die("Could not get current working dir");
-
-			if (chdir(buf))
-				die("Could not switch to %s", buf);
-		}
-		if (!getcwd(buf, PATH_MAX))
-			die("Could not get current working directory");
-
-		if (last_elem) {
-			int len = strlen(buf);
-			if (len + strlen(last_elem) + 2 > PATH_MAX)
-				die("Too long path name: %s/%s", buf, last_elem);
-			buf[len] = '/';
-			strcpy(buf + len + 1, last_elem);
-			free(last_elem);
-			last_elem = NULL;
-		}
-
-#ifndef WIN32
-		if (!lstat(buf, &st) && S_ISLNK(st.st_mode)) {
-			len = readlink(buf, next_buf, PATH_MAX);
-			if (len < 0)
-				die("Invalid symlink: %s", buf);
-			next_buf[len] = '\0';
-			buf = next_buf;
-			buf_index = 1 - buf_index;
-			next_buf = bufs[buf_index];
-		} else
-#endif
-			break;
-	}
-
-	if (*cwd && chdir(cwd))
-		die("Could not change back to %s", cwd);
-
-	return buf;
-}
-
-static int is_absolute_path(const char *path)
-{
-#ifdef WIN32
-	if (((path[0] >= 'A' && path[0] <= 'Z') ||
-			(path[0] >= 'a' && path[0] <= 'z')) && path[1] == ':')
-		return 1;
-#endif
-	return path[0] == '/';
-}
-
-static int file_exists(const char *path)
-{
-	return !access(path, R_OK);
-}
-
-static inline int prefixcmp(const char *string, const char *prefix)
-{
-	return strncmp(string, prefix, strlen(prefix));
-}
-
-static inline int suffixcmp(const char *string, int len, const char *suffix)
-{
-	int suffix_len = strlen(suffix);
-	if (len < 0)
-		len = strlen(string);
-	if (len < suffix_len)
-		return -1;
-	return strncmp(string + len - suffix_len, suffix, suffix_len);
-}
-
-static const char *find_in_path(const char *path, int die_if_not_found)
-{
-	const char *p = getenv("PATH");
-	struct string *buffer;
-
-#ifdef WIN32
-	int len = strlen(path);
-	struct string *path_with_suffix = NULL;
-	const char *in_cwd;
-
-	if (suffixcmp(path, len, ".exe") && suffixcmp(path, len, ".EXE")) {
-		path_with_suffix = string_initf("%s.exe", path);
-		path = path_with_suffix->buffer;
-	}
-	in_cwd = make_absolute_path(path);
-	if (file_exists(in_cwd)) {
-		string_release(path_with_suffix);
-		return in_cwd;
-	}
-#endif
-
-	if (!p) {
-		if (die_if_not_found)
-			die("Could not get PATH");
-		if (debug)
-			error("Could not get PATH");
-		return NULL;
-	}
-
-	buffer = string_init(32);
-	for (;;) {
-		const char *colon = strchr(p, PATH_SEP[0]), *orig_p = p;
-		int len = colon ? colon - p : strlen(p);
-		struct stat st;
-
-		if (!len) {
-			if (die_if_not_found)
-				die("Could not find %s in PATH", path);
-			if (debug)
-				error("Could not find '%s' in the PATH", path);
-			return NULL;
-		}
-
-		p += len + !!colon;
-		if (!is_absolute_path(orig_p))
-			continue;
-		string_setf(buffer, "%.*s/%s", len, orig_p, path);
-#ifdef WIN32
-#define S_IX S_IXUSR
-#else
-#define S_IX (S_IXUSR | S_IXGRP | S_IXOTH)
-#endif
-		if (!stat(buffer->buffer, &st) && S_ISREG(st.st_mode) &&
-				(st.st_mode & S_IX)) {
-			const char *result = make_absolute_path(buffer->buffer);
-			string_release(buffer);
-#ifdef WIN32
-			string_release(path_with_suffix);
-#endif
-			return result;
-		}
-	}
-}
-
-#ifdef WIN32
-static char *dos_path(const char *path)
-{
-	const char *orig = path;
-	int size = GetShortPathName(path, NULL, 0);
-	char *buffer;
-
-	if (!size)
-		path = find_in_path(path, 1);
-	size = GetShortPathName(path, NULL, 0);
-	if (!size)
-		die ("Could not determine DOS name of %s", orig);
-	buffer = (char *)xmalloc(size);
-	GetShortPathName(path, buffer, size);
-	return buffer;
-}
-
-/* icon stuff */
-#include <windows.h>
-#include <stdint.h>
-
-#pragma pack(2)
-struct resource_directory
-{
-	int8_t width;
-	int8_t height;
-	int8_t color_count;
-	int8_t reserved;
-	int16_t planes;
-	int16_t bit_count;
-	int32_t bytes_in_resource;
-	int16_t id;
-};
-
-struct header
-{
-	int16_t reserved;
-	int16_t type;
-	int16_t count;
-};
-
-struct icon_header
-{
-	int8_t width;
-	int8_t height;
-	int8_t color_count;
-	int8_t reserved;
-	int16_t planes;
-	int16_t bit_count;
-	int32_t bytes_in_resource;
-	int32_t image_offset;
-};
-
-struct icon_image
-{
-	BITMAPINFOHEADER header;
-	RGBQUAD colors;
-	int8_t xors[1];
-	int8_t ands[1];
-};
-
-struct icon
-{
-	int count;
-	struct header *header;
-	struct resource_directory *items;
-	struct icon_image **images;
-};
-
-static int parse_ico_file(const char *ico_path, struct icon *result)
-{
-	struct header file_header;
-	FILE *file = fopen(ico_path, "rb");
-	int i;
-
-	if (!file) {
-		error("could not open icon file '%s'", ico_path);
-		return 1;
-	}
-
-	fread(&file_header, sizeof(struct header), 1, file);
-	result->count = file_header.count;
-
-	result->header = malloc(sizeof(struct header) + result->count * sizeof(struct resource_directory));
-	result->header->reserved = 0;
-	result->header->type = 1;
-	result->header->count = result->count;
-	result->items = (struct resource_directory *)(result->header + 1);
-	struct icon_header *icon_headers = malloc(result->count * sizeof(struct icon_header));
-	fread(icon_headers, result->count * sizeof(struct icon_header), 1, file);
-	result->images = malloc(result->count * sizeof(struct icon_image *));
-
-	for (i = 0; i < result->count; i++) {
-		struct icon_image** image = result->images + i;
-		struct icon_header* icon_header = icon_headers + i;
-		struct resource_directory *item = result->items + i;
-
-		*image = malloc(icon_header->bytes_in_resource);
-		fseek(file, icon_header->image_offset, SEEK_SET);
-		fread(*image, icon_header->bytes_in_resource, 1, file);
-
-		memcpy(item, icon_header, sizeof(struct resource_directory));
-		item->id = (int16_t)(i + 1);
-	}
-
-	fclose(file);
-
-	return 0;
-}
-
-static int set_exe_icon(const char *exe_path, const char *ico_path)
-{
-	int id = 1, i;
-	struct icon icon;
-	HANDLE handle;
-
-	if (suffixcmp(exe_path, -1, ".exe")) {
-		error("Not an .exe file: '%s'", exe_path);
-		return 1;
-	}
-	if (!file_exists(exe_path)) {
-		error("File not found: '%s'", exe_path);
-		return 1;
-	}
-	if (suffixcmp(ico_path, -1, ".ico")) {
-		error("Not an .ico file: '%s'", ico_path);
-		return 1;
-	}
-	if (!file_exists(ico_path)) {
-		error("File not found: '%s'", ico_path);
-		return 1;
-	}
-
-	if (parse_ico_file(ico_path, &icon))
-		return 1;
-
-	handle = BeginUpdateResource(exe_path, FALSE);
-	if (!handle) {
-		error("Could not update resources of '%s'", exe_path);
-		return 1;
-	}
-	UpdateResource(handle, RT_GROUP_ICON,
-			MAKEINTRESOURCE(id++), MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US),
-			icon.header, sizeof(struct header) + icon.count * sizeof(struct resource_directory));
-	for (i = 0; i < icon.count; i++) {
-		UpdateResource(handle, RT_ICON,
-				MAKEINTRESOURCE(id++), MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US),
-				icon.images[i], icon.items[i].bytes_in_resource);
-	}
-	return !EndUpdateResource(handle, FALSE);
-}
-#endif
+static char *main_argv0;
+static char **main_argv, **main_argv_backup;
+static int main_argc, main_argc_backup;
+static const char *main_class, *startup_class;
 
 static MAYBE_UNUSED struct string *get_parent_directory(const char *path)
 {
@@ -1410,97 +142,6 @@ static MAYBE_UNUSED struct string *get_parent_directory(const char *path)
 		return string_initf("/");
 	return string_initf("%.*s", (int)(slash - path), path);
 }
-
-static int find_file(struct string *search_root, int max_depth, const char *file, struct string *result);
-
-/* Splash screen */
-
-static int no_splash;
-static void (*SplashClose)(void);
-
-struct string *get_splashscreen_lib_path(void)
-{
-	const char *jre_home = get_jre_home();
-#if defined(WIN32)
-	return !jre_home ? NULL : string_initf("%s/bin/splashscreen.dll", jre_home);
-#elif defined(__linux__)
-	return !jre_home ? NULL : string_initf("%s/lib/%s/libsplashscreen.so", jre_home, sizeof(void *) == 8 ? "amd64" : "i386");
-#elif defined(__APPLE__)
-	struct string *search_root = string_initf("/System/Library/Java/JavaVirtualMachines");
-	struct string *result = string_init(32);
-	if (!find_file(search_root, 4, "libsplashscreen.jnilib", result)) {
-		string_release(result);
-		result = NULL;
-	}
-	string_release(search_root);
-	return result;
-#else
-	return NULL;
-#endif
-}
-
-#define SPLASH_PATH "images/icon.png"
-/* So far, only Windows and MacOSX support splash with alpha, Linux does not */
-#if defined(WIN32) || defined(__APPLE__)
-#define FLAT_SPLASH_PATH NULL
-#else
-#define FLAT_SPLASH_PATH "images/icon-flat.png"
-#endif
-
-static void show_splash(void)
-{
-	const char *image_path = NULL;
-	struct string *lib_path = get_splashscreen_lib_path();
-	void *splashscreen;
-	int (*SplashInit)(void);
-	int (*SplashLoadFile)(const char *path);
-	int (*SplashSetFileJarName)(const char *file_path, const char *jar_path);
-
-	if (no_splash || !lib_path || SplashClose)
-		return;
-
-	if (FLAT_SPLASH_PATH)
-		image_path = ij_path(FLAT_SPLASH_PATH);
-	if (!image_path || !file_exists(image_path))
-		image_path = ij_path(SPLASH_PATH);
-	if (!image_path || !file_exists(image_path))
-		return;
-
-	splashscreen = dlopen(lib_path->buffer, RTLD_LAZY);
-	if (!splashscreen) {
-		if (debug)
-			error("Splashscreen library not found: '%s'", lib_path->buffer);
-		string_release(lib_path);
-		return;
-	}
-	SplashInit = dlsym(splashscreen, "SplashInit");
-	SplashLoadFile = dlsym(splashscreen, "SplashLoadFile");
-	SplashSetFileJarName = dlsym(splashscreen, "SplashSetFileJarName");
-	SplashClose = dlsym(splashscreen, "SplashClose");
-	if (!SplashInit || !SplashLoadFile || !SplashSetFileJarName || !SplashClose) {
-		if (debug)
-			error("Ignoring splashscreen:\ninit: %p\nload: %p\nsetFileJar: %p\nclose: %p", SplashInit, SplashLoadFile, SplashSetFileJarName, SplashClose);
-		string_release(lib_path);
-		SplashClose = NULL;
-		return;
-	}
-
-	SplashInit();
-	SplashLoadFile(image_path);
-	SplashSetFileJarName(image_path, ij_launcher_jar);
-
-	string_release(lib_path);
-}
-
-static void hide_splash(void)
-{
-	if (!SplashClose)
-		return;
-	SplashClose();
-	SplashClose = NULL;
-}
-
-static int is_lion(void);
 
 /*
  * On Linux, Java5 does not find the library path with libmlib_image.so,
@@ -1529,7 +170,7 @@ static void maybe_reexec_with_correct_lib_path(struct string *java_library_path)
 	if (jre_home) {
 		struct string *path, *parent, *lib_path, *jli;
 
-		path = string_initf("%s/%s", jre_home, library_path);
+		path = string_initf("%s/%s", jre_home, get_library_path());
 		parent = get_parent_directory(path->buffer);
 		lib_path = get_parent_directory(parent->buffer);
 		jli = string_initf("%s/jli", lib_path->buffer);
@@ -1577,63 +218,25 @@ static void maybe_reexec_with_correct_lib_path(struct string *java_library_path)
 #endif
 }
 
-static const char *get_ij_dir(const char *argv0)
-{
-	static const char *buffer;
-	const char *slash;
-	int len;
-
-	if (buffer)
-		return buffer;
-
-	if (!last_slash(argv0))
-		buffer = find_in_path(argv0, 1);
-	else
-		buffer = make_absolute_path(argv0);
-	argv0 = buffer;
-
-	slash = last_slash(argv0);
-	if (!slash)
-		die("Could not get absolute path for executable");
-
-	len = slash - argv0;
-	if (!suffixcmp(argv0, len, "/precompiled") ||
-			!suffixcmp(argv0, len, "\\precompiled")) {
-		slash -= strlen("/precompiled");
-		run_precompiled = 1;
-	}
-#ifdef __APPLE__
-	else if (!suffixcmp(argv0, len, "/Contents/MacOS")) {
-		struct string *scratch;
-		len -= strlen("/Contents/MacOS");
-		scratch = string_initf("%.*s/jars", len, argv0);
-		if (len && !dir_exists(scratch->buffer))
-			while (--len && argv0[len] != '/')
-				; /* ignore */
-		slash = argv0 + len;
-		string_release(scratch);
-	}
-#endif
-#ifdef WIN32
-	else if (!suffixcmp(argv0, len, "/PRECOM~1") ||
-			!suffixcmp(argv0, len, "\\PRECOM~1")) {
-		slash -= strlen("/PRECOM~1");
-		run_precompiled = 1;
-	}
-#endif
-
-	buffer = xstrndup(buffer, slash - argv0);
-#ifdef WIN32
-	buffer = dos_path(buffer);
-#endif
-	return buffer;
-}
-
 static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 {
 #ifdef __APPLE__
-	set_path_to_apple_JVM();
-#else
+	if (!set_path_to_apple_JVM()) {
+		/* We found an Apple Framework JVM (pre-Java-1.7). */
+		return JNI_CreateJavaVM(vm, env, args);
+	}
+#endif
+
+	/*
+	 * At this point, we are either not on OS X, or on a
+	 * newer OS X that is missing the Apple Framework paths:
+	 *
+	 *     /System/Library/Frameworks/JavaVM.framework/Versions/1.6
+	 *     /System/Library/Frameworks/JavaVM.framework/Versions/1.5
+	 *
+	 * So we'll do things the good ol' fashioned way: dlopen and dlsym.
+	 */
+
 	/*
 	 * Save the original value of JAVA_HOME: if creating the JVM this
 	 * way doesn't work, set it back so that calling the system JVM
@@ -1646,6 +249,11 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 	static jint (*JNI_CreateJavaVM)(JavaVM **pvm, void **penv, void *args);
 	const char *java_home = get_jre_home();
 
+	if (!java_home) {
+		error("No known JRE; cannot link to Java library");
+		return 1;
+	}
+
 #ifdef WIN32
 	/* On Windows, a setenv() invalidates strings obtained by getenv(). */
 	if (original_java_home_env)
@@ -1654,7 +262,7 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 
 	setenv_or_exit("JAVA_HOME", java_home, 1);
 
-	string_addf(buffer, "%s/%s", java_home, library_path);
+	string_addf(buffer, "%s/%s", java_home, get_library_path());
 
 	handle = dlopen(buffer->buffer, RTLD_LAZY);
 	if (!handle) {
@@ -1687,342 +295,13 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 		string_release(buffer);
 		return 1;
 	}
-#endif
 
 	return JNI_CreateJavaVM(vm, env, args);
-}
-
-/* Windows specific stuff */
-
-#ifdef WIN32
-static int console_opened, console_attached;
-
-static void sleep_a_while(void)
-{
-	sleep(60);
-}
-
-static void open_win_console(void)
-{
-	static int initialized = 0;
-	struct string *kernel32_dll_path;
-	void *kernel32_dll;
-	BOOL WINAPI (*attach_console)(DWORD process_id) = NULL;
-	SECURITY_ATTRIBUTES attributes;
-	HANDLE handle;
-
-	if (initialized)
-		return;
-	initialized = 1;
-	console_attached = 1;
-	if (!isatty(1) && !isatty(2))
-		return;
-
-	kernel32_dll_path = string_initf("%s\\system32\\kernel32.dll",
-		getenv("WINDIR"));
-	kernel32_dll = dlopen(kernel32_dll_path->buffer, RTLD_LAZY);
-	string_release(kernel32_dll_path);
-	if (kernel32_dll)
-		attach_console = (typeof(attach_console))
-			dlsym(kernel32_dll, "AttachConsole");
-	if (!attach_console || !attach_console((DWORD)-1)) {
-		if (attach_console) {
-			if (GetLastError() == ERROR_ACCESS_DENIED)
-				/*
-				 * Already attached, according to
-				 * http://msdn.microsoft.com/en-us/library/windows/desktop/ms681952(v=vs.85).aspx
-				 */
-				return;
-			error("error attaching console: %s", get_win_error());
-		}
-		AllocConsole();
-		console_opened = 1;
-		atexit(sleep_a_while);
-	} else {
-		char title[1024];
-		if (GetConsoleTitle(title, sizeof(title)) &&
-				!strncmp(title, "rxvt", 4))
-			return; /* Console already opened. */
-	}
-
-	memset(&attributes, 0, sizeof(attributes));
-	attributes.nLength = sizeof(SECURITY_ATTRIBUTES);
-	attributes.bInheritHandle = TRUE;
-
-	handle = CreateFile("CONOUT$", GENERIC_WRITE, FILE_SHARE_WRITE,
-		&attributes, OPEN_EXISTING, 0, NULL);
-	if (isatty(1)) {
-		freopen("CONOUT$", "wt", stdout);
-		SetStdHandle(STD_OUTPUT_HANDLE, handle);
-	}
-	if (isatty(2)) {
-		freopen("CONOUT$", "wb", stderr);
-		SetStdHandle(STD_ERROR_HANDLE, handle);
-	}
-}
-
-
-static int fake_posix_mkdir(const char *name, int mode)
-{
-	return mkdir(name);
-}
-#define mkdir fake_posix_mkdir
-
-
-struct entry {
-	char d_name[PATH_MAX];
-	int d_namlen;
-} entry;
-
-struct dir {
-	struct string *pattern;
-	HANDLE handle;
-	WIN32_FIND_DATA find_data;
-	int done;
-	struct entry entry;
-};
-
-struct dir *open_dir(const char *path)
-{
-	struct dir *result = xcalloc(sizeof(struct dir), 1);
-	if (!result)
-		return result;
-	result->pattern = string_initf("%s/*", path);
-	result->handle = FindFirstFile(result->pattern->buffer,
-			&(result->find_data));
-	if (result->handle == INVALID_HANDLE_VALUE) {
-		string_release(result->pattern);
-		free(result);
-		return NULL;
-	}
-	result->done = 0;
-	return result;
-}
-
-struct entry *read_dir(struct dir *dir)
-{
-	if (dir->done)
-		return NULL;
-	strcpy(dir->entry.d_name, dir->find_data.cFileName);
-	dir->entry.d_namlen = strlen(dir->entry.d_name);
-	if (FindNextFile(dir->handle, &dir->find_data) == 0)
-		dir->done = 1;
-	return &dir->entry;
-}
-
-int close_dir(struct dir *dir)
-{
-	string_release(dir->pattern);
-	FindClose(dir->handle);
-	free(dir);
-	return 0;
-}
-
-#define DIR struct dir
-#define dirent entry
-#define opendir open_dir
-#define readdir read_dir
-#define closedir close_dir
-#else
-#include <dirent.h>
-#endif
-
-static int dir_exists(const char *path)
-{
-	DIR *dir = opendir(path);
-	if (dir) {
-		closedir(dir);
-		return 1;
-	}
-	return 0;
-}
-
-static int mkdir_recursively(struct string *buffer)
-{
-	int slash = buffer->length - 1, save_length;
-	char save_char;
-	while (slash > 0 && !is_slash(buffer->buffer[slash]))
-		slash--;
-	while (slash > 0 && is_slash(buffer->buffer[slash - 1]))
-		slash--;
-	if (slash <= 0)
-		return -1;
-	save_char = buffer->buffer[slash];
-	save_length = buffer->length;
-	buffer->buffer[slash] = '\0';
-	buffer->length = slash;
-	if (!dir_exists(buffer->buffer)) {
-		int result = mkdir_recursively(buffer);
-		if (result)
-			return result;
-	}
-	buffer->buffer[slash] = save_char;
-	buffer->length = save_length;
-	return mkdir(buffer->buffer, 0777);
-}
-
-/*
-   Ensures that a directory exists in the manner of "mkdir -p", creating
-   components with file mode 777 (& umask) where they do not exist.
-   Returns 0 on success, or the return code of mkdir in the case of
-   failure.
-*/
-static int mkdir_p(const char *path)
-{
-	int result;
-	struct string *buffer;
-	if (dir_exists(path))
-		return 0;
-
-	buffer = string_copy(path);
-	result = mkdir_recursively(buffer);
-	string_release(buffer);
-	return result;
-}
-
-static char *find_jar(const char *jars_directory, const char *prefix)
-{
-	int prefix_length = strlen(prefix);
-	struct string *buffer;
-	int length;
-	time_t mtime = 0;
-	DIR *directory = opendir(jars_directory);
-	struct dirent *entry;
-	struct stat st;
-	char *result = NULL;
-
-	if (directory == NULL)
-		return NULL;
-
-	buffer = string_initf("%s", jars_directory);
-	length = buffer->length;
-	if (length == 0 || buffer->buffer[length - 1] != '/') {
-		string_add_char(buffer, '/');
-		length++;
-	}
-	while ((entry = readdir(directory))) {
-		const char *name = entry->d_name;
-		if (prefixcmp(name, prefix) ||
-			(strcmp(name + prefix_length, ".jar") &&
-			 (name[prefix_length] != '-' ||
-			  !isdigit(name[prefix_length + 1]) ||
-			  suffixcmp(name + prefix_length + 2, -1, ".jar"))))
-			continue;
-		string_set_length(buffer, length);
-		string_append(buffer, name);
-		if (!stat(buffer->buffer, &st) && st.st_mtime > mtime) {
-			free(result);
-			result = strdup(buffer->buffer);
-			mtime = st.st_mtime;
-		}
-	}
-	closedir(directory);
-	string_release(buffer);
-	return result;
-}
-
-static int has_jar(const char *jars_directory, const char *prefix)
-{
-	char *result = find_jar(jars_directory, prefix);
-
-	if (!result)
-		return 0;
-	free(result);
-	return 1;
 }
 
 static void initialize_ij_launcher_jar_path(void)
 {
 	ij_launcher_jar = find_jar(ij_path("jars/"), "ij-launcher");
-}
-
-static MAYBE_UNUSED int find_file(struct string *search_root, int max_depth, const char *file, struct string *result)
-{
-	int len = search_root->length;
-	DIR *directory;
-	struct dirent *entry;
-
-	string_add_char(search_root, '/');
-
-	string_append(search_root, file);
-	if (file_exists(search_root->buffer)) {
-		string_set(result, search_root->buffer);
-		string_set_length(search_root, len);
-		return 1;
-	}
-
-	if (max_depth <= 0)
-		return 0;
-
-	string_set_length(search_root, len);
-	directory = opendir(search_root->buffer);
-	if (!directory)
-		return 0;
-	string_add_char(search_root, '/');
-	while (NULL != (entry = readdir(directory))) {
-		if (entry->d_name[0] == '.')
-			continue;
-		string_append(search_root, entry->d_name);
-		if (dir_exists(search_root->buffer))
-			if (find_file(search_root, max_depth - 1, file, result)) {
-				string_set_length(search_root, len);
-				closedir(directory);
-				return 1;
-			}
-		string_set_length(search_root, len + 1);
-	}
-	closedir(directory);
-	string_set_length(search_root, len);
-	return 0;
-}
-
-static void detect_library_path(struct string *library_path, struct string *directory)
-{
-	int original_length = directory->length;
-	char found = 0;
-	DIR *dir = opendir(directory->buffer);
-	struct dirent *entry;
-
-	if (!dir)
-		return;
-
-	while ((entry = readdir(dir))) {
-		if (entry->d_name[0] == '.')
-			continue;
-		string_addf(directory, "/%s", entry->d_name);
-		if (dir_exists(directory->buffer))
-			detect_library_path(library_path, directory);
-		else if (!found && is_native_library(directory->buffer)) {
-			string_set_length(directory, original_length);
-			string_append_path_list(library_path, directory->buffer);
-			found = 1;
-			continue;
-		}
-		string_set_length(directory, original_length);
-	}
-	closedir(dir);
-}
-
-static void add_java_home_to_path(void)
-{
-	const char *java_home = get_java_home();
-	struct string *new_path = string_init(32), *buffer;
-	const char *env;
-
-	if (!java_home)
-		return;
-	buffer = string_initf("%s/bin", java_home);
-	if (dir_exists(buffer->buffer))
-		string_append_path_list(new_path, buffer->buffer);
-	string_setf(buffer, "%s/jre/bin", java_home);
-	if (dir_exists(buffer->buffer))
-		string_append_path_list(new_path, buffer->buffer);
-
-	env = getenv("PATH");
-	string_append_path_list(new_path, env ? env : ij_dir);
-	setenv_or_exit("PATH", new_path->buffer, 1);
-	string_release(buffer);
-	string_release(new_path);
 }
 
 static int add_retrotranslator_to_path(struct string *path)
@@ -2089,65 +368,6 @@ static struct string *set_property(JNIEnv *env,
 	}
 
 	return NULL;
-}
-
-struct string_array {
-	char **list;
-	int nr, alloc;
-};
-
-static void append_string(struct string_array *array, char *str)
-{
-	if (array->nr >= array->alloc) {
-		array->alloc = 2 * array->nr + 16;
-		array->list = (char **)xrealloc(array->list,
-				array->alloc * sizeof(str));
-	}
-	array->list[array->nr++] = str;
-}
-
-static void prepend_string(struct string_array *array, char *str)
-{
-	if (array->nr >= array->alloc) {
-		array->alloc = 2 * array->nr + 16;
-		array->list = (char **)xrealloc(array->list,
-				array->alloc * sizeof(str));
-	}
-	memmove(array->list + 1, array->list, array->nr * sizeof(str));
-	array->list[0] = str;
-	array->nr++;
-}
-
-static void prepend_string_copy(struct string_array *array, const char *str)
-{
-	prepend_string(array, xstrdup(str));
-}
-
-static void append_string_array(struct string_array *target,
-		struct string_array *source)
-{
-	if (target->alloc - target->nr < source->nr) {
-		target->alloc += source->nr;
-		target->list = (char **)xrealloc(target->list,
-				target->alloc * sizeof(target->list[0]));
-	}
-	memcpy(target->list + target->nr, source->list, source->nr * sizeof(target->list[0]));
-	target->nr += source->nr;
-}
-
-static void prepend_string_array(struct string_array *target,
-		struct string_array *source)
-{
-	if (source->nr <= 0)
-		return;
-	if (target->alloc - target->nr < source->nr) {
-		target->alloc += source->nr;
-		target->list = (char **)xrealloc(target->list,
-				target->alloc * sizeof(target->list[0]));
-	}
-	memmove(target->list + source->nr, target->list, target->nr * sizeof(target->list[0]));
-	memcpy(target->list, source->list, source->nr * sizeof(target->list[0]));
-	target->nr += source->nr;
 }
 
 static JavaVMOption *prepare_java_options(struct string_array *array)
@@ -2399,64 +619,6 @@ static char *quote_win32(char *option)
 }
 #endif
 
-static const char *get_java_command(void)
-{
-#ifdef WIN32
-	if (!console_opened)
-		return "javaw";
-#endif
-	return "java";
-}
-
-static char *discover_system_java_home(void)
-{
-#ifdef WIN32
-	HKEY key;
-	HRESULT result;
-	const char *key_root = "SOFTWARE\\JavaSoft\\Java Development Kit";
-	struct string *string;
-	char buffer[PATH_MAX];
-	DWORD valuelen = sizeof(buffer);
-
-	result = RegOpenKeyEx(HKEY_LOCAL_MACHINE, key_root, 0, KEY_READ, &key);
-	if (ERROR_SUCCESS != result)
-		return NULL;
-	result = RegQueryValueEx(key, "CurrentVersion", NULL, NULL, (LPBYTE)buffer, &valuelen);
-	RegCloseKey(key);
-	if (ERROR_SUCCESS != result)
-{ error(get_win_error());
-		return NULL;
-}
-	string = string_initf("%s\\%s", key_root, buffer);
-	result = RegOpenKeyEx(HKEY_LOCAL_MACHINE, string->buffer, 0, KEY_READ, &key);
-	if (ERROR_SUCCESS != result)
-		return NULL;
-	valuelen = sizeof(buffer);
-	result = RegQueryValueEx(key, "JavaHome", NULL, NULL, (LPBYTE)buffer, &valuelen);
-	RegCloseKey(key);
-	if (ERROR_SUCCESS != result)
-		return NULL;
-	return strdup(buffer);
-#else
-	const char *java_executable = find_in_path(get_java_command(), 0);
-
-	if (java_executable) {
-		char *path = strdup(java_executable);
-		const char *suffixes[] = {
-			"java", "\\", "/", "bin", "\\", "/", NULL
-		};
-		int len = strlen(path), i;
-		for (i = 0; suffixes[i]; i++)
-			if (!suffixcmp(path, len, suffixes[i])) {
-				len -= strlen(suffixes[i]);
-				path[len] = '\0';
-			}
-		return path;
-	}
-	return NULL;
-#endif
-}
-
 static void show_commandline(struct options *options)
 {
 	int j;
@@ -2514,7 +676,7 @@ static int update_files(struct string *relative_path)
 {
 	int len = relative_path->length, source_len, target_len;
 	struct string *source = string_initf("%s/update%s",
-		ij_dir, relative_path->buffer), *target;
+		get_ij_dir(), relative_path->buffer), *target;
 	DIR *directory = opendir(source->buffer);
 	struct dirent *entry;
 
@@ -2868,12 +1030,7 @@ static void parse_legacy_config(struct string *jvm_options)
 #endif
 			if (jre_len > 0) {
 				p[jre_len] = '\0';
-				if (!legacy_jre_path)
-					legacy_jre_path = string_init(32);
-				string_set(legacy_jre_path, is_absolute_path(p) ? p : ij_path(p));
-				if (debug)
-					error("Using JRE from ImageJ.cfg: %s",
-						legacy_jre_path->buffer);
+				set_legacy_jre_path(p);
 			}
 		}
 		else if (line == 3) {
@@ -3331,7 +1488,7 @@ static int handle_one_option2(int *i, int argc, const char **argv)
 	else if (!strcmp(argv[*i], "--debug"))
 		debug++;
 	else if (handle_one_option(i, argv, "--java-home", &arg)) {
-		absolute_java_home = xstrdup(arg.buffer);
+		set_java_home(xstrdup(arg.buffer));
 		setenv_or_exit("JAVA_HOME", xstrdup(arg.buffer), 1);
 	}
 	else if (!strcmp(argv[*i], "--system"))
@@ -3453,7 +1610,7 @@ static int handle_one_option2(int *i, int argc, const char **argv)
 		main_class = default_fiji1_class;
 	else if (!strcmp(argv[*i], "--build") ||
 			!strcmp(argv[*i], "--fake")) {
-		const char *fake_jar, *precompiled_fake_jar;
+		const char *fake_jar;
 #ifdef WIN32
 		open_win_console();
 #endif
@@ -3462,10 +1619,6 @@ static int handle_one_option2(int *i, int argc, const char **argv)
 		skip_class_launcher = 1;
 		headless = 1;
 		fake_jar = ij_path("jars/fake.jar");
-		precompiled_fake_jar = ij_path("precompiled/fake.jar");
-		if (run_precompiled || !file_exists(fake_jar) ||
-				file_is_newer(precompiled_fake_jar, fake_jar))
-			fake_jar = precompiled_fake_jar;
 		string_set_length(&arg, 0);
 		string_addf(&arg, "-Djava.class.path=%s", fake_jar);
 		add_option_string(&options, &arg, 0);
@@ -3485,11 +1638,11 @@ static int handle_one_option2(int *i, int argc, const char **argv)
 			!strcmp(argv[*i], "--retro"))
 		retrotranslator = 1;
 	else if (handle_one_option(i, argv, "--fiji-dir", &arg))
-		ij_dir = xstrdup(arg.buffer);
+		set_ij_dir(xstrdup(arg.buffer));
 	else if (handle_one_option(i, argv, "--ij-dir", &arg))
-		ij_dir = xstrdup(arg.buffer);
+		set_ij_dir(xstrdup(arg.buffer));
 	else if (!strcmp("--print-ij-dir", argv[*i])) {
-		printf("%s\n", ij_dir);
+		printf("%s\n", get_ij_dir());
 		exit(0);
 	}
 	else if (!strcmp("--print-java-home", argv[*i])) {
@@ -3520,7 +1673,7 @@ static int handle_one_option2(int *i, int argc, const char **argv)
 		add_option_string(&options, &arg, 0);
 	}
 	else if (!strcmp("--no-splash", argv[*i]))
-		no_splash = 1;
+		disable_splash();
 	else if (!strcmp("--help", argv[*i]) ||
 			!strcmp("-h", argv[*i]))
 		usage();
@@ -3619,7 +1772,7 @@ static void parse_command_line(void)
 		 * the behavior of the regular ImageJ application which does
 		 * not start up in the filesystem root.
 		 */
-		chdir(ij_dir);
+		chdir(get_ij_dir());
 	}
 
 	if (!get_fiji_bundle_variable("heap", &arg) ||
@@ -3704,7 +1857,7 @@ static void parse_command_line(void)
 	add_option(&options, "-Dpython.cachedir.skip=true", 0);
 	if (!plugin_path.length &&
 			!has_plugins_dir_option(&options.java_options))
-		string_setf(&plugin_path, "-Dplugins.dir=%s", ij_dir);
+		string_setf(&plugin_path, "-Dplugins.dir=%s", get_ij_dir());
 	if (plugin_path.length)
 		add_option(&options, plugin_path.buffer, 0);
 
@@ -3801,7 +1954,7 @@ static void parse_command_line(void)
 	maybe_reexec_with_correct_lib_path(java_library_path);
 
 	if (!options.dry_run && !options.use_system_jvm && !headless && (is_default_ij1_class(main_class) || !strcmp(default_main_class, main_class)))
-		show_splash();
+		show_splash(ij_launcher_jar);
 
 	/* set up class path */
 	if (full_class_path || !strcmp(default_main_class, main_class)) {
@@ -3812,7 +1965,7 @@ static void parse_command_line(void)
 		const char *jar_path = ij_path("jars/");
 		char *ij1_jar = find_jar(jar_path, "ij");
 		if (!ij1_jar)
-			ij1_jar = find_jar(ij_dir, "ij");
+			ij1_jar = find_jar(get_ij_dir(), "ij");
 		if (!ij1_jar)
 			die("Could not find ij.jar in %s", jar_path);
 		add_launcher_option(&options, "-classpath", ij1_jar);
@@ -3886,13 +2039,13 @@ static void parse_command_line(void)
 
 	i = 0;
 	properties[i++] = "imagej.dir";
-	properties[i++] =  ij_dir,
+	properties[i++] = get_ij_dir(),
 	properties[i++] = "ij.dir";
-	properties[i++] =  ij_dir,
+	properties[i++] = get_ij_dir(),
 	properties[i++] = "fiji.dir";
-	properties[i++] =  ij_dir,
+	properties[i++] = get_ij_dir(),
 	properties[i++] = "fiji.defaultLibPath";
-	properties[i++] = default_library_path;
+	properties[i++] = get_default_library_path();
 	properties[i++] = "fiji.executable";
 	properties[i++] = main_argv0;
 	properties[i++] = "ij.executable";
@@ -4120,8 +2273,7 @@ static void maybe_write_desktop_file(void)
 #endif
 }
 
-
-static int start_ij(void)
+int start_ij(void)
 {
 	JavaVM *vm;
 	JavaVMInitArgs args;
@@ -4227,7 +2379,7 @@ static int start_ij(void)
 
 		add_option(&options, "-Xdock:name=ImageJ", 0);
 		icon_option = string_copy("-Xdock:icon=");
-		append_icon_path(icon_option);
+		append_icon_path(icon_option, main_argv0);
 		if (icon_option->length > 12)
 			add_option_string(&options, icon_option, 0);
 		string_release(icon_option);
@@ -4305,626 +2457,6 @@ static int start_ij(void)
 	return 0;
 }
 
-#ifdef __APPLE__
-static void append_icon_path(struct string *str)
-{
-	/*
-	 * Check if we're launched from within an Application bundle or
-	 * command line.  If from a bundle, ImageJ.app should be the IJ dir.
-	 */
-	int length = str->length, i;
-	const char *paths[] = {
-		"Contents/Resources/Fiji.icns",
-		"images/Fiji.icns",
-		"Contents/Resources/ImageJ.icns",
-		"images/ImageJ.icns"
-	};
-	const char *slash;
-
-	for (i = 0; i < sizeof(paths) / sizeof(paths[0]); i++) {
-		string_append(str, ij_path(paths[i]));
-		if (file_exists(str->buffer + length))
-			return;
-		string_set_length(str, length);
-	}
-
-	slash = strrchr(main_argv0, '/');
-	if (slash && !suffixcmp(main_argv0, slash - main_argv0, ".app/Contents/MacOS"))
-		for (i = 0; i < sizeof(paths) / sizeof(paths[0]); i++) {
-			string_addf(str, "%.*s%s", (int)(slash - main_argv0) - 14, main_argv0, paths[i]);
-			if (file_exists(str->buffer + length))
-				return;
-			string_set_length(str, length);
-		}
-}
-
-#include <sys/types.h>
-#include <sys/sysctl.h>
-#include <mach/machine.h>
-#include <unistd.h>
-#include <sys/param.h>
-#include <string.h>
-
-static void print_cfurl(const char *message, CFURLRef cfurl)
-{
-	UInt8 bytes[PATH_MAX] = "";
-	Boolean result = CFURLGetFileSystemRepresentation(cfurl, 1,
-		bytes, PATH_MAX);
-	if (result) {
-		error("%s: %s", message, (const char *)bytes);
-	}
-	else {
-		error("%s: <error>\n", message);
-	}
-}
-
-static struct string *convert_cfstring(CFStringRef ref, struct string *buffer)
-{
-	string_ensure_alloc(buffer, (int)CFStringGetLength(ref) * 6);
-	if (!CFStringGetCString((CFStringRef)ref, buffer->buffer, buffer->alloc, kCFStringEncodingUTF8))
-		string_set_length(buffer, 0);
-	else
-		buffer->length = strlen(buffer->buffer);
-	return buffer;
-}
-
-static struct string *resolve_alias(CFDataRef ref, struct string *buffer)
-{
-	if (!ref)
-		string_set_length(buffer, 0);
-	else {
-		CFRange range = { 0, CFDataGetLength(ref) };
-		if (range.length <= 0) {
-			string_set_length(buffer, 0);
-			return buffer;
-		}
-		AliasHandle alias = (AliasHandle)NewHandle(range.length);
-		CFDataGetBytes(ref, range, (void *)*alias);
-
-		string_ensure_alloc(buffer, 1024);
-		FSRef fs;
-		Boolean changed;
-		if (FSResolveAlias(NULL, alias, &fs, &changed) == noErr)
-			FSRefMakePath(&fs, (unsigned char *)buffer->buffer, buffer->alloc);
-		else {
-			CFStringRef string;
-			if (FSCopyAliasInfo(alias, NULL, NULL, &string, NULL, NULL) == noErr) {
-				convert_cfstring(string, buffer);
-				CFRelease(string);
-			}
-			else
-				string_set_length(buffer, 0);
-		}
-		buffer->length = strlen(buffer->buffer);
-
-		DisposeHandle((Handle)alias);
-	}
-
-	return buffer;
-}
-
-static int is_intel(void)
-{
-	int mib[2] = { CTL_HW, HW_MACHINE };
-	char result[128];
-	size_t len = sizeof(result);;
-
-	if (sysctl(mib, 2, result, &len, NULL, 0) < 0)
-		return 0;
-	return !strcmp(result, "i386") || !strncmp(result, "x86", 3);
-}
-
-static int force_32_bit_mode(const char *argv0)
-{
-	int result = 0;
-	struct string *buffer = string_initf("%s/%s", getenv("HOME"),
-		"Library/Preferences/com.apple.LaunchServices.plist");
-	if (!buffer)
-		return 0;
-
-	CFURLRef launchServicesURL =
-		CFURLCreateFromFileSystemRepresentation(kCFAllocatorDefault,
-		(unsigned char *)buffer->buffer, buffer->length, 0);
-	if (!launchServicesURL)
-		goto release_buffer;
-
-	CFDataRef data;
-	SInt32 errorCode;
-	if (!CFURLCreateDataAndPropertiesFromResource(kCFAllocatorDefault,
-			launchServicesURL, &data, NULL, NULL, &errorCode))
-		goto release_url;
-
-	CFDictionaryRef dict;
-	CFStringRef errorString;
-	dict = (CFDictionaryRef)CFPropertyListCreateFromXMLData(kCFAllocatorDefault,
-		data, kCFPropertyListImmutable, &errorString);
-	if (!dict || errorString)
-		goto release_data;
-
-
-	CFDictionaryRef arch64 = (CFDictionaryRef)CFDictionaryGetValue(dict,
-		CFSTR("LSArchitecturesForX86_64"));
-	if (!arch64)
-		goto release_dict;
-
-	CFArrayRef app = (CFArrayRef)CFDictionaryGetValue(arch64, CFSTR("org.fiji"));
-	if (!app) {
-		app = (CFArrayRef)CFDictionaryGetValue(arch64, CFSTR("net.imagej.ImageJ"));
-		if (!app)
-			goto release_dict;
-	}
-
-	int i, count = (int)CFArrayGetCount(app);
-	for (i = 0; i < count; i += 2) {
-		convert_cfstring((CFStringRef)CFArrayGetValueAtIndex(app, i + 1), buffer);
-		if (strcmp(buffer->buffer, "i386"))
-			continue;
-		resolve_alias((CFDataRef)CFArrayGetValueAtIndex(app, i), buffer);
-		if (!strcmp(buffer->buffer, ij_dir)) {
-			fprintf(stderr, "Forcing 32-bit, as requested\n");
-			result = 1;
-			break;
-		}
-	}
-release_dict:
-	CFRelease(dict);
-release_data:
-	CFRelease(data);
-release_url:
-	CFRelease(launchServicesURL);
-release_buffer:
-	string_release(buffer);
-	return result;
-}
-
-static int set_path_to_apple_JVM(void)
-{
-	/*
-	 * MacOSX specific stuff for system java
-	 * -------------------------------------
-	 * Non-macosx works but places java into separate pid,
-	 * which causes all kinds of strange behaviours (app can
-	 * launch multiple times, etc).
-	 *
-	 * Search for system wide java >= 1.5
-	 * and if found, launch ImageJ with the system wide java.
-	 * This is an adaptation from simple.c from Apple's
-	 * simpleJavaLauncher code.
-	 */
-
-	/* Look for the JavaVM bundle using its identifier. */
-	CFBundleRef JavaVMBundle =
-		CFBundleGetBundleWithIdentifier(CFSTR("com.apple.JavaVM"));
-
-	if (!JavaVMBundle) {
-		fprintf(stderr, "Warning: could not find Java bundle\n");
-		return 3;
-	}
-
-	/* Get a path for the JavaVM bundle. */
-	CFURLRef JavaVMBundleURL = CFBundleCopyBundleURL(JavaVMBundle);
-	CFRelease(JavaVMBundle);
-	if (!JavaVMBundleURL) {
-		fprintf(stderr, "Warning: could not get path for Java\n");
-		return 5;
-	}
-
-	/* Append to the path the Versions Component. */
-	CFURLRef JavaVMBundlerVersionsDirURL =
-		CFURLCreateCopyAppendingPathComponent(kCFAllocatorDefault,
-			JavaVMBundleURL, CFSTR("Versions"), 1);
-	CFRelease(JavaVMBundleURL);
-	if (!JavaVMBundlerVersionsDirURL) {
-		fprintf(stderr, "Warning: could not detect Java versions\n");
-		return 7;
-	}
-	else if (debug) {
-		print_cfurl("JavaVMBundlerVersionsDirURL", JavaVMBundlerVersionsDirURL);
-	}
-
-	/* Append to the path the target JVM's Version. */
-	CFURLRef TargetJavaVM = NULL;
-	CFStringRef targetJVM; /* Minimum Java5. */
-
-	/* TODO: disable this test on 10.6+ */
-	/* Try 1.6 only with 64-bit */
-	if (is_intel() && sizeof(void *) > 4) {
-		targetJVM = CFSTR("1.6");
-		TargetJavaVM =
-			CFURLCreateCopyAppendingPathComponent(kCFAllocatorDefault,
-				JavaVMBundlerVersionsDirURL, targetJVM, 1);
-	}
-
-	if (!TargetJavaVM) {
-		retrotranslator = 1;
-		targetJVM = CFSTR("1.5");
-		TargetJavaVM =
-			CFURLCreateCopyAppendingPathComponent(kCFAllocatorDefault,
-				JavaVMBundlerVersionsDirURL, targetJVM, 1);
-	}
-
-	CFRelease(JavaVMBundlerVersionsDirURL);
-	if (!TargetJavaVM) {
-		fprintf(stderr, "Warning: Could not instantiate Java\n");
-		return 11;
-	}
-	else if (debug) {
-		print_cfurl("TargetJavaVM", TargetJavaVM);
-	}
-
-	UInt8 pathToTargetJVM[PATH_MAX] = "";
-	Boolean result = CFURLGetFileSystemRepresentation(TargetJavaVM, 1,
-				pathToTargetJVM, PATH_MAX);
-	CFRelease(TargetJavaVM);
-	if (!result) {
-		fprintf(stderr, "Warning: could not get path for Java VM\n");
-		return 13;
-	}
-
-	/*
-	 * Check to see if the directory, or a symlink for the target
-	 * JVM directory exists, and if so set the environment
-	 * variable JAVA_JVM_VERSION to the target JVM.
-	 */
-	if (access((const char *)pathToTargetJVM, R_OK)) {
-		fprintf(stderr, "Warning: Could not access Java VM: %s\n", (const char *)pathToTargetJVM);
-		return 17;
-	}
-
-	/*
-	 * Ok, the directory exists, so now we need to set the
-	 * environment var JAVA_JVM_VERSION to the CFSTR targetJVM.
-	 *
-	 * We can reuse the pathToTargetJVM buffer to set the environment
-	 * varable.
-	 */
-	if (!CFStringGetCString(targetJVM, (char *)pathToTargetJVM,
-		PATH_MAX, kCFStringEncodingUTF8))
-	{
-		fprintf(stderr, "Warning: Could not set JAVA_JVM_VERSION\n");
-		return 19;
-	}
-
-	/* Set JAVA_JVM_VERSION to the Apple Framework JVM that we found. */
-	error("Setting JAVA_JVM_VERSION to %s\n", (const char *)pathToTargetJVM);
-	setenv("JAVA_JVM_VERSION",
-		(const char *)pathToTargetJVM, 1);
-	return 0;
-}
-
-static int get_fiji_bundle_variable(const char *key, struct string *value)
-{
-	/*
-	 * Reading the command line options from the Info.plist file in the
-	 * Application bundle.
-	 *
-	 * This routine expects a separate dictionary for fiji with the
-	 * options from the command line as keys.
-	 *
-	 * If Info.plist is not present (i.e. if started from the cmd-line),
-	 * the whole thing will be just skipped.
-	 *
-	 * Example: Setting the java heap to 1024m
-	 * <key>fiji</key>
-	 * <dict>
-	 *	<key>heap</key>
-	 *	<string>1024</string>
-	 * </dict>
-	 */
-
-	static CFDictionaryRef fijiInfoDict;
-	static int initialized = 0;
-
-	if (!initialized) {
-		initialized = 1;
-
-		/* Get the main bundle for the app. */
-		CFBundleRef fijiBundle = CFBundleGetMainBundle();
-		if (!fijiBundle)
-			return -1;
-
-		/* Get an instance of the non-localized keys. */
-		CFDictionaryRef bundleInfoDict =
-			CFBundleGetInfoDictionary(fijiBundle);
-		if (!bundleInfoDict)
-			return -2;
-
-		fijiInfoDict = (CFDictionaryRef)
-			CFDictionaryGetValue(bundleInfoDict, CFSTR("fiji"));
-	}
-
-	if (!fijiInfoDict)
-		return -3;
-
-	CFStringRef key_ref =
-		CFStringCreateWithCString(NULL, key,
-			kCFStringEncodingMacRoman);
-	if (!key_ref)
-		return -4;
-
-	CFStringRef propertyString = (CFStringRef)
-		CFDictionaryGetValue(fijiInfoDict, key_ref);
-	CFRelease(key_ref);
-	if (!propertyString)
-		return -5;
-
-	const char *c_string = CFStringGetCStringPtr(propertyString, kCFStringEncodingMacRoman);
-	if (!c_string)
-		return -6;
-
-	string_set_length(value, 0);
-	string_append(value, c_string);
-
-	return 0;
-}
-
-/* MacOSX needs to run Java in a new thread, AppKit in the main thread. */
-
-static void dummy_call_back(void *info) {
-}
-
-static void *start_ij_aux(void *dummy)
-{
-	exit(start_ij());
-}
-
-static int start_ij_macosx(void)
-{
-	struct string *env_key, *icon_path;
-
-	/* set the Application's name */
-	env_key = string_initf("APP_NAME_%d", (int)getpid());
-	setenv(env_key->buffer, "ImageJ", 1);
-
-	/* set the Dock icon */
-	string_setf(env_key, "APP_ICON_%d", (int)getpid());
-	icon_path = string_init(32);
-	append_icon_path(icon_path);
-	if (icon_path->length)
-		setenv(env_key->buffer, icon_path->buffer, 1);
-
-	string_release(env_key);
-	string_release(icon_path);
-
-	pthread_t thread;
-	pthread_attr_t attr;
-	pthread_attr_init(&attr);
-	pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
-	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-
-	/* Start the thread that we will start the JVM on. */
-	pthread_create(&thread, &attr, start_ij_aux, NULL);
-	pthread_attr_destroy(&attr);
-
-	CFRunLoopSourceContext context;
-	memset(&context, 0, sizeof(context));
-	context.perform = &dummy_call_back;
-
-	CFRunLoopSourceRef ref = CFRunLoopSourceCreate(NULL, 0, &context);
-	CFRunLoopAddSource (CFRunLoopGetCurrent(), ref, kCFRunLoopCommonModes);
-	CFRunLoopRun();
-
-	return 0;
-}
-#define start_ij start_ij_macosx
-
-/*
- * Them stupid Apple software designers -- in their infinite wisdom -- added
- * 64-bit support to Tiger without really supporting it.
- *
- * As a consequence, a universal binary will be executed in 64-bit mode on
- * a x86_64 machine, even if neither CoreFoundation nor Java can be linked,
- * and sure enough, the executable will crash.
- *
- * It does not even reach main(), so we have to have a binary that does _not_
- * provide 64-bit support, detect if it is actually on Leopard, and execute
- * another binary in that case that _does_ provide 64-bit support, even if
- * we'd rather meet the Apple software designers some night, with a baseball
- * bat in our hands, than execute an innocent binary that is not to blame.
- */
-static int is_osrelease(int min)
-{
-	int mib[2] = { CTL_KERN, KERN_OSRELEASE };
-	static char os_release[128];
-	size_t len = sizeof(os_release);;
-	static int initialized;
-
-	if (!initialized) {
-		if (sysctl(mib, 2, os_release, &len, NULL, 0) == -1) {
-			if (debug)
-				error("sysctl to determine os_release failed: %d (%s)", errno, strerror(errno));
-			return 0;
-		}
-		if (debug)
-			error("sysctl says os_release is %s", os_release);
-		initialized = 1;
-	}
-
-	return atoi(os_release) >= min;
-}
-
-static MAYBE_UNUSED int is_mountain_lion(void)
-{
-	return is_osrelease(12);
-}
-
-static int is_lion(void)
-{
-	return is_osrelease(11);
-}
-
-static MAYBE_UNUSED int is_snow_leopard(void)
-{
-	return is_osrelease(10);
-}
-
-static int is_leopard(void)
-{
-	return is_osrelease(9);
-}
-
-static MAYBE_UNUSED int is_tiger(void)
-{
-	return is_osrelease(8);
-}
-
-static int launch_32bit_on_tiger(int argc, char **argv)
-{
-	const char *match, *replace;
-
-	if (force_32_bit_mode(argv[0]))
-		return 0;
-
-	if (is_intel() && is_leopard()) {
-		match = "-tiger";
-		replace = "-macosx";
-	}
-	else { /* Tiger */
-		match = "-macosx";
-		replace = "-tiger";
-		if (sizeof(void *) < 8)
-			return 0; /* already 32-bit, everything's fine */
-	}
-
-	int offset = strlen(argv[0]) - strlen(match);
-	if (offset < 0 || strcmp(argv[0] + offset, match))
-		return 0; /* suffix not found, no replacement */
-
-	if (strlen(replace) > strlen(match)) {
-		char *buffer = (char *)xmalloc(offset + strlen(replace) + 1);
-		memcpy(buffer, argv[0], offset);
-		argv[0] = buffer;
-	}
-	strcpy(argv[0] + offset, replace);
-	if (!file_exists(argv[0])) {
-		strcpy(argv[0] + offset, match);
-		return 0;
-	}
-	hide_splash();
-	execv(argv[0], argv);
-	fprintf(stderr, "Could not execute %s: %d(%s)\n",
-		argv[0], errno, strerror(errno));
-	exit(1);
-}
-#endif
-
-/* check whether there a file is a native library */
-
-static int read_exactly(int fd, unsigned char *buffer, int size)
-{
-	while (size > 0) {
-		int count = read(fd, buffer, size);
-		if (count < 0)
-			return 0;
-		if (count == 0)
-			/* short file */
-			return 1;
-		buffer += count;
-		size -= count;
-	}
-	return 1;
-}
-
-/* returns bit-width (32, 64), or 0 if it is not a .dll */
-static int MAYBE_UNUSED is_dll(const char *path)
-{
-	int in;
-	unsigned char buffer[0x40];
-	unsigned char *p;
-	off_t offset;
-
-	if (suffixcmp(path, -1, ".dll"))
-		return 0;
-
-	if ((in = open(path, O_RDONLY | O_BINARY)) < 0)
-		return 0;
-
-	if (!read_exactly(in, buffer, sizeof(buffer)) ||
-			buffer[0] != 'M' || buffer[1] != 'Z') {
-		close(in);
-		return 0;
-	}
-
-	p = (unsigned char *)(buffer + 0x3c);
-	offset = p[0] | (p[1] << 8) | (p[2] << 16) | (p[2] << 24);
-	lseek(in, offset, SEEK_SET);
-	if (!read_exactly(in, buffer, 0x20) ||
-			buffer[0] != 'P' || buffer[1] != 'E' ||
-			buffer[2] != '\0' || buffer[3] != '\0') {
-		close(in);
-		return 0;
-	}
-
-	close(in);
-	if (buffer[0x17] & 0x20)
-		return (buffer[0x17] & 0x1) ? 32 : 64;
-	return 0;
-}
-
-static int MAYBE_UNUSED is_elf(const char *path)
-{
-	int in;
-	unsigned char buffer[0x40];
-
-	if (suffixcmp(path, -1, ".so"))
-		return 0;
-
-	if ((in = open(path, O_RDONLY | O_BINARY)) < 0)
-		return 0;
-
-	if (!read_exactly(in, buffer, sizeof(buffer))) {
-		close(in);
-		return 0;
-	}
-
-	close(in);
-	if (buffer[0] == '\x7f' && buffer[1] == 'E' && buffer[2] == 'L' &&
-			buffer[3] == 'F')
-		return buffer[4] * 32;
-	return 0;
-}
-
-static int MAYBE_UNUSED is_dylib(const char *path)
-{
-	int in;
-	unsigned char buffer[0x40];
-
-	if (suffixcmp(path, -1, ".dylib") &&
-			suffixcmp(path, -1, ".jnilib"))
-		return 0;
-
-	if ((in = open(path, O_RDONLY | O_BINARY)) < 0)
-		return 0;
-
-	if (!read_exactly(in, buffer, sizeof(buffer))) {
-		close(in);
-		return 0;
-	}
-
-	close(in);
-	if (buffer[0] == 0xca && buffer[1] == 0xfe && buffer[2] == 0xba &&
-			buffer[3] == 0xbe && buffer[4] == 0x00 &&
-			buffer[5] == 0x00 && buffer[6] == 0x00 &&
-			(buffer[7] >= 1 && buffer[7] < 20))
-		return 32 | 64; /* might be a fat one, containing both */
-	return 0;
-}
-
-static int is_native_library(const char *path)
-{
-#ifdef __APPLE__
-	return is_dylib(path);
-#else
-	return
-#ifdef WIN32
-		is_dll(path)
-#else
-		is_elf(path)
-#endif
-		== sizeof(char *) * 8;
-#endif
-}
-
 static void find_newest(struct string *relative_path, int max_depth, const char *file, struct string *result)
 {
 	int len = relative_path->length;
@@ -4960,18 +2492,6 @@ static void find_newest(struct string *relative_path, int max_depth, const char 
 	string_set_length(relative_path, len);
 }
 
-static void set_default_library_path(void)
-{
-	default_library_path =
-#if defined(__APPLE__)
-		"";
-#elif defined(WIN32)
-		sizeof(void *) < 8 ? "bin/client/jvm.dll" : "bin/server/jvm.dll";
-#else
-		sizeof(void *) < 8 ? "lib/i386/client/libjvm.so" : "lib/amd64/server/libjvm.so";
-#endif
-}
-
 /* TODO: try to find Java even if there is JRE local to ImageJ */
 static void adjust_java_home_if_necessary(void)
 {
@@ -4979,31 +2499,24 @@ static void adjust_java_home_if_necessary(void)
 	const char *prefix = "jre/";
 	int depth = 2;
 
-#ifdef __APPLE__
-	/* On MacOSX, we look for libjogl.jnilib instead. */
-	library_path = "Home/lib/ext/libjogl.jnilib";
-	prefix = "";
-	depth = 1;
-#else
 	set_default_library_path();
-	library_path = default_library_path;
-#endif
+	set_library_path(get_default_library_path());
 
 	buffer = string_copy("java");
 	result = string_init(32);
-	path = string_initf("%s%s", prefix, library_path);
+	path = string_initf("%s%s", prefix, get_library_path());
 
 	find_newest(buffer, depth, path->buffer, result);
 	if (result->length) {
 		if (result->buffer[result->length - 1] != '/')
 			string_add_char(result, '/');
 		string_append(result, prefix);
-		relative_java_home = xstrdup(result->buffer);
+		set_relative_java_home(xstrdup(result->buffer));
 	}
 	else if (*prefix) {
-		find_newest(buffer, depth + 1, library_path, buffer);
+		find_newest(buffer, depth + 1, get_library_path(), buffer);
 		if (result->length)
-			relative_java_home = xstrdup(result->buffer);
+			set_relative_java_home(xstrdup(result->buffer));
 	}
 	string_release(buffer);
 	string_release(result);
@@ -5022,7 +2535,7 @@ int main(int argc, char **argv, char **e)
 #endif
 	}
 
-	ij_dir = get_ij_dir(argv[0]);
+	infer_ij_dir(argv[0]);
 
 	/* Handle update/ */
 	update_all_files();
@@ -5069,5 +2582,9 @@ int main(int argc, char **argv, char **e)
 	if (!debug)
 		maybe_write_desktop_file();
 
+#ifdef __APPLE__
+	return start_ij_macosx(main_argv0);
+#else
 	return start_ij();
+#endif
 }
