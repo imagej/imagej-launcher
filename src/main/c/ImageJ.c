@@ -3938,7 +3938,7 @@ static void parse_command_line(void)
 			const char *option = options.launcher_options.list[i];
 			if (sep)
 				string_append(class_path, sep);
-			if (!strcmp(option, "-ijclasspath"))
+			if (!strcmp(option, "-ijclasspath") || !strcmp(option, "--ijcp"))
 				string_append(class_path, ij_path(options.launcher_options.list[++i]));
 			else if (!strcmp(option, "-classpath"))
 				string_append(class_path, options.launcher_options.list[++i]);
