@@ -2268,9 +2268,19 @@ static void add_options(struct options *options, const char *cmd_line, int for_i
 			if (!strcmp(current->buffer, "-cp"))
 				cp_option = 1;
 			else if (cp_option) {
-				if (strcmp(current->buffer, "ij.jar"))
-					add_launcher_option(options,
-						"--ijcp", current->buffer);
+				int begin = 0, end;
+				for (end = 0; end <= current->length; end++) {
+					c = current->buffer[end];
+					if (c != '\0' && c != ';') {
+						continue;
+					}
+					current->buffer[end] = '\0';
+					if (begin < end && strcmp(current->buffer + begin, "ij.jar")) {
+						add_launcher_option(options,
+							"--ijcp", current->buffer + begin);
+					}
+					begin = end + 1;
+				}
 				cp_option = 0;
 			} else
 				add_option_string(options, current, for_ij);
