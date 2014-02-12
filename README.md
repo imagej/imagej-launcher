@@ -19,3 +19,9 @@ For an overview of supported options, run:
     ./ImageJ-xyz --help
 
 where `xyz` is your platform.
+
+## Download
+
+Up-to-date versions can always be downloaded from
+[Jenkins](http://jenkins.imagej.net/job/ImageJ-launcher/)' platform-specific
+configurations.
