@@ -68,6 +68,7 @@
 #include "jni.h"
 
 #include "common.h"
+#include "config.h"
 #include "exe-ico.h"
 #include "file-funcs.h"
 #include "java.h"
@@ -78,12 +79,10 @@
 
 static const char *default_fiji1_class = "fiji.Main";
 static const char *default_main_class = "imagej.Main";
-static int legacy_mode;
 int retrotranslator;
 static int debug;
 
 static const char *legacy_ij1_class = "ij.ImageJ";
-static struct string *legacy_ij1_options;
 
 static int is_default_ij1_class(const char *name)
 {
@@ -990,168 +989,6 @@ static int check_subcommand_classpath(struct subcommand *subcommand)
 		expanded = space + !!*space;
 	}
 	return 1;
-}
-
-static void parse_legacy_config(struct string *jvm_options)
-{
-	char *p = jvm_options->buffer;
-	int line = 1;
-
-	for (;;) {
-		char *eol = strchr(p, '\n');
-
-		/* strchrnul() is not portable */
-		if (!eol)
-			eol = p + strlen(p);
-
-		if (debug > 1)
-			error("ImageJ.cfg:%d: %.*s", line, (int)(eol - p), p);
-
-		if (line == 2) {
-			int jre_len = -1;
-#ifdef WIN32
-			if (!suffixcmp(p, eol - p, "\\bin\\javaw.exe"))
-				jre_len = eol - p - 14;
-			else if (!suffixcmp(p, eol - p, "\\bin\\java.exe")) {
-				jre_len = eol - p - 13;
-				debug++;
-				open_win_console();
-				error("Enabling debug mode due to ImageJ.cfg mentioning java.exe");
-			}
-#else
-			if (!suffixcmp(p, eol - p, "/bin/java"))
-				jre_len = eol - p - 9;
-#endif
-			if (jre_len > 0) {
-				p[jre_len] = '\0';
-				set_legacy_jre_path(p);
-			}
-		}
-		else if (line == 3) {
-			char *main_class;
-
-			*eol = '\0';
-			main_class = strstr(p, " ij.ImageJ");
-			if (main_class) {
-				const char *rest = main_class + 10;
-
-				while (*rest == ' ')
-					rest++;
-				if (rest < eol) {
-					if (!legacy_ij1_options)
-						legacy_ij1_options = string_init(32);
-					string_setf(legacy_ij1_options, "%.*s", (int)(eol - rest), rest);
-					if (debug)
-						error("Found ImageJ options in ImageJ.cfg: '%s'", legacy_ij1_options->buffer);
-				}
-				eol = main_class;
-			}
-
-			string_replace_range(jvm_options, 0, p - jvm_options->buffer, "");
-			string_set_length(jvm_options, eol - p);
-			if (debug)
-				error("Found Java options in ImageJ.cfg: '%s'", jvm_options->buffer);
-			return;
-		}
-
-		if (*eol == '\0')
-			break;
-
-		p = eol + 1;
-		line++;
-		if (line > 3)
-			break;
-	}
-	string_set_length(jvm_options, 0);
-}
-
-const char *imagej_cfg_sentinel = "ImageJ startup properties";
-
-static int is_modern_config(const char *text)
-{
-	return *text == '#' &&
-		(!prefixcmp(text + 1, imagej_cfg_sentinel) ||
-		 (text[1] == ' ' && !prefixcmp(text + 2, imagej_cfg_sentinel)));
-}
-
-
-/* Returns the number of characters to skip to get to the value, or -1 if the key does not match */
-static int property_line_key_matches(const char *line, const char *key)
-{
-	int offset = count_leading_whitespace(line);
-
-	if (prefixcmp(line + offset, key))
-		return -1;
-	offset += strlen(key);
-
-	offset += count_leading_whitespace(line + offset);
-
-	if (line[offset++] != '=')
-		return -1;
-
-	return offset + count_leading_whitespace(line + offset);
-}
-
-static void parse_modern_config(struct string *jvm_options)
-{
-	int offset = 0, skip, eol;
-
-	while (jvm_options->buffer[offset]) {
-		const char *p = jvm_options->buffer + offset;
-
-		for (eol = offset; !is_end_of_line(jvm_options->buffer[eol]); eol++)
-			; /* do nothing */
-
-		/* memory option? */
-		if ((skip = property_line_key_matches(p, "maxheap.mb")) > 0) {
-			const char *replacement = offset ? " -Xmx" : "-Xmx";
-			string_replace_range(jvm_options, offset, offset + skip, replacement);
-			eol += strlen(replacement) - skip;
-			string_replace_range(jvm_options, eol, eol, "m");
-			eol++;
-		}
-		/* jvmargs? */
-		else if ((skip = property_line_key_matches(p, "jvmargs")) > 0) {
-			const char *replacement = offset ? " " : "";
-			string_replace_range(jvm_options, offset, offset + skip, replacement);
-			eol += strlen(replacement) - skip;
-		}
-		/* legacy.mode? */
-		else if ((skip = property_line_key_matches(p, "legacy.mode")) > 0) {
-			legacy_mode = !strncmp(p + skip, "true", 4);
-			string_replace_range(jvm_options, offset, eol, "");
-			eol = offset;
-		}
-		/* strip it */
-		else {
-			string_replace_range(jvm_options, offset, eol, "");
-			eol = offset;
-		}
-
-		for (offset = eol; is_end_of_line(jvm_options->buffer[eol]); eol++)
-			; /* do nothing */
-
-		if (offset != eol)
-			string_replace_range(jvm_options, offset, eol, "");
-	}
-}
-
-static void read_config(struct string *jvm_options)
-{
-	const char *path = ij_path("ImageJ.cfg");
-
-	if (file_exists(path)) {
-		read_file_as_string(path, jvm_options);
-		if (is_modern_config(jvm_options->buffer))
-			parse_modern_config(jvm_options);
-		else
-			parse_legacy_config(jvm_options);
-	}
-	else {
-		path = ij_path("jvm.cfg");
-		if (file_exists(path))
-			read_file_as_string(path, jvm_options);
-	}
 }
 
 static void __attribute__((__noreturn__)) usage(void)
