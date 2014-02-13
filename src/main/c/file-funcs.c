@@ -37,6 +37,9 @@
 #include "platform.h"
 #include "xalloc.h"
 
+#include <stdio.h>
+#include <unistd.h>
+
 #ifndef WIN32
 #include <sys/stat.h>
 #endif

@@ -39,6 +39,11 @@
 #include "splash.h"
 #include "xalloc.h"
 
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+
 static int debug;
 extern int retrotranslator;
 
