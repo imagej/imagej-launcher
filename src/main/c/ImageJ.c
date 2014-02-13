@@ -2004,6 +2004,7 @@ static int write_desktop_file(const char *path, const char *title, const char *e
 #ifndef WIN32
 	chmod(path, 0755);
 #endif
+	return 0;
 }
 
 static void maybe_write_desktop_file(void)

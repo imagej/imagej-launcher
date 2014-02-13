@@ -31,6 +31,7 @@
 #include "common.h"
 #include "config.h"
 #include "file-funcs.h"
+#include "java.h"
 #include "string-funcs.h"
 
 #include <string.h>

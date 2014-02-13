@@ -32,6 +32,7 @@
 #include "common.h"
 #include "platform.h"
 #include "file-funcs.h"
+#include "java.h"
 #include "splash.h"
 #include "xalloc.h"
 

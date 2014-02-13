@@ -50,4 +50,6 @@ extern const char *get_library_path(void);
 
 extern void add_java_home_to_path(void);
 
+extern void set_legacy_jre_path(const char *path);
+
 #endif
