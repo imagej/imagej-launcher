@@ -841,6 +841,8 @@ size_t get_memory_size(int available_only)
 	return available_only ? status.dwAvailPhys : status.dwTotalPhys;
 }
 
+static char *dlerror_value;
+
 void *dlopen(const char *name, int flags)
 {
 	void *result = LoadLibrary(name);
@@ -893,8 +895,6 @@ int unsetenv(const char *name)
 	struct string *string = string_initf("%s=", name);
 	return putenv(string->buffer);
 }
-
-static char *dlerror_value;
 
 char *get_win_error(void)
 {
