@@ -387,7 +387,7 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 					<value>x86_64</value>
 				</property>
 				<file>
-					<missing>/Library/Java/JavaVirtualMachines/jdk1.7.0_45.jdk/Contents/Home/include/</missing>
+					<exists>/System/Library/Frameworks/JavaVM.Framework/Headers</exists>
 				</file>
 			</activation>
 			<build>
