@@ -563,22 +563,6 @@ static const char* has_plugins_dir_option(struct string_array *options)
 	return has_option_with_prefix(options, "-Dplugins.dir=");
 }
 
-static MAYBE_UNUSED void read_file_as_string(const char *file_name, struct string *contents)
-{
-	char buffer[1024];
-	FILE *in = fopen(file_name, "r");
-
-	string_set_length(contents, 0);
-	if (!in)
-		return;
-
-	while (!feof(in)) {
-		int count = fread(buffer, 1, sizeof(buffer), in);
-		string_append_at_most(contents, buffer, count);
-	}
-	fclose(in);
-}
-
 static struct string *quote_if_necessary(const char *option)
 {
 	struct string *result = string_init(32);

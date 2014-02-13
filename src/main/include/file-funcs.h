@@ -48,6 +48,7 @@ extern int file_exists(const char *path);
 extern int dir_exists(const char *path);
 extern const char *find_in_path(const char *path, int die_if_not_found);
 extern int read_exactly(int fd, unsigned char *buffer, int size);
+extern void read_file_as_string(const char *file_name, struct string *contents);
 
 extern int mkdir_recursively(struct string *buffer);
 extern int mkdir_p(const char *path);

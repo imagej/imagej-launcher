@@ -471,4 +471,18 @@ const char *ij_path(const char *relative_path)
 	return string[counter]->buffer;
 }
 
+void read_file_as_string(const char *file_name, struct string *contents)
+{
+	char buffer[1024];
+	FILE *in = fopen(file_name, "r");
 
+	string_set_length(contents, 0);
+	if (!in)
+		return;
+
+	while (!feof(in)) {
+		int count = fread(buffer, 1, sizeof(buffer), in);
+		string_append_at_most(contents, buffer, count);
+	}
+	fclose(in);
+}
