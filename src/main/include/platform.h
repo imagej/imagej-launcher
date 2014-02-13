@@ -131,6 +131,8 @@ extern int close_dir(DIR *dir);
 
 extern char *dos_path(const char *path);
 
+extern int console_opened, console_attached;
+
 #endif
 
 static const char *get_platform(void)

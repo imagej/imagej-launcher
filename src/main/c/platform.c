@@ -932,7 +932,7 @@ MAYBE_UNUSED void win_error(const char *fmt, ...)
 
 #include <stdio.h>
 
-static int console_opened, console_attached;
+int console_opened, console_attached;
 
 static void sleep_a_while(void)
 {
