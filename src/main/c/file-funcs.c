@@ -36,9 +36,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#ifndef WIN32
 #include <sys/stat.h>
-#endif
 
 static int debug;
 

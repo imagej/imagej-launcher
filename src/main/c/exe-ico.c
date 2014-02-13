@@ -37,6 +37,7 @@
 
 #include <windows.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #pragma pack(2)
 struct resource_directory

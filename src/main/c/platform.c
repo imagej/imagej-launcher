@@ -930,6 +930,8 @@ MAYBE_UNUSED void win_error(const char *fmt, ...)
 	va_end(ap);
 }
 
+#include <stdio.h>
+
 static int console_opened, console_attached;
 
 static void sleep_a_while(void)

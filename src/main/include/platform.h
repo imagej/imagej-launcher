@@ -78,6 +78,8 @@ int is_ipv6_broken(void);
 
 #elif defined(WIN32)
 
+#include <windows.h>
+
 #define RTLD_LAZY 0
 extern void *dlopen(const char *name, int flags);
 extern char *dlerror(void);
