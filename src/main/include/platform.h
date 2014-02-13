@@ -100,6 +100,7 @@ extern char *get_win_error(void);
 extern void win_verror(const char *fmt, va_list ap);
 extern void win_error(const char *fmt, ...);
 
+#undef is_slash
 static int is_slash(char c)
 {
 	return c == '\\' || c == '/';
