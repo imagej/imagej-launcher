@@ -93,4 +93,7 @@ extern void prepend_string_array(struct string_array *target, struct string_arra
 
 extern size_t mystrlcpy(char *dest, const char *src, size_t size);
 
+extern int count_leading_whitespace(const char *line);
+extern int is_end_of_line(char ch);
+
 #endif

@@ -1074,21 +1074,6 @@ static int is_modern_config(const char *text)
 		 (text[1] == ' ' && !prefixcmp(text + 2, imagej_cfg_sentinel)));
 }
 
-/* Returns the number of leading whitespace characters */
-static int count_leading_whitespace(const char *line)
-{
-	int offset = 0;
-
-	while (line[offset] && (line[offset] == ' ' || line[offset] == '\t'))
-		offset++;
-
-	return offset;
-}
-
-static int is_end_of_line(char ch)
-{
-	return ch == '\r' || ch == '\n';
-}
 
 /* Returns the number of characters to skip to get to the value, or -1 if the key does not match */
 static int property_line_key_matches(const char *line, const char *key)

@@ -433,3 +433,19 @@ size_t mystrlcpy(char *dest, const char *src, size_t size)
 	}
 	return ret;
 }
+
+/* Returns the number of leading whitespace characters */
+int count_leading_whitespace(const char *line)
+{
+	int offset = 0;
+
+	while (line[offset] && (line[offset] == ' ' || line[offset] == '\t'))
+		offset++;
+
+	return offset;
+}
+
+int is_end_of_line(char ch)
+{
+	return ch == '\r' || ch == '\n';
+}
