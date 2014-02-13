@@ -1626,14 +1626,17 @@ static void parse_command_line(void)
 			atol((&arg)->buffer) > 0)
 		options.use_system_jvm++;
 	if (get_fiji_bundle_variable("ext", &ext_option)) {
-		string_set(&ext_option, ij_path("java/macosx-java3d/Home/lib/ext"));
 		if (dir_exists(ext_option.buffer))
 			string_add_char(&ext_option, ':');
 		else
 			string_set_length(&ext_option, 0);
-		string_addf(&ext_option, "/Library/Java/Extensions:"
-			"/System/Library/Java/Extensions:"
-			"/System/Library/Frameworks/JavaVM.framework/Home/lib/ext");
+	}
+	if (ext_option.length)
+		string_add_char(&ext_option, ':');
+	string_append(&ext_option, ij_path("java/macosx-java3d/Home/lib/ext"));
+	string_addf(&ext_option, "/Library/Java/Extensions:"
+		"/System/Library/Java/Extensions:"
+		"/System/Library/Frameworks/JavaVM.framework/Home/lib/ext");
 	}
 	if (!get_fiji_bundle_variable("allowMultiple", &arg))
 		allow_multiple = parse_bool((&arg)->buffer);
