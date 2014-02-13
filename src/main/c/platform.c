@@ -998,6 +998,7 @@ void open_win_console(void)
 	}
 }
 
+#undef mkdir
 int fake_posix_mkdir(const char *name, int mode)
 {
 	return mkdir(name);
