@@ -2,7 +2,7 @@
 
 cd "$(dirname "$0")"
 
-header_file=src/main/c/glibc-compat.h
+header_file=src/main/include/glibc-compat.h
 license_header="$(sed -n '1,/^$/p' < $header_file)"
 
 symbols=
