@@ -252,6 +252,8 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 		error("No known JRE; cannot link to Java library");
 		return 1;
 	}
+	if (debug)
+		error("Using JAVA_HOME %s", java_home);
 
 #ifdef WIN32
 	/* On Windows, a setenv() invalidates strings obtained by getenv(). */
@@ -262,6 +264,9 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 	setenv_or_exit("JAVA_HOME", java_home, 1);
 
 	string_addf(buffer, "%s/%s", java_home, get_library_path());
+
+	if (debug)
+		error("Opening Java library %s", buffer->buffer);
 
 	handle = dlopen(buffer->buffer, RTLD_LAZY);
 	if (!handle) {
