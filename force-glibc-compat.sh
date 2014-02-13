@@ -34,7 +34,7 @@ x86_64)
 	version_regex='2\.0'
 	;;
 esac
-launcher_version="$(sed -n 's/.*<version>\([^<]*\).*/\1/p' < pom.xml | head -n 1)"
+launcher_version="$(sed -n 's/^.<version>\([^<]*\).*/\1/p' < pom.xml | head -n 1)"
 launcher_path="target/nar/ij-launcher-$launcher_version-$arch-Linux-gcc-executable/bin/$arch-Linux-gcc/ij-launcher"
 objdump -t "$launcher_path" |
 grep -v -e "GLIBC_$version_regex" |
