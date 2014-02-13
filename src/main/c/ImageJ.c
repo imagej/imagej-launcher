@@ -219,7 +219,7 @@ static void maybe_reexec_with_correct_lib_path(struct string *java_library_path)
 
 static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 {
-#ifdef __APPLE__
+#if defined(__APPLE__) && !defined(NO_JAVA_FRAMEWORK)
 	if (!set_path_to_apple_JVM()) {
 		/* We found an Apple Framework JVM (pre-Java-1.7). */
 		return JNI_CreateJavaVM(vm, env, args);

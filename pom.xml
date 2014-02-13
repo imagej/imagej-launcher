@@ -331,6 +331,52 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 		</profile>
 
 		<profile>
+			<id>MacOSX-Lion</id>
+			<activation>
+				<os>
+					<name>Mac OS X</name>
+				</os>
+				<file>
+					<exists>/Library/Java/JavaVirtualMachines/jdk1.7.0_45.jdk/Contents/Home/include/</exists>
+				</file>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>${nar.groupId}</groupId>
+						<artifactId>nar-maven-plugin</artifactId>
+						<version>${nar.version}</version>
+						<configuration>
+							<c>
+								<name>gcc</name>
+								<options>
+									<option>-DNO_JAVA_FRAMEWORK</option>
+									<option>-I/Library/Java/JavaVirtualMachines/jdk1.7.0_45.jdk/Contents/Home/include/</option>
+									<option>-I/Library/Java/JavaVirtualMachines/jdk1.7.0_45.jdk/Contents/Home/include/darwin/</option>
+									<option>-mmacosx-version-min=10.6</option>
+									<option>-arch</option>
+									<option>x86_64</option>
+									<option>${debug.option}</option>
+								</options>
+							</c>
+							<linker>
+								<options>
+									<option>-mmacosx-version-min=10.6</option>
+									<option>-arch</option>
+									<option>x86_64</option>
+									<option>-framework</option>
+									<option>CoreFoundation</option>
+									<option>-framework</option>
+									<option>ApplicationServices</option>
+								</options>
+							</linker>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+
+		<profile>
 			<id>MacOSX-Leopard</id>
 			<activation>
 				<os>
@@ -340,6 +386,9 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 					<name>os.arch</name>
 					<value>x86_64</value>
 				</property>
+				<file>
+					<missing>/Library/Java/JavaVirtualMachines/jdk1.7.0_45.jdk/Contents/Home/include/</missing>
+				</file>
 			</activation>
 			<build>
 				<plugins>
