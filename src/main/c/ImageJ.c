@@ -1637,7 +1637,6 @@ static void parse_command_line(void)
 	string_addf(&ext_option, "/Library/Java/Extensions:"
 		"/System/Library/Java/Extensions:"
 		"/System/Library/Frameworks/JavaVM.framework/Home/lib/ext");
-	}
 	if (!get_fiji_bundle_variable("allowMultiple", &arg))
 		allow_multiple = parse_bool((&arg)->buffer);
 	get_fiji_bundle_variable("JVMOptions", jvm_options);
