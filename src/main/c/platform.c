@@ -41,7 +41,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-static int debug;
+extern int debug;
 extern int retrotranslator;
 
 /* A wrapper for setenv that exits on error */

@@ -80,7 +80,7 @@
 static const char *default_fiji1_class = "fiji.Main";
 static const char *default_main_class = "imagej.Main";
 int retrotranslator;
-static int debug;
+int debug;
 
 static const char *legacy_ij1_class = "ij.ImageJ";
 

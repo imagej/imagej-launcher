@@ -36,7 +36,7 @@
 
 #include <string.h>
 
-static int debug;
+extern int debug;
 int legacy_mode;
 struct string *legacy_ij1_options;
 
