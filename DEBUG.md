@@ -6,7 +6,7 @@ This document describes how to debug the ImageJ launcher.
 
 1.  Copy the executable from:
     ```
-    target/nar/ij-launcher-<version>-<AOL>-executable/bin/<AOL>/ij-launcher
+    target/nar/imagej-launcher-<version>-<AOL>-executable/bin/<AOL>/imagej-launcher
     ```
     Where:
     * `<version>` is the current version in the POM; and
@@ -17,7 +17,7 @@ The following shell script will do the job:
 ```shell
 #!/bin/sh
 mvn -Pdebug clean package &&
-cp target/nar/*/bin/*/ij-launcher debug
+cp target/nar/*/bin/*/imagej-launcher debug
 ```
 
 # Run the launcher using a debugger

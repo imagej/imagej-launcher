@@ -323,7 +323,7 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 
 static void initialize_ij_launcher_jar_path(void)
 {
-	ij_launcher_jar = find_jar(ij_path("jars/"), "ij-launcher");
+	ij_launcher_jar = find_jar(ij_path("jars/"), "imagej-launcher");
 }
 
 static int add_retrotranslator_to_path(struct string *path)
@@ -1937,7 +1937,7 @@ static void parse_command_line(void)
 			else if (!strcmp(option, "-classpath"))
 				string_append(class_path, options.launcher_options.list[++i]);
 			else
-				die ("Without ij-launcher, '%s' cannot be handled", option);
+				die ("Without imagej-launcher, '%s' cannot be handled", option);
 			sep = PATH_SEP;
 		}
 
