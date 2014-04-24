@@ -1416,7 +1416,7 @@ static int handle_one_option2(int *i, int argc, const char **argv)
 	}
 	else if (handle_one_option(i, argv, "--jar", &arg)) {
 		add_launcher_option(&options, "-classpath", arg.buffer);
-		main_class = "imagej.JarLauncher";
+		main_class = "net.imagej.launcher.JarLauncher";
 		add_option_string(&options, &arg, 1);
 	}
 	else if (handle_one_option(i, argv, "--class-path", &arg) ||
@@ -1921,7 +1921,7 @@ static void parse_command_line(void)
 		add_launcher_option(&options, main_class, NULL);
 		prepend_string_array(&options.ij_options, &options.launcher_options);
 		startup_class = main_class;
-		main_class = "imagej.ClassLauncher";
+		main_class = "net.imagej.launcher.ClassLauncher";
 	}
 	else {
 		struct string *class_path = string_init(32);
@@ -2042,7 +2042,7 @@ static void maybe_write_desktop_file(void)
 		startup_class = main_class;
 	if (!startup_class)
 		return;
-	if (!strcmp("imagej.ClassLauncher", startup_class)) {
+	if (!strcmp("net.imagej.launcher.ClassLauncher", startup_class)) {
 		if (debug)
 			error("Could not determine startup class!");
 		return;
@@ -2060,7 +2060,7 @@ static void maybe_write_desktop_file(void)
 	else if (!strcmp(startup_class, default_main_class)) {
 		name = "ImageJ2";
 		title = "ImageJ";
-		wm_class = "imagej-ClassLauncher";
+		wm_class = "net-imagej-launcher-ClassLauncher";
 	}
 	else
 		return;

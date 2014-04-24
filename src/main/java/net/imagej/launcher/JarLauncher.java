@@ -29,7 +29,7 @@
  * #L%
  */
 
-package imagej;
+package net.imagej.launcher;
 
 import java.io.File;
 import java.io.IOException;
