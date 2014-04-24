@@ -78,7 +78,7 @@
 #include "xalloc.h"
 
 static const char *default_fiji1_class = "fiji.Main";
-static const char *default_main_class = "imagej.Main";
+static const char *default_main_class = "net.imagej.Main";
 int retrotranslator;
 static int debug;
 
@@ -824,7 +824,7 @@ static void add_extension(struct subcommand *subcommand, const char *extension)
  *
  * Example:
  *
- * --mini-maven --ij-jar=jars/ij-minimaven.jar --main-class=imagej.build.MiniMaven
+ * --mini-maven --ij-jar=jars/minimaven.jar --main-class=org.scijava.minimaven.MiniMaven
  *  Start MiniMaven in the current directory
  */
 static void add_subcommand(const char *line)
@@ -878,7 +878,7 @@ static void add_subcommand(const char *line)
 }
 
 const char *default_subcommands[] = {
-	"--update --dont-patch-ij1 --full-classpath --main-class=imagej.updater.ui.CommandLine",
+	"--update --dont-patch-ij1 --full-classpath --main-class=net.imagej.updater.CommandLine",
 	" start the command-line version of the ImageJ updater",
 	"--jython --ij-jar=jars/jython.jar --full-classpath --main-class=org.python.util.jython",
 	".py",
@@ -906,7 +906,7 @@ const char *default_subcommands[] = {
 	" file ending in .js)",
 	"--ant --tools-jar --ij-jar=jars/ant.jar --ij-jar=jars/ant-launcher.jar --ij-jar=jars/ant-nodeps.jar --ij-jar=jars/ant-junit.jar --dont-patch-ij1 --headless --main-class=org.apache.tools.ant.Main",
 	" run Apache Ant",
-	"--mini-maven --ij-jar=jars/ij-minimaven.jar --dont-patch-ij1 --main-class=imagej.build.MiniMaven",
+	"--mini-maven --ij-jar=jars/ij-minimaven.jar --dont-patch-ij1 --main-class=org.scijava.minimaven.MiniMaven",
 	" run Fiji's very simple Maven mockup",
 	"--javac --ij-jar=jars/javac.jar --freeze-classloader --headless --full-classpath --dont-patch-ij1 --pass-classpath --main-class=com.sun.tools.javac.Main",
 	" start JavaC, the Java Compiler, instead of ImageJ",
