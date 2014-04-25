@@ -35,7 +35,7 @@ x86_64)
 	;;
 esac
 launcher_version="$(sed -n 's/^.<version>\([^<]*\).*/\1/p' < pom.xml | head -n 1)"
-launcher_path="target/nar/ij-launcher-$launcher_version-$arch-Linux-gcc-executable/bin/$arch-Linux-gcc/ij-launcher"
+launcher_path="target/nar/imagej-launcher-$launcher_version-$arch-Linux-gcc-executable/bin/$arch-Linux-gcc/imagej-launcher"
 objdump -t "$launcher_path" |
 grep -v -e "GLIBC_$version_regex" |
 sed -n -e 's/.* \([^ ]*\)\@\@\(GLIBC_.*\)/GLIBC_COMPAT_SYMBOL(\1);/p' \

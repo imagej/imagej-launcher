@@ -29,7 +29,7 @@
  * #L%
  */
 
-package imagej;
+package net.imagej.launcher;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -265,9 +265,9 @@ public class ClassLoaderPlus extends URLClassLoader {
 		String path = System.getProperty("ij.dir");
 		if (path != null) return path;
 		final String prefix = "file:";
-		final String suffix = "/jars/ij-launcher.jar!/imagej/ClassLoaderPlus.class";
+		final String suffix = "/jars/imagej-launcher.jar!/imagej/ClassLoaderPlus.class";
 		path =
-			Class.forName("imagej.ClassLoaderPlus")
+			Class.forName("net.imagej.launcher.ClassLoaderPlus")
 				.getResource("ClassLoaderPlus.class").getPath();
 		if (path.startsWith(prefix)) path = path.substring(prefix.length());
 		if (path.endsWith(suffix)) {
@@ -293,7 +293,7 @@ public class ClassLoaderPlus extends URLClassLoader {
 		}
 	}
 
-	// keep this synchronized with imagej.updater.core.FileObject
+	// keep this synchronized with net.imagej.updater.FileObject
 	private static Pattern versionPattern = Pattern.compile("(.+?)(-\\d+(\\.\\d+)+[a-z]?(-[A-Za-z0-9.]+|\\.GA)*)(\\.jar)");
 
 	public static File getPossiblyVersionedFile(final File file) {

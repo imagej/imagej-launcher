@@ -29,7 +29,7 @@
  * #L%
  */
 
-package imagej.launcher;
+package net.imagej.launcher;
 
 import java.io.File;
 import java.io.FileInputStream;

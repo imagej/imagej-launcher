@@ -10,8 +10,8 @@
 	</parent>
 
 	<groupId>net.imagej</groupId>
-	<artifactId>ij-launcher</artifactId>
-	<version>2.0.4-SNAPSHOT</version>
+	<artifactId>imagej-launcher</artifactId>
+	<version>3.0.0-SNAPSHOT</version>
 	<packaging>nar</packaging>
 
 	<name>ImageJ Launcher</name>
@@ -45,8 +45,8 @@
 				<configuration>
 					<archive>
 						<manifest>
-							<packageName>imagej</packageName>
-							<mainClass>imagej.ClassLauncher</mainClass>
+							<packageName>net.imagej.launcher</packageName>
+							<mainClass>net.imagej.launcher.ClassLauncher</mainClass>
 						</manifest>
 					</archive>
 				</configuration>
@@ -104,7 +104,7 @@
 					</execution>
 				</executions>
 				<configuration>
-					<mainClass>imagej.launcher.ChangeIcon</mainClass>
+					<mainClass>net.imagej.launcher.ChangeIcon</mainClass>
 					<arguments>
 						<argument>${project.build.directory}/nar/${project.artifactId}-${project.version}-${nar.aol}-executable/bin/${nar.aol}/${project.artifactId}.exe</argument>
 						<argument>${basedir}/../logo/ImageJ.ico</argument>

@@ -78,7 +78,7 @@
 #include "xalloc.h"
 
 static const char *default_fiji1_class = "fiji.Main";
-static const char *default_main_class = "imagej.Main";
+static const char *default_main_class = "net.imagej.Main";
 int retrotranslator;
 int debug;
 
@@ -323,7 +323,7 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 
 static void initialize_ij_launcher_jar_path(void)
 {
-	ij_launcher_jar = find_jar(ij_path("jars/"), "ij-launcher");
+	ij_launcher_jar = find_jar(ij_path("jars/"), "imagej-launcher");
 }
 
 static int add_retrotranslator_to_path(struct string *path)
@@ -824,7 +824,7 @@ static void add_extension(struct subcommand *subcommand, const char *extension)
  *
  * Example:
  *
- * --mini-maven --ij-jar=jars/ij-minimaven.jar --main-class=imagej.build.MiniMaven
+ * --mini-maven --ij-jar=jars/minimaven.jar --main-class=org.scijava.minimaven.MiniMaven
  *  Start MiniMaven in the current directory
  */
 static void add_subcommand(const char *line)
@@ -878,7 +878,7 @@ static void add_subcommand(const char *line)
 }
 
 const char *default_subcommands[] = {
-	"--update --dont-patch-ij1 --full-classpath --main-class=imagej.updater.ui.CommandLine",
+	"--update --dont-patch-ij1 --full-classpath --main-class=net.imagej.updater.CommandLine",
 	" start the command-line version of the ImageJ updater",
 	"--jython --ij-jar=jars/jython.jar --full-classpath --main-class=org.python.util.jython",
 	".py",
@@ -906,7 +906,7 @@ const char *default_subcommands[] = {
 	" file ending in .js)",
 	"--ant --tools-jar --ij-jar=jars/ant.jar --ij-jar=jars/ant-launcher.jar --ij-jar=jars/ant-nodeps.jar --ij-jar=jars/ant-junit.jar --dont-patch-ij1 --headless --main-class=org.apache.tools.ant.Main",
 	" run Apache Ant",
-	"--mini-maven --ij-jar=jars/ij-minimaven.jar --dont-patch-ij1 --main-class=imagej.build.MiniMaven",
+	"--mini-maven --ij-jar=jars/ij-minimaven.jar --dont-patch-ij1 --main-class=org.scijava.minimaven.MiniMaven",
 	" run Fiji's very simple Maven mockup",
 	"--javac --ij-jar=jars/javac.jar --freeze-classloader --headless --full-classpath --dont-patch-ij1 --pass-classpath --main-class=com.sun.tools.javac.Main",
 	" start JavaC, the Java Compiler, instead of ImageJ",
@@ -1416,7 +1416,7 @@ static int handle_one_option2(int *i, int argc, const char **argv)
 	}
 	else if (handle_one_option(i, argv, "--jar", &arg)) {
 		add_launcher_option(&options, "-classpath", arg.buffer);
-		main_class = "imagej.JarLauncher";
+		main_class = "net.imagej.launcher.JarLauncher";
 		add_option_string(&options, &arg, 1);
 	}
 	else if (handle_one_option(i, argv, "--class-path", &arg) ||
@@ -1921,7 +1921,7 @@ static void parse_command_line(void)
 		add_launcher_option(&options, main_class, NULL);
 		prepend_string_array(&options.ij_options, &options.launcher_options);
 		startup_class = main_class;
-		main_class = "imagej.ClassLauncher";
+		main_class = "net.imagej.launcher.ClassLauncher";
 	}
 	else {
 		struct string *class_path = string_init(32);
@@ -1937,7 +1937,7 @@ static void parse_command_line(void)
 			else if (!strcmp(option, "-classpath"))
 				string_append(class_path, options.launcher_options.list[++i]);
 			else
-				die ("Without ij-launcher, '%s' cannot be handled", option);
+				die ("Without imagej-launcher, '%s' cannot be handled", option);
 			sep = PATH_SEP;
 		}
 
@@ -2042,7 +2042,7 @@ static void maybe_write_desktop_file(void)
 		startup_class = main_class;
 	if (!startup_class)
 		return;
-	if (!strcmp("imagej.ClassLauncher", startup_class)) {
+	if (!strcmp("net.imagej.launcher.ClassLauncher", startup_class)) {
 		if (debug)
 			error("Could not determine startup class!");
 		return;
@@ -2060,7 +2060,7 @@ static void maybe_write_desktop_file(void)
 	else if (!strcmp(startup_class, default_main_class)) {
 		name = "ImageJ2";
 		title = "ImageJ";
-		wm_class = "imagej-ClassLauncher";
+		wm_class = "net-imagej-launcher-ClassLauncher";
 	}
 	else
 		return;
