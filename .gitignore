@@ -1,7 +1,7 @@
-.classpath
-.project
-.settings
-target
 *.swp
+/.classpath
+/.project
+/.settings/
 /ImageJ
 /debug
+/target/
