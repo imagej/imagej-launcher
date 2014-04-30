@@ -3,9 +3,9 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
-		<groupId>org.scijava</groupId>
-		<artifactId>pom-scijava</artifactId>
-		<version>1.160</version>
+		<groupId>net.imagej</groupId>
+		<artifactId>pom-imagej</artifactId>
+		<version>2.7</version>
 		<relativePath />
 	</parent>
 
@@ -16,8 +16,6 @@
 
 	<name>ImageJ Launcher</name>
 	<description>The executable which runs ImageJ. Its purpose is also to make sure that updates downloaded by the ImageJ Updater will be put into place before starting the Java Virtual Machine. It was formerly known as the Fiji launcher.</description>
-	<url>http://developer.imagej.net/</url>
-	<inceptionYear>2009</inceptionYear>
 
 	<properties>
 		<architecture.option />
@@ -31,7 +29,7 @@
 
 	<dependencies>
 		<dependency>
-			<groupId>${scijava-common.groupId}</groupId>
+			<groupId>org.scijava</groupId>
 			<artifactId>scijava-common</artifactId>
 			<version>${scijava-common.version}</version>
 			<scope>test</scope>
@@ -52,7 +50,7 @@
 				</configuration>
 			</plugin>
 			<plugin>
-				<groupId>${nar.groupId}</groupId>
+				<groupId>com.github.maven-nar</groupId>
 				<artifactId>nar-maven-plugin</artifactId>
 				<version>${nar.version}</version>
 				<extensions>true</extensions>
@@ -127,18 +125,6 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 		</plugins>
 	</build>
 
-	<licenses>
-		<license>
-			<name>Simplified BSD License</name>
-			<distribution>repo</distribution>
-		</license>
-	</licenses>
-
-	<organization>
-		<name>ImageJ</name>
-		<url>http://developer.imagej.net/</url>
-	</organization>
-
 	<developers>
 		<developer>
 			<id>dscho</id>
@@ -176,39 +162,10 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 		<contributor><name>Benjamin Schmid</name></contributor>
 	</contributors>
 
-	<issueManagement>
-		<system>Trac</system>
-		<url>http://trac.imagej.net/</url>
-	</issueManagement>
-
 	<ciManagement>
 		<system>Jenkins</system>
 		<url>http://jenkins.imagej.net/job/ImageJ-launcher/</url>
 	</ciManagement>
-
-	<mailingLists>
-		<mailingList>
-			<name>ImageJ</name>
-			<subscribe>http://imagej.net/list.html</subscribe>
-			<unsubscribe>http://imagej.net/list.html</unsubscribe>
-			<post>imagej@list.nih.gov</post>
-			<archive>http://list.nih.gov/archives/imagej.html</archive>
-		</mailingList>
-		<mailingList>
-			<name>ImageJ-devel</name>
-			<subscribe>http://imagej.net/mailman/listinfo/imagej-devel</subscribe>
-			<unsubscribe>http://imagej.net/mailman/listinfo/imagej-devel</unsubscribe>
-			<post>imagej-devel@imagej.net</post>
-			<archive>http://imagej.net/pipermail/imagej-devel/</archive>
-		</mailingList>
-		<mailingList>
-			<name>Fiji-devel</name>
-			<subscribe>http://groups.google.com/group/fiji-devel</subscribe>
-			<unsubscribe>http://groups.google.com/group/fiji-devel</unsubscribe>
-			<post>fiji@fiji.sc</post>
-			<archive>http://groups.google.com/group/fiji-devel</archive>
-		</mailingList>
-	</mailingLists>
 
 	<scm>
 		<connection>scm:git:git://github.com/imagej/imagej-launcher</connection>
@@ -234,7 +191,7 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 			<build>
 				<plugins>
 					<plugin>
-						<groupId>${nar.groupId}</groupId>
+						<groupId>com.github.maven-nar</groupId>
 						<artifactId>nar-maven-plugin</artifactId>
 						<version>${nar.version}</version>
 						<configuration>
@@ -270,7 +227,7 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 			<build>
 				<plugins>
 					<plugin>
-						<groupId>${nar.groupId}</groupId>
+						<groupId>com.github.maven-nar</groupId>
 						<artifactId>nar-maven-plugin</artifactId>
 						<version>${nar.version}</version>
 						<configuration>
@@ -335,7 +292,7 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 			<build>
 				<plugins>
 					<plugin>
-						<groupId>${nar.groupId}</groupId>
+						<groupId>com.github.maven-nar</groupId>
 						<artifactId>nar-maven-plugin</artifactId>
 						<version>${nar.version}</version>
 						<configuration>
@@ -385,7 +342,7 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 			<build>
 				<plugins>
 					<plugin>
-						<groupId>${nar.groupId}</groupId>
+						<groupId>com.github.maven-nar</groupId>
 						<artifactId>nar-maven-plugin</artifactId>
 						<version>${nar.version}</version>
 						<configuration>
@@ -434,7 +391,7 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 				<!-- <defaultGoal>integration-test</defaultGoal> -->
 				<plugins>
 					<plugin>
-						<groupId>${nar.groupId}</groupId>
+						<groupId>com.github.maven-nar</groupId>
 						<artifactId>nar-maven-plugin</artifactId>
 						<version>${nar.version}</version>
 						<configuration>
