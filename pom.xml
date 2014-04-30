@@ -162,6 +162,11 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 		<contributor><name>Benjamin Schmid</name></contributor>
 	</contributors>
 
+	<issueManagement>
+		<system>GitHub Issues</system>
+		<url>https://github.com/imagej/imagej-launcher/issues</url>
+	</issueManagement>
+
 	<ciManagement>
 		<system>Jenkins</system>
 		<url>http://jenkins.imagej.net/job/ImageJ-launcher/</url>
