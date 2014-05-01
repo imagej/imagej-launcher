@@ -324,6 +324,8 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 static void initialize_imagej_launcher_jar_path(void)
 {
 	imagej_launcher_jar = find_jar(ij_path("jars/"), "imagej-launcher");
+	if (!imagej_launcher_jar)
+		imagej_launcher_jar = find_jar(ij_path("jars/"), "ij-launcher");
 }
 
 static int add_retrotranslator_to_path(struct string *path)
