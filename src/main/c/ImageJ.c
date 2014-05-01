@@ -127,7 +127,7 @@ static MAYBE_UNUSED int parse_bool(const char *value)
 #define JNI_CREATEVM "JNI_CreateJavaVM"
 #endif
 
-static char *ij_launcher_jar;
+static char *imagej_launcher_jar;
 static char *main_argv0;
 static char **main_argv, **main_argv_backup;
 static int main_argc, main_argc_backup;
@@ -321,9 +321,11 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 	return JNI_CreateJavaVM(vm, env, args);
 }
 
-static void initialize_ij_launcher_jar_path(void)
+static void initialize_imagej_launcher_jar_path(void)
 {
-	ij_launcher_jar = find_jar(ij_path("jars/"), "imagej-launcher");
+	imagej_launcher_jar = find_jar(ij_path("jars/"), "imagej-launcher");
+	if (!imagej_launcher_jar)
+		imagej_launcher_jar = find_jar(ij_path("jars/"), "ij-launcher");
 }
 
 static int add_retrotranslator_to_path(struct string *path)
@@ -1795,7 +1797,7 @@ static void parse_command_line(void)
 	maybe_reexec_with_correct_lib_path(java_library_path);
 
 	if (!options.dry_run && !options.use_system_jvm && !headless && (is_default_ij1_class(main_class) || !strcmp(default_main_class, main_class)))
-		show_splash(ij_launcher_jar);
+		show_splash(imagej_launcher_jar);
 
 	/* set up class path */
 	if (full_class_path || !strcmp(default_main_class, main_class)) {
@@ -1910,11 +1912,18 @@ static void parse_command_line(void)
 
 	keep_only_one_memory_option(&options.java_options);
 
-	if (ij_launcher_jar == NULL)
+	if (imagej_launcher_jar == NULL)
 		skip_class_launcher = 1;
 
+	if (!strcmp(default_main_class, main_class)) {
+		const char *jar_path = ij_path("jars/");
+		if (find_jar(jar_path, "ij-app") && !find_jar(jar_path, "imagej")) {
+			default_main_class = main_class = "imagej.Main";
+		}
+	}
+
 	if (!skip_class_launcher && strcmp(main_class, "org.apache.tools.ant.Main")) {
-		struct string *string = string_initf("-Djava.class.path=%s", ij_launcher_jar);
+		struct string *string = string_initf("-Djava.class.path=%s", imagej_launcher_jar);
 		if (retrotranslator && !add_retrotranslator_to_path(string))
 			retrotranslator = 0;
 		add_option_string(&options, string, 0);
@@ -2188,10 +2197,17 @@ int start_ij(void)
 
 		string_replace(slashed, '.', '/');
 		if (!(instance = (*env)->FindClass(env, slashed->buffer))) {
-			(*env)->ExceptionDescribe(env);
-			die("Could not find %s", slashed->buffer);
+			/* Fall back to old package name if it is inside net.imagej.* */
+			if (!prefixcmp(slashed->buffer, "net/imagej/launcher/")) {
+				string_replace_range(slashed, 0, strlen("net/imagej/launcher/"), "imagej/");
+				instance = (*env)->FindClass(env, slashed->buffer);
+			}
+			if (!instance) {
+				(*env)->ExceptionDescribe(env);
+				die("Could not find %s", slashed->buffer);
+			}
 		}
-		else if (!(method = (*env)->GetStaticMethodID(env, instance,
+		if (!(method = (*env)->GetStaticMethodID(env, instance,
 				"main", "([Ljava/lang/String;)V"))) {
 			(*env)->ExceptionDescribe(env);
 			die("Could not find main method of %s", slashed->buffer);
@@ -2417,7 +2433,7 @@ int main(int argc, char **argv, char **e)
 	else if (debug)
 		error("Detected ImageJ2");
 
-	initialize_ij_launcher_jar_path();
+	initialize_imagej_launcher_jar_path();
 	parse_command_line();
 
 	maybe_write_legacy_config();

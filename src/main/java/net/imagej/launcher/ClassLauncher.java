@@ -196,12 +196,19 @@ public class ClassLauncher {
 		if (classLoader == null) {
 			classLoader = Thread.currentThread().getContextClassLoader();
 		}
+		final String noSlashes = className.replace('/', '.');
 		try {
-			main = classLoader.loadClass(className.replace('/', '.'));
+			main = classLoader.loadClass(noSlashes);
 		}
 		catch (final ClassNotFoundException e) {
-			System.err.println("Class '" + className + "' was not found");
-			System.exit(1);
+			if (noSlashes.startsWith("net.imagej.")) try {
+				// fall back to old package name
+				main = classLoader.loadClass(noSlashes.substring(4));
+			}
+			catch (final ClassNotFoundException e2) {
+				System.err.println("Class '" + noSlashes + "' was not found");
+				System.exit(1);
+			}
 		}
 		final Class<?>[] argsType = new Class<?>[] { arguments.getClass() };
 		Method mainMethod = null;
