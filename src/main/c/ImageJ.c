@@ -2190,10 +2190,17 @@ int start_ij(void)
 
 		string_replace(slashed, '.', '/');
 		if (!(instance = (*env)->FindClass(env, slashed->buffer))) {
-			(*env)->ExceptionDescribe(env);
-			die("Could not find %s", slashed->buffer);
+			/* Fall back to old package name if it is inside net.imagej.* */
+			if (!prefixcmp(slashed->buffer, "net/imagej/launcher/")) {
+				string_replace_range(slashed, 0, strlen("net/imagej/launcher/"), "imagej/");
+				instance = (*env)->FindClass(env, slashed->buffer);
+			}
+			if (!instance) {
+				(*env)->ExceptionDescribe(env);
+				die("Could not find %s", slashed->buffer);
+			}
 		}
-		else if (!(method = (*env)->GetStaticMethodID(env, instance,
+		if (!(method = (*env)->GetStaticMethodID(env, instance,
 				"main", "([Ljava/lang/String;)V"))) {
 			(*env)->ExceptionDescribe(env);
 			die("Could not find main method of %s", slashed->buffer);
