@@ -1915,6 +1915,13 @@ static void parse_command_line(void)
 	if (imagej_launcher_jar == NULL)
 		skip_class_launcher = 1;
 
+	if (!strcmp(default_main_class, main_class)) {
+		const char *jar_path = ij_path("jars/");
+		if (find_jar(jar_path, "ij-app") && !find_jar(jar_path, "imagej")) {
+			default_main_class = main_class = "imagej.Main";
+		}
+	}
+
 	if (!skip_class_launcher && strcmp(main_class, "org.apache.tools.ant.Main")) {
 		struct string *string = string_initf("-Djava.class.path=%s", imagej_launcher_jar);
 		if (retrotranslator && !add_retrotranslator_to_path(string))
