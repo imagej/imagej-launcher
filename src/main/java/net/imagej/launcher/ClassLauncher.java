@@ -202,11 +202,13 @@ public class ClassLauncher {
 			main = classLoader.loadClass(noSlashes);
 		}
 		catch (final ClassNotFoundException e) {
+			if (debug) e.printStackTrace();
 			if (noSlashes.startsWith("net.imagej.")) try {
 				// fall back to old package name
 				main = classLoader.loadClass(noSlashes.substring(4));
 			}
 			catch (final ClassNotFoundException e2) {
+				if (debug) e2.printStackTrace();
 				System.err.println("Class '" + noSlashes + "' was not found");
 				System.exit(1);
 			}
@@ -217,6 +219,7 @@ public class ClassLauncher {
 			mainMethod = main.getMethod("main", argsType);
 		}
 		catch (final NoSuchMethodException e) {
+			if (debug) e.printStackTrace();
 			System.err.println("Class '" + className +
 				"' does not have a main() method.");
 			System.exit(1);
@@ -226,6 +229,7 @@ public class ClassLauncher {
 			result = (Integer) mainMethod.invoke(null, new Object[] { arguments });
 		}
 		catch (final IllegalAccessException e) {
+			if (debug) e.printStackTrace();
 			System.err.println("The main() method of class '" + className +
 				"' is not public.");
 		}
