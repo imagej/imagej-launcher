@@ -48,7 +48,8 @@ public class ClassLauncher {
 
 	static {
 		try {
-			debug = System.getenv("DEBUG_IJ_LAUNCHER") != null;
+			debug = Boolean.getBoolean("ij.debug") ||
+				System.getenv("DEBUG_IJ_LAUNCHER") != null;
 		} catch (Throwable t) {
 			// ignore; Java 1.4 pretended that getenv() goes away
 		}
