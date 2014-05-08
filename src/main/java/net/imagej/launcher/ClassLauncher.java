@@ -197,6 +197,7 @@ public class ClassLauncher {
 		if (classLoader == null) {
 			classLoader = Thread.currentThread().getContextClassLoader();
 		}
+		if (debug) System.err.println("Class loader = " + classLoader);
 		final String noSlashes = className.replace('/', '.');
 		try {
 			main = classLoader.loadClass(noSlashes);
