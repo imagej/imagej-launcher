@@ -39,6 +39,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -171,9 +173,19 @@ public class ClassLoaderPlus extends URLClassLoader {
 			if (!onlyJars)
 				classLoader = get(classLoader, directory);
 			final File[] list = directory.listFiles();
-			if (list != null) for (final File file : list)
-				if (file.isDirectory()) classLoader = getRecursively(classLoader, onlyJars, file);
-				else if (file.getName().endsWith(".jar")) classLoader = get(classLoader, file);
+			if (list != null) {
+				/*
+				Note that this code is replicated in ij1-patcher's LegacyHooks class.
+				Improvements to this Pattern string should also be mirrored there.
+				*/
+				final Pattern pattern =
+						Pattern.compile("(batik|jython|jruby)(-[0-9].*)?\\.jar");
+				Arrays.sort(list, new FatJarFileComparator(pattern));
+				for (final File file : list) {
+					if (file.isDirectory()) classLoader = getRecursively(classLoader, onlyJars, file);
+					else if (file.getName().endsWith(".jar")) classLoader = get(classLoader, file);
+				}
+			}
 			return classLoader;
 		}
 		catch (final Exception e) {
@@ -327,6 +339,26 @@ public class ClassLoaderPlus extends URLClassLoader {
 		}
 		System.err.println("Picking " + list[newest]);
 		return list[newest];
+	}
+
+	/**
+	 * Comparator to ensure that problematic fat JARs are sorted <em>last</em>.
+	 * It is intended to be used with a {@link Pattern} that filters things this
+	 * way.
+	 */
+	public final static class FatJarFileComparator implements Comparator<File> {
+
+		private final Pattern pattern;
+
+		private FatJarFileComparator(Pattern pattern) {
+			this.pattern = pattern;
+		}
+
+		@Override
+		public int compare(final File a, final File b) {
+			return (pattern.matcher(a.getName()).matches() ? 1 : 0) -
+				(pattern.matcher(b.getName()).matches() ? 1 : 0);
+		}
 	}
 
 }
