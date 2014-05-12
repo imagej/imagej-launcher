@@ -49,6 +49,7 @@ public class ClassLauncher {
 	static {
 		try {
 			debug = Boolean.getBoolean("ij.debug") ||
+				"debug".equalsIgnoreCase(System.getProperty("scijava.log.level")) ||
 				System.getenv("DEBUG_IJ_LAUNCHER") != null;
 		} catch (Throwable t) {
 			// ignore; Java 1.4 pretended that getenv() goes away
