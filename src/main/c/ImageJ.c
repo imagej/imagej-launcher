@@ -2424,7 +2424,8 @@ int main(int argc, char **argv, char **e)
 		legacy_mode = 1;
 	}
 	/* If no ImageJ2 was found, try to fall back to ImageJ 1.x */
-	else if (!has_jar(ij_path("jars/"), "ij-app")) {
+	else if (!has_jar(ij_path("jars/"), "imagej") &&
+			!has_jar(ij_path("jars/"), "ij-app")) {
 		if (debug)
 			error("Detected ImageJ 1.x");
 		legacy_mode = 1;
