@@ -9,7 +9,6 @@
 		<relativePath />
 	</parent>
 
-	<groupId>net.imagej</groupId>
 	<artifactId>imagej-launcher</artifactId>
 	<version>3.0.3-SNAPSHOT</version>
 	<packaging>nar</packaging>
@@ -31,7 +30,6 @@
 		<dependency>
 			<groupId>org.scijava</groupId>
 			<artifactId>scijava-common</artifactId>
-			<version>${scijava-common.version}</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
@@ -52,7 +50,6 @@
 			<plugin>
 				<groupId>com.github.maven-nar</groupId>
 				<artifactId>nar-maven-plugin</artifactId>
-				<version>${nar.version}</version>
 				<extensions>true</extensions>
 				<configuration>
 					<c>
@@ -198,7 +195,6 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 					<plugin>
 						<groupId>com.github.maven-nar</groupId>
 						<artifactId>nar-maven-plugin</artifactId>
-						<version>${nar.version}</version>
 						<configuration>
 							<linker>
 								<sysLibs>
@@ -234,7 +230,6 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 					<plugin>
 						<groupId>com.github.maven-nar</groupId>
 						<artifactId>nar-maven-plugin</artifactId>
-						<version>${nar.version}</version>
 						<configuration>
 							<linker>
 								<sysLibs>
@@ -299,7 +294,6 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 					<plugin>
 						<groupId>com.github.maven-nar</groupId>
 						<artifactId>nar-maven-plugin</artifactId>
-						<version>${nar.version}</version>
 						<configuration>
 							<c>
 								<name>gcc</name>
@@ -349,7 +343,6 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 					<plugin>
 						<groupId>com.github.maven-nar</groupId>
 						<artifactId>nar-maven-plugin</artifactId>
-						<version>${nar.version}</version>
 						<configuration>
 							<c>
 								<name>gcc</name>
@@ -398,7 +391,6 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 					<plugin>
 						<groupId>com.github.maven-nar</groupId>
 						<artifactId>nar-maven-plugin</artifactId>
-						<version>${nar.version}</version>
 						<configuration>
 							<c>
 								<name>gcc</name>
