@@ -13,12 +13,7 @@ This document describes how to debug the ImageJ launcher.
     * `<AOL>` is your NAR Architecture-OS-Linker identifier.
     And rename it to `debug`.
 
-The following shell script will do the job:
-```shell
-#!/bin/sh
-mvn -Pdebug clean package &&
-cp target/nar/*/bin/*/imagej-launcher debug
-```
+You can use the `build` shell script to do these things.
 
 # Run the launcher using a debugger
 
