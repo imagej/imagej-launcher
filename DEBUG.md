@@ -4,7 +4,7 @@ This document describes how to debug the ImageJ launcher.
 
 1.  Build using the debug profile, which passes `-g` to the compiler.
 
-1.  Copy the executable from:
+2.  Copy the executable from:
     ```
     target/nar/imagej-launcher-<version>-<AOL>-executable/bin/<AOL>/imagej-launcher
     ```
