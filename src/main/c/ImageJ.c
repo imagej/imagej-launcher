@@ -1308,6 +1308,7 @@ static long megabytes = 0;
 static struct string buffer, buffer2, arg, plugin_path, ext_option;
 static int jdb, advanced_gc = 1, debug_gc;
 static int allow_multiple, skip_class_launcher, full_class_path;
+static int dont_patch_ij1;
 
 static void parse_memory_from_java_options(int require)
 {
@@ -1471,8 +1472,10 @@ static int handle_one_option2(int *i, int argc, const char **argv)
 		add_tools_jar(&options);
 		add_launcher_option(&options, "-freeze-classloader", NULL);
 	}
-	else if (!strcmp(argv[*i], "--dont-patch-ij1"))
+	else if (!strcmp(argv[*i], "--dont-patch-ij1")) {
 		add_option(&options, "-Dpatch.ij1=false", 0);
+		dont_patch_ij1 = 1;
+	}
 	else if (!strcmp(argv[*i], "--pass-classpath"))
 		add_launcher_option(&options, "-pass-classpath", NULL);
 	else if (!strcmp(argv[*i], "--retrotranslator") ||
@@ -1790,8 +1793,14 @@ static void parse_command_line(void)
 			main_argc--;
 			string_release(dotted);
 		}
-		else
-			main_class = legacy_mode ? default_fiji1_class : default_main_class;
+		else {
+			/*
+			 * We cannot start in ImageJ2 or Fiji mode without patching IJ1.
+			 * So we fall back to the legacy IJ1 main class in that case.
+			 */
+			main_class = dont_patch_ij1 ? legacy_ij1_class :
+				legacy_mode ? default_fiji1_class : default_main_class;
+		}
 	}
 
 	maybe_reexec_with_correct_lib_path(java_library_path);
