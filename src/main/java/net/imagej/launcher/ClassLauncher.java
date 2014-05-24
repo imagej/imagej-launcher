@@ -101,6 +101,22 @@ public class ClassLauncher {
 			else if (option.equals("-ijjarpath")) {
 				classLoader =
 					ClassLoaderPlus.getRecursivelyInImageJDirectory(classLoader, true, arguments[++i]);
+				if ("plugins".equals(arguments[i])) {
+					final String ij1PluginDirs = System.getProperty("ij1.plugin.dirs");
+					if (ij1PluginDirs != null) {
+						for (final String path : ij1PluginDirs.split(File.pathSeparator)) {
+							final File dir = new File(path);
+							if (dir.exists()) {
+								ClassLoaderPlus.getRecursively(classLoader, false, dir);
+							}
+						}
+					} else {
+						final File dir = new File(System.getProperty("user.home"), ".plugins");
+						if (dir.exists()) {
+							ClassLoaderPlus.getRecursively(classLoader, false, dir);
+						}
+					}
+				}
 			}
 			else if (option.equals("-jdb")) jdb = true;
 			else if (option.equals("-retrotranslator")) {
