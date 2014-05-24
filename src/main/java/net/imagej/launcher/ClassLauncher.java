@@ -103,6 +103,7 @@ public class ClassLauncher {
 					ClassLoaderPlus.getRecursivelyInImageJDirectory(classLoader, true, arguments[++i]);
 				if ("plugins".equals(arguments[i])) {
 					final String ij1PluginDirs = System.getProperty("ij1.plugin.dirs");
+					if (debug) System.err.println("ij1.plugin.dirs: " + ij1PluginDirs);
 					if (ij1PluginDirs != null) {
 						for (final String path : ij1PluginDirs.split(File.pathSeparator)) {
 							final File dir = new File(path);
@@ -112,6 +113,10 @@ public class ClassLauncher {
 						}
 					} else {
 						final File dir = new File(System.getProperty("user.home"), ".plugins");
+						if (debug) {
+							System.err.println("$HOME/.plugins: " + dir + " "
+									+ (dir.exists() ? "exists" : "does not exist"));
+						}
 						if (dir.exists()) {
 							ClassLoaderPlus.getRecursively(classLoader, false, dir);
 						}
