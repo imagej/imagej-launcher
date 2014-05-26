@@ -39,7 +39,12 @@ import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
 /**
- * TODO
+ * A convenience class to launch main classes defined in {@code .jar} files'
+ * manifests.
+ * <p>
+ * The idea is to simulate what {@code java -jar ...} does, but through the
+ * ImageJ launcher.
+ * </p>
  * 
  * @author Johannes Schindelin
  */

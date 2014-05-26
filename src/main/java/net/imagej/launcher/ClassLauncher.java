@@ -38,7 +38,13 @@ import java.net.URLClassLoader;
 import java.util.Arrays;
 
 /**
- * TODO
+ * This class is the central entry point into Java from the ImageJ launcher.
+ * <p>
+ * Except for ImageJ 1.x, for backwards-compatibility, the ImageJ launcher calls
+ * all Java main classes through this class, to be able to generate appropriate
+ * class paths using the platform-independent convenience provided by Java's
+ * class library.
+ * </p>
  * 
  * @author Johannes Schindelin
  */
@@ -95,6 +101,27 @@ public class ClassLauncher {
 			else if (option.equals("-ijjarpath")) {
 				classLoader =
 					ClassLoaderPlus.getRecursivelyInImageJDirectory(classLoader, true, arguments[++i]);
+				if ("plugins".equals(arguments[i])) {
+					final String ij1PluginDirs = System.getProperty("ij1.plugin.dirs");
+					if (debug) System.err.println("ij1.plugin.dirs: " + ij1PluginDirs);
+					if (ij1PluginDirs != null) {
+						for (final String path : ij1PluginDirs.split(File.pathSeparator)) {
+							final File dir = new File(path);
+							if (dir.exists()) {
+								ClassLoaderPlus.getRecursively(classLoader, false, dir);
+							}
+						}
+					} else {
+						final File dir = new File(System.getProperty("user.home"), ".plugins");
+						if (debug) {
+							System.err.println("$HOME/.plugins: " + dir + " "
+									+ (dir.exists() ? "exists" : "does not exist"));
+						}
+						if (dir.exists()) {
+							ClassLoaderPlus.getRecursively(classLoader, false, dir);
+						}
+					}
+				}
 			}
 			else if (option.equals("-jdb")) jdb = true;
 			else if (option.equals("-retrotranslator")) {
