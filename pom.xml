@@ -102,7 +102,7 @@
 					<mainClass>net.imagej.launcher.ChangeIcon</mainClass>
 					<arguments>
 						<argument>${project.build.directory}/nar/${project.artifactId}-${project.version}-${nar.aol}-executable/bin/${nar.aol}/${project.artifactId}.exe</argument>
-						<argument>${basedir}/../logo/ImageJ.ico</argument>
+						<argument>${basedir}/logo/ImageJ.ico</argument>
 					</arguments>
 					<classpathScope>test</classpathScope>
 					<includePluginDependencies>true</includePluginDependencies>
