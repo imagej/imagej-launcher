@@ -58,6 +58,8 @@
 							<include>**/*.c</include>
 						</includes>
 						<options>
+							<option>-DLAUNCHER_VERSION="${project.version}"</option>
+							<option>-DBUILD_NUMBER="${buildNumber}"</option>
 							<option>-I${JAVA_HOME}/include</option>
 							<option>${java.os.include}</option>
 							<option>${stack.protector.option}</option>
@@ -298,6 +300,8 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 							<c>
 								<name>gcc</name>
 								<options>
+									<option>-DLAUNCHER_VERSION="${project.version}"</option>
+									<option>-DBUILD_NUMBER="${buildNumber}"</option>
 									<option>-DNO_JAVA_FRAMEWORK</option>
 									<option>-I/Library/Java/JavaVirtualMachines/jdk1.7.0_45.jdk/Contents/Home/include/</option>
 									<option>-I/Library/Java/JavaVirtualMachines/jdk1.7.0_45.jdk/Contents/Home/include/darwin/</option>
@@ -347,6 +351,8 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 							<c>
 								<name>gcc</name>
 								<options>
+									<option>-DLAUNCHER_VERSION="${project.version}"</option>
+									<option>-DBUILD_NUMBER="${buildNumber}"</option>
 									<option>-I/System/Library/Frameworks/JavaVM.Framework/Headers</option>
 									<option>-mmacosx-version-min=10.4</option>
 									<option>-arch</option>
@@ -395,6 +401,8 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 							<c>
 								<name>gcc</name>
 								<options>
+									<option>-DLAUNCHER_VERSION="${project.version}"</option>
+									<option>-DBUILD_NUMBER="${buildNumber}"</option>
 									<option>-I/System/Library/Frameworks/JavaVM.Framework/Headers</option>
 									<option>-mmacosx-version-min=10.3</option>
 									<option>-arch</option>

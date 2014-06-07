@@ -1031,8 +1031,9 @@ static void __attribute__((__noreturn__)) usage(void)
 	}
 
 	die("Usage: %s [<Java options>.. --] [<ImageJ options>..] [<files>..]\n"
-		"\n%s%s%s%s%s%s%s%s",
+		"\n%s%.*s%s%s%s%s%s%s%s%s%s",
 		main_argv[0],
+		"ImageJ launcher " LAUNCHER_VERSION " (build ", 8, BUILD_NUMBER, ")\n",
 		"Java options are passed to the Java Runtime, ImageJ\n"
 		"options to ImageJ (or Jython, JRuby, ...).\n"
 		"\n"
