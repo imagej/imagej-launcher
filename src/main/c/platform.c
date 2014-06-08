@@ -506,7 +506,9 @@ int set_path_to_apple_JVM(void)
 	}
 
 	/* Set JAVA_JVM_VERSION to the Apple Framework JVM that we found. */
-	error("Setting JAVA_JVM_VERSION to %s\n", (const char *)pathToTargetJVM);
+	if (debug) {
+		error("Setting JAVA_JVM_VERSION to %s\n", (const char *)pathToTargetJVM);
+	}
 	setenv("JAVA_JVM_VERSION",
 		(const char *)pathToTargetJVM, 1);
 
