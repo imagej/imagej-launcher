@@ -80,7 +80,7 @@
 static const char *default_fiji1_class = "fiji.Main";
 static const char *default_main_class = "net.imagej.Main";
 int retrotranslator;
-int debug;
+int debug, info;
 
 static const char *legacy_ij1_class = "ij.ImageJ";
 
@@ -1043,6 +1043,8 @@ static void __attribute__((__noreturn__)) usage(void)
 		"\tshow this help\n",
 		"--dry-run\n"
 		"\tshow the command line, but do not run anything\n"
+		"--info\n"
+		"\tinformational output\n"
 		"--debug\n"
 		"\tverbose output\n"
 		"--system\n"
@@ -1330,6 +1332,8 @@ static int handle_one_option2(int *i, int argc, const char **argv)
 		options.dry_run++;
 	else if (!strcmp(argv[*i], "--debug"))
 		debug++;
+	else if (!strcmp(argv[*i], "--info"))
+		info++;
 	else if (handle_one_option(i, argv, "--java-home", &arg)) {
 		set_java_home(xstrdup(arg.buffer));
 		setenv_or_exit("JAVA_HOME", xstrdup(arg.buffer), 1);
@@ -1914,6 +1918,10 @@ static void parse_command_line(void)
 		properties[i++] = "true";
 		properties[i++] = "scijava.log.level";
 		properties[i++] = "debug";
+	}
+	else if (info) {
+		properties[i++] = "scijava.log.level";
+		properties[i++] = "info";
 	}
 	properties[i++] = NULL;
 
