@@ -1609,19 +1609,26 @@ static void parse_command_line(void)
 	memset(&options, 0, sizeof(options));
 
 #ifdef __APPLE__
-	/* When double-clicked Finder adds a psn argument. */
+	/* 
+	 * Check if the launcher was run from Finder. In Mavericks, the
+	 * -psn_ argument is no longer passed in, so check if PWD
+	 * environment variable is set instead.
+	 */
+	if ((main_argc > 1 && !prefixcmp(main_argv[main_argc - 1], "-psn_"))
+		|| getenv("PWD") == NULL) {
+		/*
+		* Change directory to the ij dir to emulate
+		* the behavior of the regular ImageJ application which does
+		* not start up in the filesystem root.
+		*/
+		chdir(get_ij_dir());
+	}
 	if (main_argc > 1 && !prefixcmp(main_argv[main_argc - 1], "-psn_")) {
 		/*
 		 * Reset main_argc so that ImageJ won't try to open
 		 * that empty argument as a file (the root directory).
 		 */
 		main_argc--;
-		/*
-		 * Additionally, change directory to the ij dir to emulate
-		 * the behavior of the regular ImageJ application which does
-		 * not start up in the filesystem root.
-		 */
-		chdir(get_ij_dir());
 	}
 
 	if (!get_fiji_bundle_variable("heap", &arg) ||
