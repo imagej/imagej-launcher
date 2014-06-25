@@ -237,6 +237,8 @@ char *discover_system_java_home(void)
 	const char *java_executable = find_in_path(get_java_command(), 0);
 
 #ifdef __APPLE__
+	if (!java_executable) return NULL;
+
 	int len = strlen(java_executable);
 	if (len > 14 && !suffixcmp(java_executable, len, "/Commands/java")) {
 		/*
