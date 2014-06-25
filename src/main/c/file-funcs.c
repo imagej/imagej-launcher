@@ -262,6 +262,11 @@ const char *find_in_path(const char *path, int die_if_not_found)
 		struct stat st;
 
 		if (!len) {
+			if (colon) {
+				// ignore double colon
+				p++;
+				continue;
+			}
 			if (die_if_not_found)
 				die("Could not find %s in PATH", path);
 			if (debug)
