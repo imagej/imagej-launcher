@@ -1002,9 +1002,17 @@ static int check_subcommand_classpath(struct subcommand *subcommand)
 				return 0;
 		}
 		if (!prefixcmp(expanded, "--ij-jar=")) {
-			expanded += 9;
-			if (!jar_exists("%s/%.*s", ij_path(""), (int)(space - expanded), expanded))
+			struct string *path = string_initf("%.*s", (int)(space - expanded) - 9, expanded + 9);
+			const char *slash = last_slash(path->buffer), *result;
+			if (!slash || suffixcmp(path->buffer, path->length,
+					".jar")) {
 				return 0;
+			}
+			path->buffer[slash - path->buffer] = '\0';
+			path->buffer[path->length - 4] = '\0';
+			result = find_jar(ij_path(path->buffer), slash + 1);
+			string_release(path);
+			return !!result;
 		}
 		else if (!prefixcmp(expanded, "--tools-jar") || !prefixcmp(expanded, "--only-tools-jar")) {
 			const char *jre_home = get_jre_home();
