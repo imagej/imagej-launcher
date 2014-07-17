@@ -1461,7 +1461,9 @@ static int handle_one_option2(int *i, int argc, const char **argv)
 	}
 	else if (!strcmp(argv[*i], "--ij2") || !strcmp(argv[*i], "--imagej"))
 		main_class = default_main_class;
-	else if (!strcmp(argv[*i], "--ij1") || !strcmp(argv[*i], "--legacy"))
+	else if (!strcmp(argv[*i], "--ij1"))
+		main_class = legacy_ij1_class;
+	else if (!strcmp(argv[*i], "--legacy"))
 		main_class = default_fiji1_class;
 	else if (!strcmp(argv[*i], "--build") ||
 			!strcmp(argv[*i], "--fake")) {
