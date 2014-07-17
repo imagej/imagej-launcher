@@ -1461,7 +1461,9 @@ static int handle_one_option2(int *i, int argc, const char **argv)
 	}
 	else if (!strcmp(argv[*i], "--ij2") || !strcmp(argv[*i], "--imagej"))
 		main_class = default_main_class;
-	else if (!strcmp(argv[*i], "--ij1") || !strcmp(argv[*i], "--legacy"))
+	else if (!strcmp(argv[*i], "--ij1"))
+		main_class = legacy_ij1_class;
+	else if (!strcmp(argv[*i], "--legacy"))
 		main_class = default_fiji1_class;
 	else if (!strcmp(argv[*i], "--build") ||
 			!strcmp(argv[*i], "--fake")) {
@@ -2450,22 +2452,28 @@ int main(int argc, char **argv, char **e)
 	memcpy(main_argv_backup, main_argv, size);
 	main_argc_backup = argc;
 
-	/* For now, launch Fiji1 when fiji-compat.jar was found */
-	if (has_jar(ij_path("jars/"), "fiji-compat")) {
+	if (has_jar(ij_path("jars/"), "imagej")) {
+		/* Launch ImageJ2 */
+		if (debug) {
+			error("Detected ImageJ2");
+		}
+	}
+	else if (has_jar(ij_path("jars/"), "fiji-compat")) {
+		/* Launch Fiji1 when fiji-compat.jar was found */
 		if (debug)
-			error("Detected Fiji");
+			error("Detected Fiji1");
 		legacy_mode = 1;
 	}
-	/* If no ImageJ2 was found, try to fall back to ImageJ 1.x */
-	else if (!has_jar(ij_path("jars/"), "imagej") &&
-			!has_jar(ij_path("jars/"), "ij-app")) {
+	else if (has_jar(ij_path("jars/"), "ij-app")) {
+		error("Detected outdated ImageJ2");
+	}
+	else {
+		/* If no ImageJ2 was found, try to fall back to ImageJ 1.x */
 		if (debug)
 			error("Detected ImageJ 1.x");
 		legacy_mode = 1;
 		main_class = legacy_ij1_class;
 	}
-	else if (debug)
-		error("Detected ImageJ2");
 
 	initialize_imagej_launcher_jar_path();
 	parse_command_line();
