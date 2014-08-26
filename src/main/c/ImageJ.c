@@ -1661,6 +1661,7 @@ static void parse_command_line(void)
 	if (ext_option.length)
 		string_add_char(&ext_option, ':');
 	string_append(&ext_option, ij_path("java/macosx-java3d/Home/lib/ext"));
+	string_add_char(&ext_option, ':');
 	string_addf(&ext_option, "/Library/Java/Extensions:"
 		"/System/Library/Java/Extensions:"
 		"/System/Library/Frameworks/JavaVM.framework/Home/lib/ext");
