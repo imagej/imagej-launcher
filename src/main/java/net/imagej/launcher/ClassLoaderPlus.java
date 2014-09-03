@@ -179,7 +179,7 @@ public class ClassLoaderPlus extends URLClassLoader {
 				Improvements to this Pattern string should also be mirrored there.
 				*/
 				final Pattern pattern =
-						Pattern.compile("(batik|jython|jruby)(-[0-9].*)?\\.jar");
+						Pattern.compile("(batik|jython|jython-standalone|jruby)(-[0-9].*)?\\.jar");
 				Arrays.sort(list, new FatJarFileComparator(pattern));
 				for (final File file : list) {
 					if (file.isDirectory()) classLoader = getRecursively(classLoader, onlyJars, file);
