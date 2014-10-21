@@ -187,12 +187,22 @@ public class ClassLauncher {
 		} catch (final Throwable t) {
 			t.printStackTrace();
 			if ("net.imagej.Main".equals(mainClass) &&
+					!containsBatchOption(arguments) &&
 					!GraphicsEnvironment.isHeadless() &&
 					RemoteUpdater.runRemote()) {
 				return;
 			}
 			System.exit(1);
 		}
+	}
+
+	private static boolean containsBatchOption(String[] arguments) {
+		for (final String argument : arguments) {
+			if ("-batch".equals(argument) || "-batch-no-exit".equals(argument)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	protected static void patchIJ1(final ClassLoader classLoader)
