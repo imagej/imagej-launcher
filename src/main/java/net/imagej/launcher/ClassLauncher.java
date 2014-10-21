@@ -31,6 +31,7 @@
 
 package net.imagej.launcher;
 
+import java.awt.GraphicsEnvironment;
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -181,7 +182,17 @@ public class ClassLauncher {
 		if (debug) System.err.println("Launching main class " + mainClass +
 			" with parameters " + Arrays.toString(arguments));
 
-		launch(classLoader, mainClass, arguments);
+		try {
+			launch(classLoader, mainClass, arguments);
+		} catch (final Throwable t) {
+			t.printStackTrace();
+			if ("net.imagej.Main".equals(mainClass) &&
+					!GraphicsEnvironment.isHeadless() &&
+					RemoteUpdater.runRemote()) {
+				return;
+			}
+			System.exit(1);
+		}
 	}
 
 	protected static void patchIJ1(final ClassLoader classLoader)
