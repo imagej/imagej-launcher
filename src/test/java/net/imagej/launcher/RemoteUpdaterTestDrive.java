@@ -40,7 +40,7 @@ public class RemoteUpdaterTestDrive {
 
 	public static void main(String[] args) {
 		System.setProperty("imagej.dir", System.getProperty("user.home") + "/Fiji.app");
-		System.err.println(RemoteUpdater.runRemote());
+		System.err.println(RemoteUpdater.runRemote(new Throwable()));
 	}
 
 }

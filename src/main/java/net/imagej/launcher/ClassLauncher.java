@@ -189,7 +189,7 @@ public class ClassLauncher {
 			if ("net.imagej.Main".equals(mainClass) &&
 					!containsBatchOption(arguments) &&
 					!GraphicsEnvironment.isHeadless() &&
-					RemoteUpdater.runRemote()) {
+					RemoteUpdater.runRemote(t)) {
 				return;
 			}
 			System.exit(1);

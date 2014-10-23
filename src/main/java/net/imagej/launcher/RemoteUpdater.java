@@ -65,11 +65,11 @@ public class RemoteUpdater {
 	 * @param cause the reason why the ImageJ updater needs to be called, or null
 	 * @return whether the script was started successfully
 	 */
-	public static boolean runRemote() {
+	public static boolean runRemote(final Throwable cause) {
 		final RemoteUpdater updater = new RemoteUpdater();
 		try {
-			if (!updater.runAsJavascript()) {
-				runViaRemoteJavascript();
+			if (!updater.runAsJavascript(cause)) {
+				runViaRemoteJavascript(cause);
 			}
 			return true;
 		} catch (final Throwable t) {
@@ -78,7 +78,7 @@ public class RemoteUpdater {
 		return false;
 	}
 
-	private boolean runAsJavascript() throws IOException, ScriptException {
+	private boolean runAsJavascript(final Throwable cause) throws IOException, ScriptException {
 		System.err.println("Falling back to remote updater at "
 				+ BOOTSTRAP_REMOTE_URL);
 		final URL url = new URL(BOOTSTRAP_REMOTE_URL);
@@ -86,12 +86,13 @@ public class RemoteUpdater {
 		ScriptEngineManager scriptEngineManager = new ScriptEngineManager();
 		ScriptEngine engine = scriptEngineManager.getEngineByName("ECMAScript");
 		if (engine == null) return false;
+		if (cause != null) engine.put("cause", cause);
 		engine.eval("importPackage(Packages.java.lang);");
 		engine.eval(reader);
 		return true;
 	}
 
-	private static void runViaRemoteJavascript() throws ClassNotFoundException,
+	private static void runViaRemoteJavascript(final Throwable cause) throws ClassNotFoundException,
 			IOException, SecurityException, IllegalArgumentException,
 			IllegalAccessException, InstantiationException,
 			InvocationTargetException, NoSuchMethodException {
@@ -103,6 +104,11 @@ public class RemoteUpdater {
 				"org.mozilla.javascript.Context", "enter");
 		final Object scope = construct(loader,
 				"org.mozilla.javascript.ImporterTopLevel", context);
+		if (cause != null) {
+			final Object causeObject = invokeStatic(loader,
+				"org.mozilla.javascript.Context", "toObject", cause, scope);
+			invoke(scope, "put", "cause", scope, causeObject);
+		}
 		final URL url = new URL(BOOTSTRAP_REMOTE_URL);
 		final Reader reader = new InputStreamReader(url.openStream());
 		invoke(context, "evaluateReader", scope, reader, "bootstrap.js", 1,
