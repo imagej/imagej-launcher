@@ -313,6 +313,12 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 
 	JNI_CreateJavaVM = dlsym(handle, JNI_CREATEVM);
 	err = dlerror();
+#ifdef __APPLE__
+	if (err) {
+		JNI_CreateJavaVM = dlsym(handle, "JNI_CreateJavaVM_Impl");
+		err = dlerror();
+	}
+#endif
 	if (err) {
 		error("Error loading libjvm: %s: %s", buffer->buffer, err);
 		setenv_or_exit("JAVA_HOME", original_java_home_env, 1);
