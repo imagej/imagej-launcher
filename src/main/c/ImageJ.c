@@ -269,14 +269,16 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 	 * nothing if not entertaining.
 	 */
 	string_addf(buffer, "%s/%s", java_home, "lib/jli/libjli.dylib");
-	if (debug)
-		error("Work around attempt at MacOSX world domination: %s",
-				buffer->buffer);
-	handle = dlopen(buffer->buffer, RTLD_LAZY);
-	if (!handle) {
-		error("Could not open %s: %s", buffer->buffer, dlerror());
-		string_release(buffer);
-		return 1;
+	if (file_exists(buffer->buffer)) {
+		if (debug)
+			error("Work around attempt at MacOSX world domination: %s",
+					buffer->buffer);
+		handle = dlopen(buffer->buffer, RTLD_LAZY);
+		if (!handle) {
+			error("Could not open %s: %s", buffer->buffer, dlerror());
+			string_release(buffer);
+			return 1;
+		}
 	}
 	string_set_length(buffer, 0);
 #endif
