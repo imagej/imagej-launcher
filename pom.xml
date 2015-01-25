@@ -372,8 +372,6 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 									<option>CoreFoundation</option>
 									<option>-framework</option>
 									<option>ApplicationServices</option>
-									<option>-framework</option>
-									<option>JavaVM</option>
 								</options>
 							</linker>
 						</configuration>
@@ -422,8 +420,6 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 									<option>CoreFoundation</option>
 									<option>-framework</option>
 									<option>ApplicationServices</option>
-									<option>-framework</option>
-									<option>JavaVM</option>
 								</options>
 							</linker>
 						</configuration>
