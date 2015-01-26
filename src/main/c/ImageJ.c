@@ -219,13 +219,6 @@ static void maybe_reexec_with_correct_lib_path(struct string *java_library_path)
 
 static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 {
-#if defined(__APPLE__) && !defined(NO_JAVA_FRAMEWORK)
-	if (!set_path_to_apple_JVM()) {
-		/* We found an Apple Framework JVM (pre-Java-1.7). */
-		return JNI_CreateJavaVM(vm, env, args);
-	}
-#endif
-
 	/*
 	 * At this point, we are either not on OS X, or on a
 	 * newer OS X that is missing the Apple Framework paths:
@@ -2413,6 +2406,9 @@ int main(int argc, char **argv, char **e)
 
 #if defined(__APPLE__)
 	launch_32bit_on_tiger(argc, argv);
+#if !defined(NO_JAVA_FRAMEWORK)
+	set_path_to_apple_JVM();
+#endif
 #elif defined(WIN64)
 	/* work around MinGW64 breakage */
 	argc = __argc;
