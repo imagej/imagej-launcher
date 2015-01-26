@@ -2359,52 +2359,21 @@ int start_ij(void)
 	return 0;
 }
 
-static void find_newest(struct string *relative_path, int max_depth, const char *file, struct string *result)
-{
-	int len = relative_path->length;
-	DIR *directory;
-	struct dirent *entry;
-
-	string_add_char(relative_path, '/');
-
-	string_append(relative_path, file);
-	if (file_exists(ij_path(relative_path->buffer)) && is_native_library(ij_path(relative_path->buffer))) {
-		string_set_length(relative_path, len);
-		if (!result->length || file_is_newer(ij_path(relative_path->buffer), ij_path(result->buffer)))
-			string_set(result, relative_path->buffer);
-	}
-
-	if (max_depth <= 0)
-		return;
-
-	string_set_length(relative_path, len);
-	directory = opendir(ij_path(relative_path->buffer));
-	if (!directory)
-		return;
-	string_add_char(relative_path, '/');
-	while (NULL != (entry = readdir(directory))) {
-		if (entry->d_name[0] == '.')
-			continue;
-		string_append(relative_path, entry->d_name);
-		if (dir_exists(ij_path(relative_path->buffer)))
-			find_newest(relative_path, max_depth - 1, file, result);
-		string_set_length(relative_path, len + 1);
-	}
-	closedir(directory);
-	string_set_length(relative_path, len);
-}
-
 /* TODO: try to find Java even if there is JRE local to ImageJ */
 static void adjust_java_home_if_necessary(void)
 {
 	struct string *result, *buffer, *path;
 	const char *prefix = "jre/";
-	int depth = 2;
+	int depth = 2, ij_dir_len;
+
+	if (get_library_path())
+		return; /* already set, no need to adjust */
 
 	set_default_library_path();
 	set_library_path(get_default_library_path());
 
-	buffer = string_copy("java");
+	buffer = string_copy(ij_path("java"));
+	ij_dir_len = buffer->length - 4;
 	result = string_init(32);
 	path = string_initf("%s%s", prefix, get_library_path());
 
@@ -2413,12 +2382,12 @@ static void adjust_java_home_if_necessary(void)
 		if (result->buffer[result->length - 1] != '/')
 			string_add_char(result, '/');
 		string_append(result, prefix);
-		set_relative_java_home(xstrdup(result->buffer));
+		set_relative_java_home(xstrdup(result->buffer + ij_dir_len));
 	}
 	else if (*prefix) {
 		find_newest(buffer, depth + 1, get_library_path(), buffer);
 		if (result->length)
-			set_relative_java_home(xstrdup(result->buffer));
+			set_relative_java_home(xstrdup(result->buffer + ij_dir_len));
 	}
 	string_release(buffer);
 	string_release(result);

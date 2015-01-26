@@ -488,3 +488,39 @@ void read_file_as_string(const char *file_name, struct string *contents)
 	}
 	fclose(in);
 }
+
+void find_newest(struct string *path, int max_depth, const char *file, struct string *result)
+{
+	int len = path->length;
+	DIR *directory;
+	struct dirent *entry;
+
+	if (!len || path->buffer[len - 1] != '/')
+		string_add_char(path, '/');
+
+	string_append(path, file);
+	if (file_exists(path->buffer) && is_native_library(path->buffer)) {
+		string_set_length(path, len);
+		if (!result->length || file_is_newer(path->buffer, result->buffer))
+			string_set(result, path->buffer);
+	}
+
+	if (max_depth <= 0)
+		return;
+
+	string_set_length(path, len);
+	directory = opendir(path->buffer);
+	if (!directory)
+		return;
+	string_add_char(path, '/');
+	while (NULL != (entry = readdir(directory))) {
+		if (entry->d_name[0] == '.')
+			continue;
+		string_append(path, entry->d_name);
+		if (dir_exists(path->buffer))
+			find_newest(path, max_depth - 1, file, result);
+		string_set_length(path, len + 1);
+	}
+	closedir(directory);
+	string_set_length(path, len);
+}

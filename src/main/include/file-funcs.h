@@ -56,4 +56,6 @@ extern void set_ij_dir(const char *path);
 extern void infer_ij_dir(const char *main_argv0);
 extern const char *ij_path(const char *relative_path);
 
+void find_newest(struct string *relative_path, int max_depth, const char *file, struct string *result);
+
 #endif
