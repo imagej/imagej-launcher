@@ -288,7 +288,7 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 					<name>Mac OS X</name>
 				</os>
 				<file>
-					<exists>/Library/Java/JavaVirtualMachines/jdk1.7.0_45.jdk/Contents/Home/include/</exists>
+					<exists>/System/Library/Frameworks/JavaVM.framework/Versions/Current/Headers/</exists>
 				</file>
 			</activation>
 			<build>
@@ -303,8 +303,7 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 									<option>-DLAUNCHER_VERSION="${project.version}"</option>
 									<option>-DBUILD_NUMBER="${buildNumber}"</option>
 									<option>-DNO_JAVA_FRAMEWORK</option>
-									<option>-I/Library/Java/JavaVirtualMachines/jdk1.7.0_45.jdk/Contents/Home/include/</option>
-									<option>-I/Library/Java/JavaVirtualMachines/jdk1.7.0_45.jdk/Contents/Home/include/darwin/</option>
+									<option>-I/System/Library/Frameworks/JavaVM.framework/Versions/Current/Headers/</option>
 									<option>-mmacosx-version-min=10.6</option>
 									<option>-arch</option>
 									<option>x86_64</option>
@@ -353,7 +352,7 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 								<options>
 									<option>-DLAUNCHER_VERSION="${project.version}"</option>
 									<option>-DBUILD_NUMBER="${buildNumber}"</option>
-									<option>-I/System/Library/Frameworks/JavaVM.Framework/Headers</option>
+									<option>-I/System/Library/Frameworks/JavaVM.framework/Versions/Current/Headers/</option>
 									<option>-mmacosx-version-min=10.4</option>
 									<option>-arch</option>
 									<option>i386</option>
