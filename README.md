@@ -22,6 +22,6 @@ where `xyz` is your platform.
 
 ## Download
 
-Up-to-date versions can always be downloaded from
-[Jenkins](http://jenkins.imagej.net/job/ImageJ-launcher/)' platform-specific
+Up-to-date versions can always be downloaded from the
+[Jenkins](http://jenkins.imagej.net/job/ImageJ-launcher/) platform-specific
 configurations.
