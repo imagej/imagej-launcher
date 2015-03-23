@@ -160,7 +160,7 @@ int set_exe_icon(const char *exe_path, const char *ico_path)
 		return 1;
 	}
 	UpdateResource(handle, RT_GROUP_ICON,
-			MAKEINTRESOURCE(id++), MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US),
+			"MAINICON", MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US),
 			icon.header, sizeof(struct header) + icon.count * sizeof(struct resource_directory));
 	for (i = 0; i < icon.count; i++) {
 		UpdateResource(handle, RT_ICON,
