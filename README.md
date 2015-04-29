@@ -1,4 +1,4 @@
-![](http://jenkins.imagej.net/job/ImageJ-launcher/lastBuild/badge/icon)
+[![](http://jenkins.imagej.net/job/ImageJ-launcher/lastBuild/badge/icon)](http://jenkins.imagej.net/job/ImageJ-launcher/)
 
 The ImageJ launcher is a native application for launching ImageJ.
 
