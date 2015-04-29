@@ -1,3 +1,5 @@
+![](http://jenkins.imagej.net/job/ImageJ-launcher/lastBuild/badge/icon)
+
 The ImageJ launcher is a native application for launching ImageJ.
 
 It supports the following flavors of ImageJ:
