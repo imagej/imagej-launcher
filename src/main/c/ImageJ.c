@@ -1659,13 +1659,31 @@ static void parse_command_line(void)
 		else
 			string_set_length(&ext_option, 0);
 	}
+
+	/* Add ImageJ's internal Java3D installation to the extensions path. */
 	if (ext_option.length)
 		string_add_char(&ext_option, ':');
 	string_append(&ext_option, ij_path("java/macosx-java3d/Home/lib/ext"));
+
+	/*
+	 * Add the chosen JRE's platform extensions to the extensions path.
+	 * This is necessary, even though they are usually available by default,
+	 * because as soon as we set java.ext.dirs, the default lib/ext directory
+	 * is no longer included anymore. So we do it ourselves.
+	 */
+	const char *java_home = get_java_home();
+	if (java_home) {
+		string_add_char(&ext_option, ':');
+		string_addf(&ext_option, java_home);
+		string_addf(&ext_option, "jre/lib/ext");
+	}
+
+	/* Add Apple's global Java platform extensions to the extensions path. */
 	string_add_char(&ext_option, ':');
 	string_addf(&ext_option, "/Library/Java/Extensions:"
 		"/System/Library/Java/Extensions:"
 		"/System/Library/Frameworks/JavaVM.framework/Home/lib/ext");
+
 	if (!get_fiji_bundle_variable("allowMultiple", &arg))
 		allow_multiple = parse_bool((&arg)->buffer);
 	get_fiji_bundle_variable("JVMOptions", jvm_options);
