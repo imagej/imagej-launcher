@@ -1673,9 +1673,14 @@ static void parse_command_line(void)
 	 */
 	const char *java_home = get_java_home();
 	if (java_home) {
+		/* For JDKs - e.g. '/Library/Java/JavaVirtualMachines/jdk1.8.0_45.jdk' */
 		string_add_char(&ext_option, ':');
 		string_addf(&ext_option, java_home);
 		string_addf(&ext_option, "jre/lib/ext");
+		/* For JREs - e.g. '/Library/Internet Plug-Ins/JavaAppletPlugin.plugin' */
+		string_add_char(&ext_option, ':');
+		string_addf(&ext_option, java_home);
+		string_addf(&ext_option, "lib/ext");
 	}
 
 	/* Add Apple's global Java platform extensions to the extensions path. */
