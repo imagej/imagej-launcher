@@ -406,6 +406,19 @@ int set_path_to_apple_JVM(void)
 		if (result->length) {
 			set_library_path(library_path + strlen("Contents/Home/jre/"));
 			string_append(result, "/Contents/Home/");
+			if (debug) error("Discovered modern JDK: '%s'", result->buffer);
+			set_java_home(result->buffer);
+			string_release(base);
+			return 1;
+		}
+
+		string_set_length(base, 0);
+		string_append(base, "/Library/Internet Plug-Ins/JavaAppletPlugin.plugin");
+		library_path = "Contents/Home/lib/server/libjvm.dylib";
+		find_newest(base, 1, library_path, result);
+		if (result->length) {
+			set_library_path(library_path + strlen("Contents/Home/"));
+			string_append(result, "/Contents/Home/");
 			if (debug) error("Discovered modern JRE: '%s'", result->buffer);
 			set_java_home(result->buffer);
 			string_release(base);
@@ -419,15 +432,16 @@ int set_path_to_apple_JVM(void)
 		else
 			library_path = "Contents/Home/../Libraries/libjvm.dylib";
 		find_newest(base, 1, library_path, result);
-		string_release(base);
 		if (result->length) {
 			set_library_path(library_path + strlen("Contents/Home/"));
 			string_append(result, "/Contents/Home/");
 			if (debug) error("Discovered JavaVM framework: '%s'", result->buffer);
 			set_java_home(result->buffer);
+			string_release(base);
 			return 1;
 		}
 
+		string_release(base);
 		fprintf(stderr, "Warning: could not find Java bundle\n");
 		return 3;
 	}
