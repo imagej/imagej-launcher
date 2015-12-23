@@ -397,10 +397,38 @@ int set_path_to_apple_JVM(void)
 		CFBundleGetBundleWithIdentifier(CFSTR("com.apple.JavaVM"));
 
 	if (!JavaVMBundle) {
-		struct string *base = string_copy("/Library/Java/JavaVirtualMachines");
+		const char *java_path = ij_path("java/macosx");
+		struct string *base = string_copy(java_path);
 		struct string *result = string_init(32);
 		const char *library_path;
 
+		/*
+		 * Look for a local Java shipped with ImageJ
+		 *
+		 * NB: this seems redundant with the adjust_java_home_if_necessary
+		 * logic in ImageJ.c. The problem is a lack of encapsulation -
+		 * causing the adjust_java_home_if_necessary comes too late if an
+		 * OSX Java is discovered.
+		 *
+		 * It would be ideal to detangle this logic to check:
+		 * 1) local java
+		 * 2) java home
+		 * 3) apple java
+		 * 4) anything else
+		 */
+		library_path = "jre/Contents/Home/lib/server/libjvm.dylib";
+		find_newest(base, 1, library_path, result);
+		if (result->length) {
+			set_library_path(library_path + strlen("jre/Contents/Home/"));
+			string_append(result, "/jre/Contents/Home/");
+			if (debug) error("Discovered bundled JRE: '%s'", result->buffer);
+			set_java_home(result->buffer);
+			string_release(base);
+			return 1;
+		}
+
+		string_set_length(base, 0);
+		string_append(base, "/Library/Java/JavaVirtualMachines");
 		library_path = "Contents/Home/jre/lib/server/libjvm.dylib";
 		find_newest(base, 1, library_path, result);
 		if (result->length) {
