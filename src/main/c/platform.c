@@ -140,11 +140,41 @@ static int MAYBE_UNUSED is_dylib(const char *path)
 	}
 
 	close(in);
+
+	/*
+	 * mach-o header parsing
+	 *
+	 * check cafebabe and feedface
+	 */
 	if (buffer[0] == 0xca && buffer[1] == 0xfe && buffer[2] == 0xba &&
 			buffer[3] == 0xbe && buffer[4] == 0x00 &&
 			buffer[5] == 0x00 && buffer[6] == 0x00 &&
 			(buffer[7] >= 1 && buffer[7] < 20))
 		return 32 | 64; /* might be a fat one, containing both */
+
+	/*
+	 * check both endians for feedface
+	 */
+	if ((buffer[0] == 0xcf &&
+			buffer[1] == 0xfa &&
+			buffer[2] == 0xed &&
+			buffer[3] == 0xfe) ||
+			(buffer[0] == 0xfe &&
+			buffer[1] == 0xed &&
+			buffer[2] == 0xfa &&
+			buffer[3] == 0xcf))
+		return 64;
+
+	if ((buffer[0] == 0xce &&
+			buffer[1] == 0xfa &&
+			buffer[2] == 0xed &&
+			buffer[3] == 0xfe) ||
+			(buffer[0] == 0xfe &&
+			buffer[1] == 0xed &&
+			buffer[2] == 0xfa &&
+			buffer[3] == 0xce))
+		return 32;
+
 	return 0;
 }
 
