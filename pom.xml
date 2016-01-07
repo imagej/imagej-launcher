@@ -19,6 +19,7 @@
 	<properties>
 		<architecture.option />
 		<debug.option />
+		<ij.executable.name />
 		<java.os.include />
 		<libdl.name>dl</libdl.name>
 		<skipTests>true</skipTests>
@@ -191,6 +192,7 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 				<java.os.include>-I${JAVA_HOME}/include/linux</java.os.include>
 				<stack.protector.option>-fno-stack-protector</stack.protector.option>
 				<architecture.option>-m64</architecture.option>
+				<ij.executable.name>ImageJ-linux64</ij.executable.name>
 			</properties>
 			<build>
 				<plugins>
@@ -226,6 +228,7 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 				<java.os.include>-I${JAVA_HOME}/include/linux</java.os.include>
 				<stack.protector.option>-fno-stack-protector</stack.protector.option>
 				<architecture.option>-m32</architecture.option>
+				<ij.executable.name>ImageJ-linux32</ij.executable.name>
 			</properties>
 			<build>
 				<plugins>
@@ -262,6 +265,7 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 				<architecture.option>-m32</architecture.option>
 				<subsystem.option>-mwindows</subsystem.option>
 				<libdl.name>kernel32</libdl.name>
+				<ij.executable.name>ImageJ-win32.exe</ij.executable.name>
 			</properties>
 		</profile>
 
@@ -278,6 +282,19 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 				<architecture.option>-m64</architecture.option>
 				<subsystem.option>-mwindows</subsystem.option>
 				<libdl.name>kernel32</libdl.name>
+				<ij.executable.name>ImageJ-win64.exe</ij.executable.name>
+			</properties>
+		</profile>
+
+		<profile>
+			<id>MacOSX-all</id>
+			<activation>
+				<os>
+					<name>Mac OS X</name>
+				</os>
+			</activation>
+			<properties>
+				<ij.executable.name>Contents/MacOSX/ImageJ-macosx</ij.executable.name>
 			</properties>
 		</profile>
 
