@@ -41,9 +41,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-extern int debug;
-extern int retrotranslator;
-
 /* A wrapper for setenv that exits on error */
 void setenv_or_exit(const char *name, const char *value, int overwrite)
 {
@@ -708,8 +705,6 @@ int get_fiji_bundle_variable(const char *key, struct string *value)
 
 static void dummy_call_back(void *info) {
 }
-
-extern int start_ij(void);
 
 static void *start_ij_aux(void *dummy)
 {

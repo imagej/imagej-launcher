@@ -38,8 +38,6 @@
 
 #include <sys/stat.h>
 
-extern int debug;
-
 int find_file(struct string *search_root, int max_depth, const char *file, struct string *result)
 {
 	int len = search_root->length;
