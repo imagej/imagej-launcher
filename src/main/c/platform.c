@@ -435,10 +435,10 @@ int set_path_to_apple_JVM(void)
 		/*
 		 * Look for a local Java shipped with ImageJ
 		 *
-		 * NB: this seems redundant with the adjust_java_home_if_necessary
-		 * logic in ImageJ.c. The problem is a lack of encapsulation -
-		 * causing the adjust_java_home_if_necessary comes too late if an
-		 * OSX Java is discovered.
+		 * NB: This seems redundant with the adjust_java_home_if_necessary
+		 * logic in ImageJ.c. The problem is a lack of encapsulation,
+		 * causing the adjust_java_home_if_necessary to come too late
+		 * if an OS X Java is discovered.
 		 *
 		 * It would be ideal to detangle this logic to check:
 		 * 1) local java
