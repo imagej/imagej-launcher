@@ -419,6 +419,9 @@ int set_path_to_apple_JVM(void)
 
 	if (get_java_home_env()) {
 		/* JAVA_HOME is set, and must point to a *non-Apple* JVM. */
+		if (debug) {
+			error("[APPLE] JAVA_HOME variable is set: '%s'", get_java_home_env());
+		}
 		return 2;
 	}
 
@@ -426,11 +429,16 @@ int set_path_to_apple_JVM(void)
 	CFBundleRef JavaVMBundle =
 		CFBundleGetBundleWithIdentifier(CFSTR("com.apple.JavaVM"));
 
-	if (!JavaVMBundle) {
+	if (JavaVMBundle) {
+		if (debug) error("[APPLE] Found com.apple.JavaVM bundle");
+	}
+	else {
 		const char *java_path = ij_path("java/macosx");
 		struct string *base = string_copy(java_path);
 		struct string *result = string_init(32);
 		const char *library_path;
+
+		if (debug) error("[APPLE] No com.apple.JavaVM bundle found");
 
 		/*
 		 * Look for a local Java shipped with ImageJ
@@ -451,7 +459,7 @@ int set_path_to_apple_JVM(void)
 		if (result->length) {
 			set_library_path(library_path + strlen("jre/Contents/Home/"));
 			string_append(result, "/jre/Contents/Home/");
-			if (debug) error("Discovered bundled JRE: '%s'", result->buffer);
+			if (debug) error("[APPLE] Discovered bundled JRE: '%s'", result->buffer);
 			set_java_home(result->buffer);
 			string_release(base);
 			return 1;
@@ -464,7 +472,7 @@ int set_path_to_apple_JVM(void)
 		if (result->length) {
 			set_library_path(library_path + strlen("Contents/Home/jre/"));
 			string_append(result, "/Contents/Home/");
-			if (debug) error("Discovered modern JDK: '%s'", result->buffer);
+			if (debug) error("[APPLE] Discovered modern JDK: '%s'", result->buffer);
 			set_java_home(result->buffer);
 			string_release(base);
 			return 1;
@@ -477,7 +485,7 @@ int set_path_to_apple_JVM(void)
 		if (result->length) {
 			set_library_path(library_path + strlen("Contents/Home/"));
 			string_append(result, "/Contents/Home/");
-			if (debug) error("Discovered modern JRE: '%s'", result->buffer);
+			if (debug) error("[APPLE] Discovered modern JRE: '%s'", result->buffer);
 			set_java_home(result->buffer);
 			string_release(base);
 			return 1;
@@ -493,7 +501,9 @@ int set_path_to_apple_JVM(void)
 		if (result->length) {
 			set_library_path(library_path + strlen("Contents/Home/"));
 			string_append(result, "/Contents/Home/");
-			if (debug) error("Discovered JavaVM framework: '%s'", result->buffer);
+			if (debug) {
+				error("[APPLE] Discovered JavaVM framework: '%s'", result->buffer);
+			}
 			set_java_home(result->buffer);
 			string_release(base);
 			return 1;
@@ -532,10 +542,14 @@ int set_path_to_apple_JVM(void)
 	/* TODO: disable this test on 10.6+ */
 	/* Try 1.6 only with 64-bit */
 	if (is_intel() && sizeof(void *) > 4) {
+		if (debug) error("[APPLE] Detected 64-bit Intel machine");
 		targetJVM = CFSTR("1.6");
 		TargetJavaVM =
 			CFURLCreateCopyAppendingPathComponent(kCFAllocatorDefault,
 				JavaVMBundlerVersionsDirURL, targetJVM, 1);
+		if (debug && cfurl_dir_exists(TargetJavaVM)) {
+			print_cfurl("[APPLE] Found Apple Java VM 1.6", TargetJavaVM);
+		}
 	}
 
 	int needs_retrotranslator = 0;
@@ -546,6 +560,9 @@ int set_path_to_apple_JVM(void)
 		TargetJavaVM =
 			CFURLCreateCopyAppendingPathComponent(kCFAllocatorDefault,
 				JavaVMBundlerVersionsDirURL, targetJVM, 1);
+		if (debug && cfurl_dir_exists(TargetJavaVM)) {
+			print_cfurl("[APPLE] Found Apple Java VM 1.5", TargetJavaVM);
+		}
 	}
 
 	if (!cfurl_dir_exists(TargetJavaVM)) {
@@ -556,6 +573,9 @@ int set_path_to_apple_JVM(void)
 			CFURLCreateCopyAppendingPathComponent(kCFAllocatorDefault,
 				JavaVMBundlerVersionsDirURL, targetJVM, 1);
 		if (cfurl_dir_exists(TargetJavaVM)) {
+			if (debug) {
+				print_cfurl("[APPLE] Found default Apple Java VM", TargetJavaVM);
+			}
 			/**
 			 * Folder found; return success without setting JAVA_JVM_VERSION.
 			 *
@@ -570,9 +590,6 @@ int set_path_to_apple_JVM(void)
 	if (!cfurl_dir_exists(TargetJavaVM)) {
 		fprintf(stderr, "Warning: Could not locate compatible Apple Java VM\n");
 		return 11;
-	}
-	else if (debug) {
-		print_cfurl("TargetJavaVM", TargetJavaVM);
 	}
 
 	UInt8 pathToTargetJVM[PATH_MAX] = "";
