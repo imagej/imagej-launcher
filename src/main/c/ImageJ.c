@@ -2418,6 +2418,13 @@ int main(int argc, char **argv, char **e)
 {
 	int size;
 
+	/*
+	 * NB: Set the debug mode as early as possible when DEBUG is set.
+	 * Without this, the --debug CLI flag parsing happens too late
+	 * to see debugging output such as JVM detection on OS X.
+	 */
+	if (getenv("DEBUG")) debug++;
+
 	if (!suffixcmp(argv[0], -1, "debug.exe") ||
 			!suffixcmp(argv[0], -1, "debug")) {
 		debug++;
