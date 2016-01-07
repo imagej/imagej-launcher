@@ -142,6 +142,7 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 									</fileset>
 									<mapper type="flatten"/>
 								</copy>
+								<chmod file="${basedir}/target/${ij.executable.name}" perm="a+x"/>
 							</tasks>
 						</configuration>
 					</execution>
