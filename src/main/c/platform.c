@@ -422,19 +422,9 @@ int set_path_to_apple_JVM(void)
 		return 2;
 	}
 
-	/* Look for the JavaVM bundle using its identifier. */
-	CFBundleRef JavaVMBundle =
-		CFBundleGetBundleWithIdentifier(CFSTR("com.apple.JavaVM"));
-
-	if (JavaVMBundle) {
-		if (debug) error("[APPLE] Found com.apple.JavaVM bundle");
-	}
-	else {
 	struct string *base = string_init(32);
 	struct string *jvm = string_init(32);
 	const char *library_path;
-
-	if (debug) error("[APPLE] No com.apple.JavaVM bundle found");
 
 	/*
 	 * Look for a local Java shipped with ImageJ in ${ij.dir}/java/macosx
@@ -497,8 +487,24 @@ int set_path_to_apple_JVM(void)
 	}
 
 	string_release(base);
-	fprintf(stderr, "Warning: could not find Java bundle\n");
-	return 3;
+
+	/*
+	 * Couldn't find a JDK or JRE or anywhere.
+	 *
+	 * So let's fall back to Apple's API, looking
+	 * for the JavaVM bundle using its identifier.
+	 */
+	if (debug) error("[APPLE] Looking for a JavaVM bundle");
+	CFBundleRef JavaVMBundle =
+		CFBundleGetBundleWithIdentifier(CFSTR("com.apple.JavaVM"));
+	if (JavaVMBundle) {
+		if (debug) error("[APPLE] Found com.apple.JavaVM bundle");
+	}
+	else {
+		/* All searches failed, and no JavaVMBundle. Give up. */
+		if (debug) error("[APPLE] No com.apple.JavaVM bundle found");
+		fprintf(stderr, "Warning: could not find Java bundle\n");
+		return 3;
 	}
 
 	/* Get a path for the JavaVM bundle. */
