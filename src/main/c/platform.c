@@ -431,7 +431,7 @@ int set_path_to_apple_JVM(void)
 	}
 	else {
 	struct string *base = string_init(32);
-	struct string *result = string_init(32);
+	struct string *jvm = string_init(32);
 	const char *library_path;
 
 	if (debug) error("[APPLE] No com.apple.JavaVM bundle found");
@@ -442,12 +442,12 @@ int set_path_to_apple_JVM(void)
 	string_set_length(base, 0);
 	string_append(base, ij_path("java/macosx"));
 	library_path = "jre/Contents/Home/lib/server/libjvm.dylib";
-	find_newest(base, 1, library_path, result);
-	if (result->length) {
+	find_newest(base, 1, library_path, jvm);
+	if (jvm->length) {
 		set_library_path(library_path + strlen("jre/Contents/Home/"));
-		string_append(result, "/jre/Contents/Home/");
-		if (debug) error("[APPLE] Discovered bundled JRE: '%s'", result->buffer);
-		set_java_home(result->buffer);
+		string_append(jvm, "/jre/Contents/Home/");
+		if (debug) error("[APPLE] Discovered bundled JRE: '%s'", jvm->buffer);
+		set_java_home(jvm->buffer);
 		string_release(base);
 		return 1;
 	}
@@ -455,12 +455,12 @@ int set_path_to_apple_JVM(void)
 	string_set_length(base, 0);
 	string_append(base, "/Library/Java/JavaVirtualMachines");
 	library_path = "Contents/Home/jre/lib/server/libjvm.dylib";
-	find_newest(base, 1, library_path, result);
-	if (result->length) {
+	find_newest(base, 1, library_path, jvm);
+	if (jvm->length) {
 		set_library_path(library_path + strlen("Contents/Home/jre/"));
-		string_append(result, "/Contents/Home/");
-		if (debug) error("[APPLE] Discovered modern JDK: '%s'", result->buffer);
-		set_java_home(result->buffer);
+		string_append(jvm, "/Contents/Home/");
+		if (debug) error("[APPLE] Discovered modern JDK: '%s'", jvm->buffer);
+		set_java_home(jvm->buffer);
 		string_release(base);
 		return 1;
 	}
@@ -468,12 +468,12 @@ int set_path_to_apple_JVM(void)
 	string_set_length(base, 0);
 	string_append(base, "/Library/Internet Plug-Ins/JavaAppletPlugin.plugin");
 	library_path = "Contents/Home/lib/server/libjvm.dylib";
-	find_newest(base, 1, library_path, result);
-	if (result->length) {
+	find_newest(base, 1, library_path, jvm);
+	if (jvm->length) {
 		set_library_path(library_path + strlen("Contents/Home/"));
-		string_append(result, "/Contents/Home/");
-		if (debug) error("[APPLE] Discovered modern JRE: '%s'", result->buffer);
-		set_java_home(result->buffer);
+		string_append(jvm, "/Contents/Home/");
+		if (debug) error("[APPLE] Discovered modern JRE: '%s'", jvm->buffer);
+		set_java_home(jvm->buffer);
 		string_release(base);
 		return 1;
 	}
@@ -484,14 +484,14 @@ int set_path_to_apple_JVM(void)
 		library_path = "Contents/Home/../Libraries/libserver.dylib";
 	else
 		library_path = "Contents/Home/../Libraries/libjvm.dylib";
-	find_newest(base, 1, library_path, result);
-	if (result->length) {
+	find_newest(base, 1, library_path, jvm);
+	if (jvm->length) {
 		set_library_path(library_path + strlen("Contents/Home/"));
-		string_append(result, "/Contents/Home/");
+		string_append(jvm, "/Contents/Home/");
 		if (debug) {
-			error("[APPLE] Discovered JavaVM framework: '%s'", result->buffer);
+			error("[APPLE] Discovered JavaVM framework: '%s'", jvm->buffer);
 		}
-		set_java_home(result->buffer);
+		set_java_home(jvm->buffer);
 		string_release(base);
 		return 1;
 	}
