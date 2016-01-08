@@ -430,85 +430,85 @@ int set_path_to_apple_JVM(void)
 		if (debug) error("[APPLE] Found com.apple.JavaVM bundle");
 	}
 	else {
-		const char *java_path = ij_path("java/macosx");
-		struct string *base = string_copy(java_path);
-		struct string *result = string_init(32);
-		const char *library_path;
+	const char *java_path = ij_path("java/macosx");
+	struct string *base = string_copy(java_path);
+	struct string *result = string_init(32);
+	const char *library_path;
 
-		if (debug) error("[APPLE] No com.apple.JavaVM bundle found");
+	if (debug) error("[APPLE] No com.apple.JavaVM bundle found");
 
-		/*
-		 * Look for a local Java shipped with ImageJ
-		 *
-		 * NB: This seems redundant with the adjust_java_home_if_necessary
-		 * logic in ImageJ.c. The problem is a lack of encapsulation,
-		 * causing the adjust_java_home_if_necessary to come too late
-		 * if an OS X Java is discovered.
-		 *
-		 * It would be ideal to detangle this logic to check:
-		 * 1) local java
-		 * 2) java home
-		 * 3) apple java
-		 * 4) anything else
-		 */
-		library_path = "jre/Contents/Home/lib/server/libjvm.dylib";
-		find_newest(base, 1, library_path, result);
-		if (result->length) {
-			set_library_path(library_path + strlen("jre/Contents/Home/"));
-			string_append(result, "/jre/Contents/Home/");
-			if (debug) error("[APPLE] Discovered bundled JRE: '%s'", result->buffer);
-			set_java_home(result->buffer);
-			string_release(base);
-			return 1;
-		}
-
-		string_set_length(base, 0);
-		string_append(base, "/Library/Java/JavaVirtualMachines");
-		library_path = "Contents/Home/jre/lib/server/libjvm.dylib";
-		find_newest(base, 1, library_path, result);
-		if (result->length) {
-			set_library_path(library_path + strlen("Contents/Home/jre/"));
-			string_append(result, "/Contents/Home/");
-			if (debug) error("[APPLE] Discovered modern JDK: '%s'", result->buffer);
-			set_java_home(result->buffer);
-			string_release(base);
-			return 1;
-		}
-
-		string_set_length(base, 0);
-		string_append(base, "/Library/Internet Plug-Ins/JavaAppletPlugin.plugin");
-		library_path = "Contents/Home/lib/server/libjvm.dylib";
-		find_newest(base, 1, library_path, result);
-		if (result->length) {
-			set_library_path(library_path + strlen("Contents/Home/"));
-			string_append(result, "/Contents/Home/");
-			if (debug) error("[APPLE] Discovered modern JRE: '%s'", result->buffer);
-			set_java_home(result->buffer);
-			string_release(base);
-			return 1;
-		}
-
-		string_set_length(base, 0);
-		string_append(base, "/System/Library/Java/JavaVirtualMachines");
-		if (sizeof(void *) > 4)
-			library_path = "Contents/Home/../Libraries/libserver.dylib";
-		else
-			library_path = "Contents/Home/../Libraries/libjvm.dylib";
-		find_newest(base, 1, library_path, result);
-		if (result->length) {
-			set_library_path(library_path + strlen("Contents/Home/"));
-			string_append(result, "/Contents/Home/");
-			if (debug) {
-				error("[APPLE] Discovered JavaVM framework: '%s'", result->buffer);
-			}
-			set_java_home(result->buffer);
-			string_release(base);
-			return 1;
-		}
-
+	/*
+	 * Look for a local Java shipped with ImageJ
+	 *
+	 * NB: This seems redundant with the adjust_java_home_if_necessary
+	 * logic in ImageJ.c. The problem is a lack of encapsulation,
+	 * causing the adjust_java_home_if_necessary to come too late
+	 * if an OS X Java is discovered.
+	 *
+	 * It would be ideal to detangle this logic to check:
+	 * 1) local java
+	 * 2) java home
+	 * 3) apple java
+	 * 4) anything else
+	 */
+	library_path = "jre/Contents/Home/lib/server/libjvm.dylib";
+	find_newest(base, 1, library_path, result);
+	if (result->length) {
+		set_library_path(library_path + strlen("jre/Contents/Home/"));
+		string_append(result, "/jre/Contents/Home/");
+		if (debug) error("[APPLE] Discovered bundled JRE: '%s'", result->buffer);
+		set_java_home(result->buffer);
 		string_release(base);
-		fprintf(stderr, "Warning: could not find Java bundle\n");
-		return 3;
+		return 1;
+	}
+
+	string_set_length(base, 0);
+	string_append(base, "/Library/Java/JavaVirtualMachines");
+	library_path = "Contents/Home/jre/lib/server/libjvm.dylib";
+	find_newest(base, 1, library_path, result);
+	if (result->length) {
+		set_library_path(library_path + strlen("Contents/Home/jre/"));
+		string_append(result, "/Contents/Home/");
+		if (debug) error("[APPLE] Discovered modern JDK: '%s'", result->buffer);
+		set_java_home(result->buffer);
+		string_release(base);
+		return 1;
+	}
+
+	string_set_length(base, 0);
+	string_append(base, "/Library/Internet Plug-Ins/JavaAppletPlugin.plugin");
+	library_path = "Contents/Home/lib/server/libjvm.dylib";
+	find_newest(base, 1, library_path, result);
+	if (result->length) {
+		set_library_path(library_path + strlen("Contents/Home/"));
+		string_append(result, "/Contents/Home/");
+		if (debug) error("[APPLE] Discovered modern JRE: '%s'", result->buffer);
+		set_java_home(result->buffer);
+		string_release(base);
+		return 1;
+	}
+
+	string_set_length(base, 0);
+	string_append(base, "/System/Library/Java/JavaVirtualMachines");
+	if (sizeof(void *) > 4)
+		library_path = "Contents/Home/../Libraries/libserver.dylib";
+	else
+		library_path = "Contents/Home/../Libraries/libjvm.dylib";
+	find_newest(base, 1, library_path, result);
+	if (result->length) {
+		set_library_path(library_path + strlen("Contents/Home/"));
+		string_append(result, "/Contents/Home/");
+		if (debug) {
+			error("[APPLE] Discovered JavaVM framework: '%s'", result->buffer);
+		}
+		set_java_home(result->buffer);
+		string_release(base);
+		return 1;
+	}
+
+	string_release(base);
+	fprintf(stderr, "Warning: could not find Java bundle\n");
+	return 3;
 	}
 
 	/* Get a path for the JavaVM bundle. */
