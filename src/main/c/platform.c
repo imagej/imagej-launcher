@@ -422,11 +422,74 @@ int set_path_to_apple_JVM(void)
 		return 2;
 	}
 
+	/* Ask Apple's java_home executable for its preferred Java 8+ VM. */
+	FILE *javaHomeHandle = popen("/usr/libexec/java_home -F -v 1.8+", "r");
+	char prefJVM[1035];
+	int foundPreferredJVM = 0;
+	if (javaHomeHandle) {
+		/* Read stdout of the java_home process. */
+		while (fgets(prefJVM, sizeof(prefJVM) - 1, javaHomeHandle) != NULL);
+		pclose(javaHomeHandle);
+
+		if (strlen(prefJVM) <= 1) {
+			if (debug) error("[APPLE] No preferred JVM found.");
+		}
+		else if (access(prefJVM, R_OK)) {
+			/*
+			 * Strip newlines.
+			 *
+			 * Credit to Tim Cas: http://stackoverflow.com/a/28462221
+			 *
+			 * NB: If we do this before calling 'access' then the check fails!
+			 */
+			prefJVM[strcspn(prefJVM, "\r\n")] = 0;
+
+			if (debug) error("[APPLE] Found preferred JVM: '%s'", prefJVM);
+			foundPreferredJVM = 1;
+		}
+		else if (debug) {
+			error("[APPLE] Ignoring non-existent preferred JVM: '%s'", prefJVM);
+		}
+	}
+
 	/* We are now ready to search for Java installations! */
 
 	struct string *base = string_init(32);
 	struct string *jvm = string_init(32);
 	const char *library_path;
+
+	/*
+	 * Check the preferred JVM discovered above, if available.
+	 */
+	if (foundPreferredJVM) {
+		string_set_length(base, 0);
+		string_append(base, prefJVM);
+		library_path = "jre/lib/server/libjvm.dylib";
+		if (debug) error("[APPLE] Looking at the preferred JVM as a JDK");
+		find_newest(base, 1, library_path, jvm);
+		if (jvm->length) {
+			set_library_path(library_path + strlen("jre/"));
+			string_append(jvm, "/jre/");
+			if (debug) error("[APPLE] Using preferred JDK: '%s'", jvm->buffer);
+			set_java_home(jvm->buffer);
+			string_release(base);
+			return 1;
+		}
+
+		library_path = "lib/server/libjvm.dylib";
+		if (debug) error("[APPLE] Looking at the preferred JVM as a JRE");
+		find_newest(base, 1, library_path, jvm);
+		if (jvm->length) {
+			set_library_path(library_path);
+			string_append(jvm, "/");
+			if (debug) error("[APPLE] Using preferred JRE: '%s'", jvm->buffer);
+			set_java_home(jvm->buffer);
+			string_release(base);
+			return 1;
+		}
+
+		if (debug) error("[APPLE] Ignoring invalid preferred JVM: '%s'", prefJVM);
+	}
 
 	/*
 	 * Look for a local Java shipped with ImageJ in ${ij.dir}/java/macosx
