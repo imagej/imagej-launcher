@@ -431,19 +431,17 @@ int set_path_to_apple_JVM(void)
 		while (fgets(prefJVM, sizeof(prefJVM) - 1, javaHomeHandle) != NULL);
 		pclose(javaHomeHandle);
 
-		if (strlen(prefJVM) <= 1) {
+		/*
+		 * Strip newlines.
+		 *
+		 * Credit to Tim Cas: http://stackoverflow.com/a/28462221
+		 */
+		prefJVM[strcspn(prefJVM, "\r\n")] = 0;
+
+		if (strlen(prefJVM) <= 0) {
 			if (debug) error("[APPLE] No preferred JVM found.");
 		}
-		else if (access(prefJVM, R_OK)) {
-			/*
-			 * Strip newlines.
-			 *
-			 * Credit to Tim Cas: http://stackoverflow.com/a/28462221
-			 *
-			 * NB: If we do this before calling 'access' then the check fails!
-			 */
-			prefJVM[strcspn(prefJVM, "\r\n")] = 0;
-
+		else if (file_exists(prefJVM)) {
 			if (debug) error("[APPLE] Found preferred JVM: '%s'", prefJVM);
 			foundPreferredJVM = 1;
 		}
