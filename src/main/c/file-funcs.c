@@ -38,8 +38,6 @@
 
 #include <sys/stat.h>
 
-extern int debug;
-
 int find_file(struct string *search_root, int max_depth, const char *file, struct string *result)
 {
 	int len = search_root->length;
@@ -495,14 +493,35 @@ void find_newest(struct string *path, int max_depth, const char *file, struct st
 	DIR *directory;
 	struct dirent *entry;
 
+	if (debug) error("find_newest: searching '%s' for '%s'", path->buffer, file);
+
 	if (!len || path->buffer[len - 1] != '/')
 		string_add_char(path, '/');
 
 	string_append(path, file);
-	if (file_exists(path->buffer) && is_native_library(path->buffer)) {
-		string_set_length(path, len);
-		if (!result->length || file_is_newer(path->buffer, result->buffer))
-			string_set(result, path->buffer);
+	if (file_exists(path->buffer)) {
+		if (is_native_library(path->buffer)) {
+			string_set_length(path, len);
+			if (!result->length) {
+				if (debug) error("find_newest: found a candidate: '%s'", path->buffer);
+				string_set(result, path->buffer);
+			}
+			else if (file_is_newer(path->buffer, result->buffer)) {
+				if (debug) {
+					error("find_newest: found newer candidate: '%s'", path->buffer);
+				}
+				string_set(result, path->buffer);
+			}
+			else if (debug) {
+				error("find_newest: rejected older candidate: '%s'", path->buffer);
+			}
+		}
+		else if (debug) {
+			error("find_newest: not a native library: '%s'", path->buffer);
+		}
+	}
+	else if (debug) {
+		error("find_newest: file not found: '%s'", path->buffer);
 	}
 
 	if (max_depth <= 0)

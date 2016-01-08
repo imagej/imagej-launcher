@@ -43,7 +43,6 @@ static const char *relative_java_home;
 static const char *library_path;
 static const char *default_library_path;
 static struct string *legacy_jre_path;
-extern int debug;
 
 const char *get_java_command(void)
 {

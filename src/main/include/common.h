@@ -80,6 +80,14 @@ extern void win_verror(const char *fmt, va_list ap);
 #define PATH_MAX 1024
 #endif
 
+/* Global functions */
+extern int start_ij(void);
+
+/* Global variables */
+extern int debug;
+extern int info;
+extern int retrotranslator;
+
 static inline int prefixcmp(const char *string, const char *prefix)
 {
 	return strncmp(string, prefix, strlen(prefix));

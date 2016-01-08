@@ -39,7 +39,6 @@
 
 static int no_splash;
 static void (*SplashClose)(void);
-extern int debug;
 
 void disable_splash(void)
 {

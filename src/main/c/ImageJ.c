@@ -79,8 +79,11 @@
 
 static const char *default_fiji1_class = "fiji.Main";
 static const char *default_main_class = "net.imagej.Main";
-int retrotranslator;
-int debug, info;
+
+/* Define global variables declared in common.h */
+int debug = 0;
+int info = 0;
+int retrotranslator = 0;
 
 static const char *legacy_ij1_class = "ij.ImageJ";
 
@@ -1339,8 +1342,9 @@ static int handle_one_option2(int *i, int argc, const char **argv)
 {
 	if (!strcmp(argv[*i], "--dry-run"))
 		options.dry_run++;
-	else if (!strcmp(argv[*i], "--debug"))
+	else if (!strcmp(argv[*i], "--debug")) {
 		debug++;
+	}
 	else if (!strcmp(argv[*i], "--info"))
 		info++;
 	else if (handle_one_option(i, argv, "--java-home", &arg)) {
@@ -2413,6 +2417,13 @@ static void adjust_java_home_if_necessary(void)
 int main(int argc, char **argv, char **e)
 {
 	int size;
+
+	/*
+	 * NB: Set the debug mode as early as possible when DEBUG is set.
+	 * Without this, the --debug CLI flag parsing happens too late
+	 * to see debugging output such as JVM detection on OS X.
+	 */
+	if (getenv("DEBUG")) debug++;
 
 	if (!suffixcmp(argv[0], -1, "debug.exe") ||
 			!suffixcmp(argv[0], -1, "debug")) {

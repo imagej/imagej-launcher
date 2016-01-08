@@ -41,9 +41,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-extern int debug;
-extern int retrotranslator;
-
 /* A wrapper for setenv that exits on error */
 void setenv_or_exit(const char *name, const char *value, int overwrite)
 {
@@ -140,11 +137,41 @@ static int MAYBE_UNUSED is_dylib(const char *path)
 	}
 
 	close(in);
+
+	/*
+	 * mach-o header parsing
+	 *
+	 * check cafebabe and feedface
+	 */
 	if (buffer[0] == 0xca && buffer[1] == 0xfe && buffer[2] == 0xba &&
 			buffer[3] == 0xbe && buffer[4] == 0x00 &&
 			buffer[5] == 0x00 && buffer[6] == 0x00 &&
 			(buffer[7] >= 1 && buffer[7] < 20))
 		return 32 | 64; /* might be a fat one, containing both */
+
+	/*
+	 * check both endians for feedface
+	 */
+	if ((buffer[0] == 0xcf &&
+			buffer[1] == 0xfa &&
+			buffer[2] == 0xed &&
+			buffer[3] == 0xfe) ||
+			(buffer[0] == 0xfe &&
+			buffer[1] == 0xed &&
+			buffer[2] == 0xfa &&
+			buffer[3] == 0xcf))
+		return 64;
+
+	if ((buffer[0] == 0xce &&
+			buffer[1] == 0xfa &&
+			buffer[2] == 0xed &&
+			buffer[3] == 0xfe) ||
+			(buffer[0] == 0xfe &&
+			buffer[1] == 0xed &&
+			buffer[2] == 0xfa &&
+			buffer[3] == 0xce))
+		return 32;
+
 	return 0;
 }
 
@@ -389,59 +416,182 @@ int set_path_to_apple_JVM(void)
 
 	if (get_java_home_env()) {
 		/* JAVA_HOME is set, and must point to a *non-Apple* JVM. */
+		if (debug) {
+			error("[APPLE] JAVA_HOME variable is set: '%s'", get_java_home_env());
+		}
 		return 2;
 	}
 
-	/* Look for the JavaVM bundle using its identifier. */
+	/* Ask Apple's java_home executable for its preferred Java 8+ VM. */
+	FILE *javaHomeHandle = popen("/usr/libexec/java_home -F -v 1.8+", "r");
+	char prefJVM[1035];
+	int foundPreferredJVM = 0;
+	if (javaHomeHandle) {
+		/* Read stdout of the java_home process. */
+		while (fgets(prefJVM, sizeof(prefJVM) - 1, javaHomeHandle) != NULL);
+		pclose(javaHomeHandle);
+
+		if (strlen(prefJVM) <= 1) {
+			if (debug) error("[APPLE] No preferred JVM found.");
+		}
+		else if (access(prefJVM, R_OK)) {
+			/*
+			 * Strip newlines.
+			 *
+			 * Credit to Tim Cas: http://stackoverflow.com/a/28462221
+			 *
+			 * NB: If we do this before calling 'access' then the check fails!
+			 */
+			prefJVM[strcspn(prefJVM, "\r\n")] = 0;
+
+			if (debug) error("[APPLE] Found preferred JVM: '%s'", prefJVM);
+			foundPreferredJVM = 1;
+		}
+		else if (debug) {
+			error("[APPLE] Ignoring non-existent preferred JVM: '%s'", prefJVM);
+		}
+	}
+
+	/* We are now ready to search for Java installations! */
+
+	struct string *base = string_init(32);
+	struct string *jvm = string_init(32);
+	const char *library_path;
+
+	/*
+	 * Check the preferred JVM discovered above, if available.
+	 */
+	if (foundPreferredJVM) {
+		string_set_length(base, 0);
+		string_append(base, prefJVM);
+		library_path = "jre/lib/server/libjvm.dylib";
+		if (debug) error("[APPLE] Looking at the preferred JVM as a JDK");
+		find_newest(base, 1, library_path, jvm);
+		if (jvm->length) {
+			set_library_path(library_path + strlen("jre/"));
+			string_append(jvm, "/jre/");
+			if (debug) error("[APPLE] Using preferred JDK: '%s'", jvm->buffer);
+			set_java_home(jvm->buffer);
+			string_release(base);
+			return 1;
+		}
+
+		library_path = "lib/server/libjvm.dylib";
+		if (debug) error("[APPLE] Looking at the preferred JVM as a JRE");
+		find_newest(base, 1, library_path, jvm);
+		if (jvm->length) {
+			set_library_path(library_path);
+			string_append(jvm, "/");
+			if (debug) error("[APPLE] Using preferred JRE: '%s'", jvm->buffer);
+			set_java_home(jvm->buffer);
+			string_release(base);
+			return 1;
+		}
+
+		if (debug) error("[APPLE] Ignoring invalid preferred JVM: '%s'", prefJVM);
+	}
+
+	/*
+	 * Look for a local Java shipped with ImageJ in ${ij.dir}/java/macosx
+	 */
+	string_set_length(base, 0);
+	string_append(base, ij_path("java/macosx"));
+	library_path = "jre/Contents/Home/lib/server/libjvm.dylib";
+	if (debug) error("[APPLE] Looking for a local Java");
+	find_newest(base, 1, library_path, jvm);
+	if (jvm->length) {
+		set_library_path(library_path + strlen("jre/Contents/Home/"));
+		string_append(jvm, "/jre/Contents/Home/");
+		if (debug) error("[APPLE] Discovered bundled JRE: '%s'", jvm->buffer);
+		set_java_home(jvm->buffer);
+		string_release(base);
+		return 1;
+	}
+
+	/*
+	 * Look for a JDK in /Library/Java/JavaVirtualMachines
+	 *
+	 * This is the JDK from java.oracle.com.
+	 */
+	string_set_length(base, 0);
+	string_append(base, "/Library/Java/JavaVirtualMachines");
+	library_path = "Contents/Home/jre/lib/server/libjvm.dylib";
+	if (debug) error("[APPLE] Looking for a modern JDK");
+	find_newest(base, 1, library_path, jvm);
+	if (jvm->length) {
+		set_library_path(library_path + strlen("Contents/Home/jre/"));
+		string_append(jvm, "/Contents/Home/");
+		if (debug) error("[APPLE] Discovered modern JDK: '%s'", jvm->buffer);
+		set_java_home(jvm->buffer);
+		string_release(base);
+		return 1;
+	}
+
+	/*
+	 * Look for JRE in /Library/Internet Plug-Ins/JavaAppletPlugin.plugin
+	 *
+	 * This is the JRE from the java.com installer.
+	 */
+	string_set_length(base, 0);
+	string_append(base, "/Library/Internet Plug-Ins/JavaAppletPlugin.plugin");
+	library_path = "Contents/Home/lib/server/libjvm.dylib";
+	if (debug) error("[APPLE] Looking for a modern JRE");
+	find_newest(base, 1, library_path, jvm);
+	if (jvm->length) {
+		set_library_path(library_path + strlen("Contents/Home/"));
+		string_append(jvm, "/Contents/Home/");
+		if (debug) error("[APPLE] Discovered modern JRE: '%s'", jvm->buffer);
+		set_java_home(jvm->buffer);
+		string_release(base);
+		return 1;
+	}
+
+	/**
+	 * Look for old-style JDK in /System/Library/Java/JavaVirtualMachines
+	 * This is also known as an Apple JavaVM Framework.
+	 *
+	 * This is the legacy Apple JDK shipped with older systems. Note that
+	 * when reinstalling Java from https://support.apple.com/downloads/java,
+	 * it is placed in /Library/Java/JavaVirtualMachines with the others.
+	 */
+	string_set_length(base, 0);
+	string_append(base, "/System/Library/Java/JavaVirtualMachines");
+	if (sizeof(void *) > 4)
+		library_path = "Contents/Home/../Libraries/libserver.dylib";
+	else
+		library_path = "Contents/Home/../Libraries/libjvm.dylib";
+	if (debug) error("[APPLE] Looking for a JavaVM framework");
+	find_newest(base, 1, library_path, jvm);
+	if (jvm->length) {
+		set_library_path(library_path + strlen("Contents/Home/"));
+		string_append(jvm, "/Contents/Home/");
+		if (debug) {
+			error("[APPLE] Discovered JavaVM framework: '%s'", jvm->buffer);
+		}
+		set_java_home(jvm->buffer);
+		string_release(base);
+		return 1;
+	}
+
+	/* Clean up. */
+	string_release(base);
+	string_release(jvm);
+
+	/*
+	 * Couldn't find a JDK or JRE or anywhere.
+	 *
+	 * So let's fall back to Apple's API, looking
+	 * for the JavaVM bundle using its identifier.
+	 */
+	if (debug) error("[APPLE] Looking for a JavaVM bundle");
 	CFBundleRef JavaVMBundle =
 		CFBundleGetBundleWithIdentifier(CFSTR("com.apple.JavaVM"));
-
-	if (!JavaVMBundle) {
-		struct string *base = string_copy("/Library/Java/JavaVirtualMachines");
-		struct string *result = string_init(32);
-		const char *library_path;
-
-		library_path = "Contents/Home/jre/lib/server/libjvm.dylib";
-		find_newest(base, 1, library_path, result);
-		if (result->length) {
-			set_library_path(library_path + strlen("Contents/Home/jre/"));
-			string_append(result, "/Contents/Home/");
-			if (debug) error("Discovered modern JDK: '%s'", result->buffer);
-			set_java_home(result->buffer);
-			string_release(base);
-			return 1;
-		}
-
-		string_set_length(base, 0);
-		string_append(base, "/Library/Internet Plug-Ins/JavaAppletPlugin.plugin");
-		library_path = "Contents/Home/lib/server/libjvm.dylib";
-		find_newest(base, 1, library_path, result);
-		if (result->length) {
-			set_library_path(library_path + strlen("Contents/Home/"));
-			string_append(result, "/Contents/Home/");
-			if (debug) error("Discovered modern JRE: '%s'", result->buffer);
-			set_java_home(result->buffer);
-			string_release(base);
-			return 1;
-		}
-
-		string_set_length(base, 0);
-		string_append(base, "/System/Library/Java/JavaVirtualMachines");
-		if (sizeof(void *) > 4)
-			library_path = "Contents/Home/../Libraries/libserver.dylib";
-		else
-			library_path = "Contents/Home/../Libraries/libjvm.dylib";
-		find_newest(base, 1, library_path, result);
-		if (result->length) {
-			set_library_path(library_path + strlen("Contents/Home/"));
-			string_append(result, "/Contents/Home/");
-			if (debug) error("Discovered JavaVM framework: '%s'", result->buffer);
-			set_java_home(result->buffer);
-			string_release(base);
-			return 1;
-		}
-
-		string_release(base);
+	if (JavaVMBundle) {
+		if (debug) error("[APPLE] Found com.apple.JavaVM bundle");
+	}
+	else {
+		/* All searches failed, and no JavaVMBundle. Give up. */
+		if (debug) error("[APPLE] No com.apple.JavaVM bundle found");
 		fprintf(stderr, "Warning: could not find Java bundle\n");
 		return 3;
 	}
@@ -474,10 +624,14 @@ int set_path_to_apple_JVM(void)
 	/* TODO: disable this test on 10.6+ */
 	/* Try 1.6 only with 64-bit */
 	if (is_intel() && sizeof(void *) > 4) {
+		if (debug) error("[APPLE] Detected 64-bit Intel machine");
 		targetJVM = CFSTR("1.6");
 		TargetJavaVM =
 			CFURLCreateCopyAppendingPathComponent(kCFAllocatorDefault,
 				JavaVMBundlerVersionsDirURL, targetJVM, 1);
+		if (debug && cfurl_dir_exists(TargetJavaVM)) {
+			print_cfurl("[APPLE] Found Apple Java VM 1.6", TargetJavaVM);
+		}
 	}
 
 	int needs_retrotranslator = 0;
@@ -488,6 +642,9 @@ int set_path_to_apple_JVM(void)
 		TargetJavaVM =
 			CFURLCreateCopyAppendingPathComponent(kCFAllocatorDefault,
 				JavaVMBundlerVersionsDirURL, targetJVM, 1);
+		if (debug && cfurl_dir_exists(TargetJavaVM)) {
+			print_cfurl("[APPLE] Found Apple Java VM 1.5", TargetJavaVM);
+		}
 	}
 
 	if (!cfurl_dir_exists(TargetJavaVM)) {
@@ -498,6 +655,9 @@ int set_path_to_apple_JVM(void)
 			CFURLCreateCopyAppendingPathComponent(kCFAllocatorDefault,
 				JavaVMBundlerVersionsDirURL, targetJVM, 1);
 		if (cfurl_dir_exists(TargetJavaVM)) {
+			if (debug) {
+				print_cfurl("[APPLE] Found default Apple Java VM", TargetJavaVM);
+			}
 			/**
 			 * Folder found; return success without setting JAVA_JVM_VERSION.
 			 *
@@ -512,9 +672,6 @@ int set_path_to_apple_JVM(void)
 	if (!cfurl_dir_exists(TargetJavaVM)) {
 		fprintf(stderr, "Warning: Could not locate compatible Apple Java VM\n");
 		return 11;
-	}
-	else if (debug) {
-		print_cfurl("TargetJavaVM", TargetJavaVM);
 	}
 
 	UInt8 pathToTargetJVM[PATH_MAX] = "";
@@ -633,8 +790,6 @@ int get_fiji_bundle_variable(const char *key, struct string *value)
 
 static void dummy_call_back(void *info) {
 }
-
-extern int start_ij(void);
 
 static void *start_ij_aux(void *dummy)
 {
