@@ -422,6 +422,8 @@ int set_path_to_apple_JVM(void)
 		return 2;
 	}
 
+	/* We are now ready to search for Java installations! */
+
 	struct string *base = string_init(32);
 	struct string *jvm = string_init(32);
 	const char *library_path;
@@ -432,6 +434,7 @@ int set_path_to_apple_JVM(void)
 	string_set_length(base, 0);
 	string_append(base, ij_path("java/macosx"));
 	library_path = "jre/Contents/Home/lib/server/libjvm.dylib";
+	if (debug) error("[APPLE] Looking for a local Java");
 	find_newest(base, 1, library_path, jvm);
 	if (jvm->length) {
 		set_library_path(library_path + strlen("jre/Contents/Home/"));
@@ -442,9 +445,15 @@ int set_path_to_apple_JVM(void)
 		return 1;
 	}
 
+	/*
+	 * Look for a JDK in /Library/Java/JavaVirtualMachines
+	 *
+	 * This is the JDK from java.oracle.com.
+	 */
 	string_set_length(base, 0);
 	string_append(base, "/Library/Java/JavaVirtualMachines");
 	library_path = "Contents/Home/jre/lib/server/libjvm.dylib";
+	if (debug) error("[APPLE] Looking for a modern JDK");
 	find_newest(base, 1, library_path, jvm);
 	if (jvm->length) {
 		set_library_path(library_path + strlen("Contents/Home/jre/"));
@@ -455,9 +464,15 @@ int set_path_to_apple_JVM(void)
 		return 1;
 	}
 
+	/*
+	 * Look for JRE in /Library/Internet Plug-Ins/JavaAppletPlugin.plugin
+	 *
+	 * This is the JRE from the java.com installer.
+	 */
 	string_set_length(base, 0);
 	string_append(base, "/Library/Internet Plug-Ins/JavaAppletPlugin.plugin");
 	library_path = "Contents/Home/lib/server/libjvm.dylib";
+	if (debug) error("[APPLE] Looking for a modern JRE");
 	find_newest(base, 1, library_path, jvm);
 	if (jvm->length) {
 		set_library_path(library_path + strlen("Contents/Home/"));
@@ -468,12 +483,21 @@ int set_path_to_apple_JVM(void)
 		return 1;
 	}
 
+	/**
+	 * Look for old-style JDK in /System/Library/Java/JavaVirtualMachines
+	 * This is also known as an Apple JavaVM Framework.
+	 *
+	 * This is the legacy Apple JDK shipped with older systems. Note that
+	 * when reinstalling Java from https://support.apple.com/downloads/java,
+	 * it is placed in /Library/Java/JavaVirtualMachines with the others.
+	 */
 	string_set_length(base, 0);
 	string_append(base, "/System/Library/Java/JavaVirtualMachines");
 	if (sizeof(void *) > 4)
 		library_path = "Contents/Home/../Libraries/libserver.dylib";
 	else
 		library_path = "Contents/Home/../Libraries/libjvm.dylib";
+	if (debug) error("[APPLE] Looking for a JavaVM framework");
 	find_newest(base, 1, library_path, jvm);
 	if (jvm->length) {
 		set_library_path(library_path + strlen("Contents/Home/"));
@@ -486,6 +510,7 @@ int set_path_to_apple_JVM(void)
 		return 1;
 	}
 
+	/* Clean up. */
 	string_release(base);
 
 	/*
