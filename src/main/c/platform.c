@@ -512,6 +512,7 @@ int set_path_to_apple_JVM(void)
 
 	/* Clean up. */
 	string_release(base);
+	string_release(jvm);
 
 	/*
 	 * Couldn't find a JDK or JRE or anywhere.
