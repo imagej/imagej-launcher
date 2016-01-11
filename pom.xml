@@ -10,7 +10,7 @@
 	</parent>
 
 	<artifactId>imagej-launcher</artifactId>
-	<version>4.0.1-SNAPSHOT</version>
+	<version>4.0.1</version>
 	<packaging>nar</packaging>
 
 	<name>ImageJ Launcher</name>
@@ -139,11 +139,11 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 							<tasks>
 								<copy tofile="${basedir}${file.separator}target${file.separator}${ij.executable.name}">
 									<fileset dir="${basedir}${file.separator}target${file.separator}nar${file.separator}">
-										<include name="**${file.separator}*${file.separator}bin${file.separator}${nar.arch.path}-*${file.separator}imagej-launcher*"/>
+										<include name="**${file.separator}*${file.separator}bin${file.separator}${nar.arch.path}-*${file.separator}imagej-launcher*" />
 									</fileset>
-									<mapper type="flatten"/>
+									<mapper type="flatten" />
 								</copy>
-								<chmod file="${basedir}${file.separator}target${file.separator}${ij.executable.name}" perm="a+x"/>
+								<chmod file="${basedir}${file.separator}target${file.separator}${ij.executable.name}" perm="a+x" />
 							</tasks>
 						</configuration>
 					</execution>
@@ -202,7 +202,7 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 	<scm>
 		<connection>scm:git:git://github.com/imagej/imagej-launcher</connection>
 		<developerConnection>scm:git:git@github.com:imagej/imagej-launcher</developerConnection>
-		<tag>HEAD</tag>
+		<tag>imagej-launcher-4.0.1</tag>
 		<url>https://github.com/imagej/imagej-launcher</url>
 	</scm>
 
