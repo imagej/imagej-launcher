@@ -20,6 +20,7 @@
 		<architecture.option />
 		<debug.option />
 		<ij.executable.name />
+		<nar.arch.path />
 		<java.os.include />
 		<libdl.name>dl</libdl.name>
 		<skipTests>true</skipTests>
@@ -138,7 +139,7 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 							<tasks>
 								<copy tofile="${basedir}/target/${ij.executable.name}">
 									<fileset dir="${basedir}/target/nar/">
-										<include name="**/imagej-launcher"/>
+										<include name="**/*/bin/${nar.arch.path}-*/imagej-launcher"/>
 									</fileset>
 									<mapper type="flatten"/>
 								</copy>
@@ -219,6 +220,7 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 				<stack.protector.option>-fno-stack-protector</stack.protector.option>
 				<architecture.option>-m64</architecture.option>
 				<ij.executable.name>ImageJ-linux64</ij.executable.name>
+				<nar.arch.path>amd64</nar.arch.path>
 			</properties>
 			<build>
 				<plugins>
@@ -255,6 +257,7 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 				<stack.protector.option>-fno-stack-protector</stack.protector.option>
 				<architecture.option>-m32</architecture.option>
 				<ij.executable.name>ImageJ-linux32</ij.executable.name>
+				<nar.arch.path>i386</nar.arch.path>
 			</properties>
 			<build>
 				<plugins>
@@ -292,6 +295,7 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 				<subsystem.option>-mwindows</subsystem.option>
 				<libdl.name>kernel32</libdl.name>
 				<ij.executable.name>ImageJ-win32.exe</ij.executable.name>
+				<nar.arch.path>x86</nar.arch.path>
 			</properties>
 		</profile>
 
@@ -309,6 +313,7 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 				<subsystem.option>-mwindows</subsystem.option>
 				<libdl.name>kernel32</libdl.name>
 				<ij.executable.name>ImageJ-win64.exe</ij.executable.name>
+				<nar.arch.path>amd64</nar.arch.path>
 			</properties>
 		</profile>
 
@@ -321,6 +326,7 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 			</activation>
 			<properties>
 				<ij.executable.name>Contents/MacOSX/ImageJ-macosx</ij.executable.name>
+				<nar.arch.path>x86_64</nar.arch.path>
 			</properties>
 		</profile>
 
