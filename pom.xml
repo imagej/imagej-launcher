@@ -137,13 +137,13 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 						</goals>
 						<configuration>
 							<tasks>
-								<copy tofile="${basedir}/target/${ij.executable.name}">
-									<fileset dir="${basedir}/target/nar/">
-										<include name="**/*/bin/${nar.arch.path}-*/imagej-launcher"/>
+								<copy tofile="${basedir}${file.separator}target${file.separator}${ij.executable.name}">
+									<fileset dir="${basedir}${file.separator}target${file.separator}nar${file.separator}">
+										<include name="**${file.separator}*${file.separator}bin${file.separator}${nar.arch.path}-*${file.separator}imagej-launcher"/>
 									</fileset>
 									<mapper type="flatten"/>
 								</copy>
-								<chmod file="${basedir}/target/${ij.executable.name}" perm="a+x"/>
+								<chmod file="${basedir}${file.separator}target${file.separator}${ij.executable.name}" perm="a+x"/>
 							</tasks>
 						</configuration>
 					</execution>
