@@ -139,7 +139,7 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 							<tasks>
 								<copy tofile="${basedir}${file.separator}target${file.separator}${ij.executable.name}">
 									<fileset dir="${basedir}${file.separator}target${file.separator}nar${file.separator}">
-										<include name="**${file.separator}*${file.separator}bin${file.separator}${nar.arch.path}-*${file.separator}imagej-launcher"/>
+										<include name="**${file.separator}*${file.separator}bin${file.separator}${nar.arch.path}-*${file.separator}imagej-launcher*"/>
 									</fileset>
 									<mapper type="flatten"/>
 								</copy>
