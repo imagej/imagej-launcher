@@ -10,7 +10,7 @@
 	</parent>
 
 	<artifactId>imagej-launcher</artifactId>
-	<version>4.0.2-SNAPSHOT</version>
+	<version>4.0.2</version>
 	<packaging>nar</packaging>
 
 	<name>ImageJ Launcher</name>
@@ -177,7 +177,7 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 	<scm>
 		<connection>scm:git:git://github.com/imagej/imagej-launcher</connection>
 		<developerConnection>scm:git:git@github.com:imagej/imagej-launcher</developerConnection>
-		<tag>HEAD</tag>
+		<tag>imagej-launcher-4.0.2</tag>
 		<url>https://github.com/imagej/imagej-launcher</url>
 	</scm>
 
