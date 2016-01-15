@@ -457,7 +457,25 @@ int set_path_to_apple_JVM(void)
 	const char *library_path;
 
 	/*
-	 * Check the preferred JVM discovered above, if available.
+	 * Look for a local Java shipped with ImageJ in ${ij.dir}/java/macosx
+	 */
+	string_set_length(base, 0);
+	string_append(base, ij_path("java/macosx"));
+	library_path = "jre/Contents/Home/lib/server/libjvm.dylib";
+	if (debug) error("[APPLE] Looking for a local Java");
+	find_newest(base, 1, library_path, jvm);
+	if (jvm->length) {
+		set_library_path(library_path + strlen("jre/Contents/Home/"));
+		string_append(jvm, "/jre/Contents/Home/");
+		if (debug) error("[APPLE] Discovered bundled JRE: '%s'", jvm->buffer);
+		set_java_home(jvm->buffer);
+		string_release(base);
+		return 1;
+	}
+
+	/*
+	 * Check the preferred JVM discovered via the java_home
+   * process, if available.
 	 */
 	if (foundPreferredJVM) {
 		string_set_length(base, 0);
@@ -487,23 +505,6 @@ int set_path_to_apple_JVM(void)
 		}
 
 		if (debug) error("[APPLE] Ignoring invalid preferred JVM: '%s'", prefJVM);
-	}
-
-	/*
-	 * Look for a local Java shipped with ImageJ in ${ij.dir}/java/macosx
-	 */
-	string_set_length(base, 0);
-	string_append(base, ij_path("java/macosx"));
-	library_path = "jre/Contents/Home/lib/server/libjvm.dylib";
-	if (debug) error("[APPLE] Looking for a local Java");
-	find_newest(base, 1, library_path, jvm);
-	if (jvm->length) {
-		set_library_path(library_path + strlen("jre/Contents/Home/"));
-		string_append(jvm, "/jre/Contents/Home/");
-		if (debug) error("[APPLE] Discovered bundled JRE: '%s'", jvm->buffer);
-		set_java_home(jvm->buffer);
-		string_release(base);
-		return 1;
 	}
 
 	/*
