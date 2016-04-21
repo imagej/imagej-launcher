@@ -16,6 +16,93 @@
 	<name>ImageJ Launcher</name>
 	<description>The executable which runs ImageJ. Its purpose is also to make sure that updates downloaded by the ImageJ Updater will be put into place before starting the Java Virtual Machine. It was formerly known as the Fiji launcher.</description>
 
+	<developers>
+		<developer>
+			<id>ctrueden</id>
+			<name>Curtis Rueden</name>
+			<url>http://imagej.net/User:Rueden</url>
+			<roles>
+				<role>lead</role>
+				<role>developer</role>
+				<role>debugger</role>
+				<role>reviewer</role>
+				<role>support</role>
+				<role>maintainer</role>
+			</roles>
+		</developer>
+		<developer>
+			<id>hinerm</id>
+			<name>Mark Hiner</name>
+			<url>http://imagej.net/User:Hinerm</url>
+			<roles>
+				<role>lead</role>
+				<role>developer</role>
+				<role>debugger</role>
+				<role>reviewer</role>
+				<role>support</role>
+				<role>maintainer</role>
+			</roles>
+		</developer>
+	</developers>
+	<contributors>
+		<contributor>
+			<name>Johannes Schindelin</name>
+			<url>http://imagej.net/User:Schindelin</url>
+			<properties><id>dscho</id></properties>
+			<roles><role>founder</role></roles>
+		</contributor>
+		<contributor>
+			<name>Ben Booth</name>
+			<url>http://imagej.net/User:Benwbooth</url>
+			<properties><id>benwbooth</id></properties>
+		</contributor>
+		<contributor>
+			<name>Albert Cardona</name>
+			<url>http://imagej.net/User:Albertcardona</url>
+			<properties><id>acardona</id></properties>
+		</contributor>
+		<contributor>
+			<name>Erwin Frise</name>
+			<url>http://imagej.net/User:Frise</url>
+			<properties><id>frederikfly</id></properties>
+		</contributor>
+		<contributor>
+			<name>Gregory Jefferis</name>
+			<url>http://imagej.net/User:Jefferis</url>
+			<properties><id>jefferis</id></properties>
+		</contributor>
+		<contributor>
+			<name>Mark Longair</name>
+			<url>http://imagej.net/User:Mark</url>
+			<properties><id>mhl</id></properties>
+		</contributor>
+		<contributor>
+			<name>Josh Moore</name>
+			<url>http://imagej.net/User:Moore</url>
+			<properties><id>joshmoore</id></properties>
+		</contributor>
+		<contributor>
+			<name>Benjamin Schmid</name>
+			<url>http://imagej.net/User:Bene</url>
+			<properties><id>bene51</id></properties>
+		</contributor>
+	</contributors>
+
+	<scm>
+		<connection>scm:git:git://github.com/imagej/imagej-launcher</connection>
+		<developerConnection>scm:git:git@github.com:imagej/imagej-launcher</developerConnection>
+		<tag>HEAD</tag>
+		<url>https://github.com/imagej/imagej-launcher</url>
+	</scm>
+	<issueManagement>
+		<system>GitHub Issues</system>
+		<url>https://github.com/imagej/imagej-launcher/issues</url>
+	</issueManagement>
+	<ciManagement>
+		<system>Jenkins</system>
+		<url>http://jenkins.imagej.net/job/ImageJ-launcher/</url>
+	</ciManagement>
+
 	<properties>
 		<architecture.option />
 		<debug.option />
@@ -126,96 +213,6 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 			</plugin>
 		</plugins>
 	</build>
-
-	<developers>
-		<developer>
-			<id>ctrueden</id>
-			<name>Curtis Rueden</name>
-			<url>http://imagej.net/User:Rueden</url>
-			<roles>
-				<role>lead</role>
-				<role>developer</role>
-				<role>debugger</role>
-				<role>reviewer</role>
-				<role>support</role>
-				<role>maintainer</role>
-			</roles>
-		</developer>
-		<developer>
-			<id>hinerm</id>
-			<name>Mark Hiner</name>
-			<url>http://imagej.net/User:Hinerm</url>
-			<roles>
-				<role>lead</role>
-				<role>developer</role>
-				<role>debugger</role>
-				<role>reviewer</role>
-				<role>support</role>
-				<role>maintainer</role>
-			</roles>
-		</developer>
-	</developers>
-
-	<contributors>
-		<contributor>
-			<name>Johannes Schindelin</name>
-			<url>http://imagej.net/User:Schindelin</url>
-			<properties><id>dscho</id></properties>
-			<roles><role>founder</role></roles>
-		</contributor>
-		<contributor>
-			<name>Ben Booth</name>
-			<url>http://imagej.net/User:Benwbooth</url>
-			<properties><id>benwbooth</id></properties>
-		</contributor>
-		<contributor>
-			<name>Albert Cardona</name>
-			<url>http://imagej.net/User:Albertcardona</url>
-			<properties><id>acardona</id></properties>
-		</contributor>
-		<contributor>
-			<name>Erwin Frise</name>
-			<url>http://imagej.net/User:Frise</url>
-			<properties><id>frederikfly</id></properties>
-		</contributor>
-		<contributor>
-			<name>Gregory Jefferis</name>
-			<url>http://imagej.net/User:Jefferis</url>
-			<properties><id>jefferis</id></properties>
-		</contributor>
-		<contributor>
-			<name>Mark Longair</name>
-			<url>http://imagej.net/User:Mark</url>
-			<properties><id>mhl</id></properties>
-		</contributor>
-		<contributor>
-			<name>Josh Moore</name>
-			<url>http://imagej.net/User:Moore</url>
-			<properties><id>joshmoore</id></properties>
-		</contributor>
-		<contributor>
-			<name>Benjamin Schmid</name>
-			<url>http://imagej.net/User:Bene</url>
-			<properties><id>bene51</id></properties>
-		</contributor>
-	</contributors>
-
-	<issueManagement>
-		<system>GitHub Issues</system>
-		<url>https://github.com/imagej/imagej-launcher/issues</url>
-	</issueManagement>
-
-	<ciManagement>
-		<system>Jenkins</system>
-		<url>http://jenkins.imagej.net/job/ImageJ-launcher/</url>
-	</ciManagement>
-
-	<scm>
-		<connection>scm:git:git://github.com/imagej/imagej-launcher</connection>
-		<developerConnection>scm:git:git@github.com:imagej/imagej-launcher</developerConnection>
-		<tag>HEAD</tag>
-		<url>https://github.com/imagej/imagej-launcher</url>
-	</scm>
 
 	<profiles>
 			<profile>
@@ -527,5 +524,4 @@ Institute of Molecular Cell Biology and Genetics.</organizationName>
 			</properties>
 		</profile>
 	</profiles>
-
 </project>
