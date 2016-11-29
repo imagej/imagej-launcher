@@ -96,6 +96,7 @@
 	</ciManagement>
 
 	<properties>
+		<scijava.jvm.version>1.6</scijava.jvm.version>
 		<architecture.option />
 		<debug.option />
 		<ij.executable.name />
