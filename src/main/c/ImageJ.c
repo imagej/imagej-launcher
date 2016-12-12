@@ -1955,6 +1955,8 @@ static void parse_command_line(void)
 	properties[i++] = main_argv0;
 	properties[i++] = "java.library.path";
 	properties[i++] = java_library_path->buffer;
+	properties[i++] = "scijava.context.strict";
+	properties[i++] = "false";
 	if (debug) {
 		properties[i++] = "ij.debug";
 		properties[i++] = "true";
