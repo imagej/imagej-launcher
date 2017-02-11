@@ -1380,6 +1380,8 @@ static int handle_one_option2(int *i, int argc, const char **argv)
 		allow_multiple = 1;
 	else if (handle_one_option(i, argv, "--plugins", &arg))
 		string_addf(&plugin_path, "-Dplugins.dir=%s", arg.buffer);
+	else if (!strcmp(argv[*i], "--showUI"))
+		add_option(&options, "--showUI", 1);
 	else if (handle_one_option(i, argv, "--run", &arg)) {
 		/* pass unparsed to ImageJ2 */
 		if (!legacy_mode) {
