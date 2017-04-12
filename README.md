@@ -1,5 +1,6 @@
 [![](https://img.shields.io/maven-central/v/net.imagej/imagej-launcher.svg)](http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22net.imagej%22%20AND%20a%3A%22imagej-launcher%22)
 [![](http://jenkins.imagej.net/job/ImageJ-launcher/lastBuild/badge/icon)](http://jenkins.imagej.net/job/ImageJ-launcher/)
+[![](https://ci.appveyor.com/api/projects/status/r3jlwwkg1qm2p3xk?svg=true)](https://ci.appveyor.com/project/scijava/imagej-launcher)
 
 The ImageJ launcher is a native application for launching ImageJ.
 
