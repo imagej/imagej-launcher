@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.scijava</groupId>
 		<artifactId>pom-scijava</artifactId>
-		<version>12.0.0</version>
+		<version>17.1.1</version>
 		<relativePath />
 	</parent>
 
@@ -131,6 +131,7 @@ Institute of Molecular Cell Biology and Genetics.</license.copyrightOwners>
 		<ij.executable.name />
 		<nar.arch.path />
 		<java.os.include />
+		<int64.flag />
 		<libdl.name>dl</libdl.name>
 		<skipTests>true</skipTests>
 		<stack.protector.option />
@@ -177,6 +178,7 @@ Institute of Molecular Cell Biology and Genetics.</license.copyrightOwners>
 							<option>${stack.protector.option}</option>
 							<option>${architecture.option}</option>
 							<option>${subsystem.option}</option>
+							<option>${int64.flag}</option>
 							<option>${debug.option}</option>
 						</options>
 					</c>
@@ -365,6 +367,7 @@ Institute of Molecular Cell Biology and Genetics.</license.copyrightOwners>
 				<libdl.name>kernel32</libdl.name>
 				<ij.executable.name>ImageJ-win64.exe</ij.executable.name>
 				<nar.arch.path>amd64</nar.arch.path>
+				<int64.flag>-D__int64=int64_t</int64.flag>
 			</properties>
 		</profile>
 

@@ -85,7 +85,12 @@ extern void *dlopen(const char *name, int flags);
 extern char *dlerror(void);
 extern void *dlsym(void *handle, const char *name);
 
+#ifndef __MINGW32__
+/* __MINGW32__ is defined by MinGW64 for both x86 and amd64:
+ * http://mingw.5.n7.nabble.com/Macros-MINGW32-AND-MINGW64-tp26319p26320.html
+*/
 extern void sleep(int seconds);
+#endif
 
 /*
  * There is no setenv on Windows, so it should be safe for us to

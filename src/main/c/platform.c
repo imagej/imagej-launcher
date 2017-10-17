@@ -1069,10 +1069,15 @@ void *dlsym(void *handle, const char *name)
 	return result;
 }
 
+#ifndef __MINGW32__
+/* __MINGW32__ is defined by MinGW64 for both x86 and amd64:
+ * http://mingw.5.n7.nabble.com/Macros-MINGW32-AND-MINGW64-tp26319p26320.html
+*/
 void sleep(int seconds)
 {
 	Sleep(seconds * 1000);
 }
+#endif
 
 /*
  * There is no setenv on Windows, so it should be safe for us to
