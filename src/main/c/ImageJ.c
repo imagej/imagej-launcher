@@ -1320,7 +1320,7 @@ const char *properties[32];
 
 static struct options options;
 static long megabytes = 0;
-static struct string buffer, buffer2, arg, plugin_path, ext_option;
+static struct string buffer, buffer2, arg, plugin_path;
 static int jdb, advanced_gc = 1, debug_gc;
 static int allow_multiple, skip_class_launcher, full_class_path;
 static int dont_patch_ij1;
@@ -1463,9 +1463,6 @@ static int handle_one_option2(int *i, int argc, const char **argv)
 		full_class_path = 1;
 	else if (!strcmp(argv[*i], "--freeze-classloader"))
 		add_launcher_option(&options, "-freeze-classloader", NULL);
-	else if (handle_one_option(i, argv, "--ext", &arg)) {
-		string_append_path_list(&ext_option, arg.buffer);
-	}
 	else if (!strcmp(argv[*i], "--ij2") || !strcmp(argv[*i], "--imagej"))
 		main_class = default_main_class;
 	else if (!strcmp(argv[*i], "--ij1"))
@@ -1659,41 +1656,6 @@ static void parse_command_line(void)
 	if (!get_fiji_bundle_variable("system", &arg) &&
 			atol((&arg)->buffer) > 0)
 		options.use_system_jvm++;
-	if (get_fiji_bundle_variable("ext", &ext_option)) {
-		if (dir_exists(ext_option.buffer))
-			string_add_char(&ext_option, ':');
-		else
-			string_set_length(&ext_option, 0);
-	}
-
-	/* Add ImageJ's internal Java3D installation to the extensions path. */
-	if (ext_option.length)
-		string_add_char(&ext_option, ':');
-	string_append(&ext_option, ij_path("java/macosx-java3d/Home/lib/ext"));
-
-	/*
-	 * Add the chosen JRE's platform extensions to the extensions path.
-	 * This is necessary, even though they are usually available by default,
-	 * because as soon as we set java.ext.dirs, the default lib/ext directory
-	 * is no longer included anymore. So we do it ourselves.
-	 */
-	const char *java_home = get_java_home();
-	if (java_home) {
-		/* For JDKs - e.g. '/Library/Java/JavaVirtualMachines/jdk1.8.0_45.jdk' */
-		string_add_char(&ext_option, ':');
-		string_addf(&ext_option, java_home);
-		string_addf(&ext_option, "jre/lib/ext");
-		/* For JREs - e.g. '/Library/Internet Plug-Ins/JavaAppletPlugin.plugin' */
-		string_add_char(&ext_option, ':');
-		string_addf(&ext_option, java_home);
-		string_addf(&ext_option, "lib/ext");
-	}
-
-	/* Add Apple's global Java platform extensions to the extensions path. */
-	string_add_char(&ext_option, ':');
-	string_addf(&ext_option, "/Library/Java/Extensions:"
-		"/System/Library/Java/Extensions:"
-		"/System/Library/Frameworks/JavaVM.framework/Home/lib/ext");
 
 	if (!get_fiji_bundle_variable("allowMultiple", &arg))
 		allow_multiple = parse_bool((&arg)->buffer);
@@ -1745,11 +1707,6 @@ static void parse_command_line(void)
 			) {
 		error("No GUI detected.  Falling back to headless mode.");
 		headless = 1;
-	}
-
-	if (ext_option.length) {
-		string_setf(&buffer, "-Djava.ext.dirs=%s", ext_option.buffer);
-		add_option_string(&options, &buffer, 0);
 	}
 
 	/* Avoid Jython's huge startup cost: */
