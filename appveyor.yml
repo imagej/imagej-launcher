@@ -13,13 +13,13 @@ environment:
   MAVEN_OPTS: "-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn"
   GIT_BIN: C:\Program Files\Git\bin\
   CERTIFICATE_KEY:
-    secure: ZunDzpx3KFAr2JNKpRf25R80YSFN9QOBapGNebGrJ0erjqJ2hhFwa9P4o6c5ZEx0
+    secure: 8lYslVDOXaNTMGHpFSFVH40OzX70ofXnVW35qCNVkZvjHKJODVDwuGkndacv4hv7
   MAVEN_PASS:
-    secure: LLOpS/isuKB+366dc13MIvu/kYXnAY0XChMH4hGUzkP4kNBPHrzAJLDsDhSnTA+z
+    secure: YdzLF8dSsHb8PwXVy9buOI3lGhJ5ReexXDLvD34eJt1C9FXuf9o6oBX72GTc5Jgd
   GPG_KEY_NAME:
-    secure: 7kwkFOpOii3ILaId9n7H39ZlvVB0H0+vbsItX0wHJ3I=
+    secure: xyRp14pV2TD4fYfi35GfksuJ1I1Wk/5nIEo0F6zB3H8=
   GPG_PASSPHRASE:
-    secure: /RWWVIghkP3UfC69C3sChC/VuDp0zt7dJe8C0sMnYXMbKJC1Ug3yw9FHQ3BQwvoK
+    secure: gTrK/G3QiaY3zP8fanCshlU9beRK/4tPvzeylGd+kL2v5BmaisUZFlhKNEWCO1Bm
   CI: true
 
 cache:
