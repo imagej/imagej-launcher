@@ -33,8 +33,6 @@ platform:
   - x64
 
 install:
-  - cmd: nuget install secure-file -ExcludeVersion
-  - cmd: secure-file\tools\secure-file -decrypt .appveyor\signingkey.asc.enc -secret "%CERTIFICATE_KEY%"
   - ps: .\.appveyor\setup.ps1
 
 build_script:

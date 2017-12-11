@@ -37,6 +37,8 @@ $Env:Path
 $keyFile = "signingkey.asc"
 If ((Test-Path Env:\CERTIFICATE_KEY) -and !(Test-Path Env:\APPVEYOR_PULL_REQUEST_NUMBER) -and (Test-Path ("$Env:APPVEYOR_BUILD_FOLDER\.appveyor\$keyFile"))) {
     "`n== Importing GPG keypair =="
+    & "cmd.exe" /c "nuget install secure-file -ExcludeVersion 2>&1"
+    & "cmd.exe" /c "secure-file\tools\secure-file -decrypt $Env:APPVEYOR_BUILD_FOLDER\.appveyor\signingkey.asc.enc -secret $Env:CERTIFICATE_KEY 2>&1"
     & "cmd.exe" /c "gpg2.exe --batch --fast-import $Env:APPVEYOR_BUILD_FOLDER\.appveyor\$keyFile 2>&1"
 }
 
