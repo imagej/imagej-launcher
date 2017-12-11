@@ -1767,16 +1767,12 @@ static void parse_command_line(void)
 	jvm_workarounds(&options);
 
 	if (advanced_gc == 1) {
-		add_option(&options, "-Xincgc", 0);
-		add_option(&options, "-XX:PermSize=128m", 0);
+		// NB: No difference between advanced_gc 0 or 1 anymore.
 	}
 	else if (advanced_gc == 2) {
-		add_option(&options, "-XX:PermSize=128m", 0);
 		add_option(&options, "-XX:+UseCompressedOops", 0);
 		add_option(&options, "-XX:+UnlockExperimentalVMOptions", 0);
 		add_option(&options, "-XX:+UseG1GC", 0);
-		add_option(&options, "-XX:+G1ParallelRSetUpdatingEnabled", 0);
-		add_option(&options, "-XX:+G1ParallelRSetScanningEnabled", 0);
 		add_option(&options, "-XX:NewRatio=5", 0);
 	}
 
