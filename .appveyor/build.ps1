@@ -8,17 +8,21 @@ If ($Env:PLATFORM -match "x64") {
     $classifier = "win32"
 }
 
-If (($Env:APPVEYOR_REPO_TAG -match "true") -and (Test-Path ($Env:APPVEYOR_BUILD_FOLDER + "\release.properties"))) {
+# Get version number
+[xml]$pom = Get-Content 'pom.xml'
+$pomNamespace = @{ pomNs = 'http://maven.apache.org/POM/4.0.0'; };
+$groupId = (Select-Xml -Xml $pom -XPath '/pomNs:project/pomNs:groupId' -Namespace $pomNamespace).Node.InnerText;
+$groupIdForURL = $groupId -replace "\.","/";
+$artifactId = (Select-Xml -Xml $pom -XPath '/pomNs:project/pomNs:artifactId' -Namespace $pomNamespace).Node.InnerText;
+$version = (Select-Xml -Xml $pom -XPath '/pomNs:project/pomNs:version' -Namespace $pomNamespace).Node.InnerText;
+
+If (($Env:APPVEYOR_REPO_TAG -match "false") -and !(Test-Path Env:\APPVEYOR_PULL_REQUEST_NUMBER)) {
+    "== Building and deploying master SNAPSHOT =="
+    & "mvn" "-B" "-Dos.arch=$arch" "-P$profiles,deploy-to-imagej" "deploy" 2> $null
+    & "mvn" "deploy:deploy-file" "-Dfile=`"target/ImageJ-$classifier.exe`"" "-DrepositoryId=`"imagej.snapshots`"" "-Durl=`"dav:https://maven.imagej.net/content/repositories/snapshots`"" "-DgeneratePom=`"false`"" "-DgroupId=`"$groupId`"" "-DartifactId=`"$artifactId`"" "-Dversion=`"$version`"" "-Dclassifier=`"$classifier`"" "-Dpackaging=`"exe`"" 2> $null
+} ElseIf (($Env:APPVEYOR_REPO_TAG -match "true") -and (Test-Path ($Env:APPVEYOR_BUILD_FOLDER + "\release.properties"))) {
     "== Cutting and deploying release version =="
     & "mvn" "-B" "-Darguments=`"-Dos.arch=$arch -P$profiles`"" "release:perform" 2> $null
-
-    # Get version number
-    [xml]$pom = Get-Content 'pom.xml'
-    $pomNamespace = @{ pomNs = 'http://maven.apache.org/POM/4.0.0'; };
-    $groupId = (Select-Xml -Xml $pom -XPath '/pomNs:project/pomNs:groupId' -Namespace $pomNamespace).Node.InnerText;
-    $groupIdForURL = $groupId -replace "\.","/";
-    $artifactId = (Select-Xml -Xml $pom -XPath '/pomNs:project/pomNs:artifactId' -Namespace $pomNamespace).Node.InnerText;
-    $version = (Select-Xml -Xml $pom -XPath '/pomNs:project/pomNs:version' -Namespace $pomNamespace).Node.InnerText;
 
     # Check if the parent folder in the Nexus is available
     $responseFolder = try { (Invoke-Webrequest -uri "http://maven.imagej.net/content/repositories/releases/$groupIdForURL/$artifactId/$version/" -UseBasicParsing -method head -TimeoutSec 5).statuscode } catch { $_.Exception.Response.StatusCode.Value__ }
