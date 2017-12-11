@@ -91,6 +91,11 @@
 			<url>http://imagej.net/User:Bene</url>
 			<properties><id>bene51</id></properties>
 		</contributor>
+		<contributor>
+			<name>Stefan Helfrich</name>
+			<url>http://imagej.net/User:Stelfrich</url>
+			<properties><id>stelfrich</id></properties>
+		</contributor>
 	</contributors>
 
 	<mailingLists>
@@ -137,6 +142,9 @@ Institute of Molecular Cell Biology and Genetics.</license.copyrightOwners>
 		<stack.protector.option />
 		<subsystem.option />
 		<maven.antrun.version>1.8</maven.antrun.version>
+
+		<!-- NB: Deploy releases to the ImageJ Maven repository. -->
+		<releaseProfiles>deploy-to-imagej</releaseProfiles>
 	</properties>
 
 	<dependencies>
@@ -224,12 +232,30 @@ Institute of Molecular Cell Biology and Genetics.</license.copyrightOwners>
 					<includePluginDependencies>true</includePluginDependencies>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>org.honton.chas</groupId>
+				<artifactId>exists-maven-plugin</artifactId>
+				<version>0.0.5</version>
+					<executions>
+						<execution>
+							<goals>
+								<goal>remote</goal>
+							</goals>
+						</execution>
+					</executions>
+				</plugin>
 		</plugins>
 	</build>
 
 	<profiles>
-			<profile>
+		<profile>
 			<id>copy-launchers</id>
+			<activation>
+				<property>
+					<name>env.CI</name>
+					<value>true</value>
+				</property>
+			</activation>
 			<build>
 				<plugins>
 					<plugin>
