@@ -27,5 +27,9 @@ where `xyz` is your platform.
 ## Download
 
 Up-to-date versions can always be downloaded from the
-[Jenkins](http://jenkins.imagej.net/job/ImageJ-launcher/) platform-specific
-configurations.
+[ImageJ Nexus](https://maven.imagej.net):
+
+- [Windows 64-bit](http://maven.imagej.net/service/local/artifact/maven/redirect?r=snapshots&g=net.imagej&a=imagej-launcher&v=LATEST&e=exe&c=win64)
+- [Windows 32-bit](http://maven.imagej.net/service/local/artifact/maven/redirect?r=snapshots&g=net.imagej&a=imagej-launcher&v=LATEST&e=exe&c=win32)
+- [Linux 64-bit](http://maven.imagej.net/service/local/artifact/maven/redirect?r=snapshots&g=net.imagej&a=imagej-launcher&v=LATEST&e=exe&c=linux64)
+- [macOS 64-bit](http://maven.imagej.net/service/local/artifact/maven/redirect?r=snapshots&g=net.imagej&a=imagej-launcher&v=LATEST&e=exe&c=macosx)
