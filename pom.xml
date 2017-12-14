@@ -12,7 +12,7 @@
 	<groupId>net.imagej</groupId>
 	<artifactId>imagej-launcher</artifactId>
 	<version>5.0.1-SNAPSHOT</version>
-	<packaging>nar</packaging>
+	<packaging>jar</packaging>
 
 	<name>ImageJ Launcher</name>
 	<description>The executable which runs ImageJ. Its purpose is also to make sure that updates downloaded by the ImageJ Updater will be put into place before starting the Java Virtual Machine. It was formerly known as the Fiji launcher.</description>
@@ -138,17 +138,12 @@ Institute of Molecular Cell Biology and Genetics.</license.copyrightOwners>
 
 		<scijava.jvm.version>1.6</scijava.jvm.version>
 
-		<architecture.option />
+		<target.architecture />
 		<debug.option />
-		<ij.executable.name />
-		<nar.arch.path />
-		<java.os.include />
-		<int64.flag />
-		<libdl.name>dl</libdl.name>
 		<skipTests>true</skipTests>
-		<stack.protector.option />
-		<subsystem.option />
 		<maven.antrun.version>1.8</maven.antrun.version>
+		<cmake.generator.option />
+		<make.binary>make</make.binary>
 
 		<!-- NB: Deploy releases to the ImageJ Maven repository. -->
 		<releaseProfiles>deploy-to-imagej</releaseProfiles>
@@ -176,49 +171,6 @@ Institute of Molecular Cell Biology and Genetics.</license.copyrightOwners>
 				</configuration>
 			</plugin>
 			<plugin>
-				<groupId>com.github.maven-nar</groupId>
-				<artifactId>nar-maven-plugin</artifactId>
-				<extensions>true</extensions>
-				<configuration>
-					<c>
-						<name>gcc</name>
-						<includes>
-							<include>**/*.c</include>
-						</includes>
-						<options>
-							<option>-DLAUNCHER_VERSION="${project.version}"</option>
-							<option>-DBUILD_NUMBER="${buildNumber}"</option>
-							<option>-I${JAVA_HOME}/include</option>
-							<option>${java.os.include}</option>
-							<option>${stack.protector.option}</option>
-							<option>${architecture.option}</option>
-							<option>${subsystem.option}</option>
-							<option>${int64.flag}</option>
-							<option>${debug.option}</option>
-						</options>
-					</c>
-					<linker>
-						<name>gcc</name>
-						<options>
-							<option>${architecture.option}</option>
-							<option>${subsystem.option}</option>
-						</options>
-						<sysLibs>
-							<sysLib>
-								<name>${libdl.name}</name>
-							</sysLib>
-						</sysLibs>
-					</linker>
-					<libraries>
-						<library>
-							<type>executable</type>
-							<!-- <run>true</run> -->
-							<subSystem>gui</subSystem>
-						</library>
-					</libraries>
-				</configuration>
-			</plugin>
-			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>exec-maven-plugin</artifactId>
 				<executions>
@@ -232,7 +184,7 @@ Institute of Molecular Cell Biology and Genetics.</license.copyrightOwners>
 				<configuration>
 					<mainClass>net.imagej.launcher.ChangeIcon</mainClass>
 					<arguments>
-						<argument>${project.build.directory}/nar/${project.artifactId}-${project.version}-${nar.aol}-executable/bin/${nar.aol}/${project.artifactId}.exe</argument>
+						<argument>${project.build.directory}/${ij.executable.name}</argument>
 						<argument>${basedir}/logo/ImageJ.ico</argument>
 					</arguments>
 					<classpathScope>test</classpathScope>
@@ -243,56 +195,43 @@ Institute of Molecular Cell Biology and Genetics.</license.copyrightOwners>
 				<groupId>org.honton.chas</groupId>
 				<artifactId>exists-maven-plugin</artifactId>
 				<version>0.0.5</version>
-					<executions>
-						<execution>
-							<goals>
-								<goal>remote</goal>
-							</goals>
-						</execution>
-					</executions>
-				</plugin>
+				<executions>
+					<execution>
+						<goals>
+							<goal>remote</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<version>${maven.antrun.version}</version>
+				<executions>
+					<execution>
+						<id>make</id>
+						<phase>compile</phase>
+						<goals>
+							<goal>run</goal>
+						</goals>
+						<configuration>
+							<target>
+								<exec executable="cmake" dir="${project.build.directory}" failonerror="true">
+									<arg line="${cmake.generator.option} ${basedir} -DTARGET_ARCHITECTURE=${target.architecture} 
+									-DDEBUG_OPTION=${debug.option}" />
+								</exec>
+								<exec executable="${make.binary}" dir="${project.build.directory}" failonerror="true">
+									<arg line="VERBOSE=1"/>
+								</exec>
+							</target>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 
 	<profiles>
-		<profile>
-			<id>copy-launchers</id>
-			<activation>
-				<property>
-					<name>env.CI</name>
-					<value>true</value>
-				</property>
-			</activation>
-			<build>
-				<plugins>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-antrun-plugin</artifactId>
-						<version>${maven.antrun.version}</version>
-						<executions>
-							<execution>
-								<id>copy</id>
-								<phase>package</phase>
-								<goals>
-									<goal>run</goal>
-								</goals>
-								<configuration>
-									<tasks>
-										<copy tofile="${basedir}${file.separator}target${file.separator}${ij.executable.name}">
-											<fileset dir="${basedir}${file.separator}target${file.separator}nar${file.separator}">
-												<include name="**${file.separator}*${file.separator}bin${file.separator}${nar.arch.path}-*${file.separator}imagej-launcher*" />
-											</fileset>
-											<mapper type="flatten" />
-										</copy>
-										<chmod file="${basedir}${file.separator}target${file.separator}${ij.executable.name}" perm="a+x" />
-									</tasks>
-								</configuration>
-							</execution>
-						</executions>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
 		<profile>
 			<id>amd64-Linux</id>
 			<activation>
@@ -302,32 +241,8 @@ Institute of Molecular Cell Biology and Genetics.</license.copyrightOwners>
 				</os>
 			</activation>
 			<properties>
-				<java.os.include>-I${JAVA_HOME}/include/linux</java.os.include>
-				<stack.protector.option>-fno-stack-protector</stack.protector.option>
-				<architecture.option>-m64</architecture.option>
-				<ij.executable.name>ImageJ-linux64</ij.executable.name>
-				<nar.arch.path>amd64</nar.arch.path>
+				<ij.executable.name>ImageJ-linux64.exe</ij.executable.name>
 			</properties>
-			<build>
-				<plugins>
-					<plugin>
-						<groupId>com.github.maven-nar</groupId>
-						<artifactId>nar-maven-plugin</artifactId>
-						<configuration>
-							<linker>
-								<sysLibs>
-									<sysLib>
-										<name>dl</name>
-									</sysLib>
-									<sysLib>
-										<name>pthread</name>
-									</sysLib>
-								</sysLibs>
-							</linker>
-						</configuration>
-					</plugin>
-				</plugins>
-			</build>
 		</profile>
 
 		<profile>
@@ -339,32 +254,9 @@ Institute of Molecular Cell Biology and Genetics.</license.copyrightOwners>
 				</os>
 			</activation>
 			<properties>
-				<java.os.include>-I${JAVA_HOME}/include/linux</java.os.include>
-				<stack.protector.option>-fno-stack-protector</stack.protector.option>
-				<architecture.option>-m32</architecture.option>
-				<ij.executable.name>ImageJ-linux32</ij.executable.name>
-				<nar.arch.path>i386</nar.arch.path>
+				<ij.executable.name>ImageJ-linux32.exe</ij.executable.name>
+				<target.architecture>x86</target.architecture>
 			</properties>
-			<build>
-				<plugins>
-					<plugin>
-						<groupId>com.github.maven-nar</groupId>
-						<artifactId>nar-maven-plugin</artifactId>
-						<configuration>
-							<linker>
-								<sysLibs>
-									<sysLib>
-										<name>dl</name>
-									</sysLib>
-									<sysLib>
-										<name>pthread</name>
-									</sysLib>
-								</sysLibs>
-							</linker>
-						</configuration>
-					</plugin>
-				</plugins>
-			</build>
 		</profile>
 
 		<profile>
@@ -376,12 +268,10 @@ Institute of Molecular Cell Biology and Genetics.</license.copyrightOwners>
 				</os>
 			</activation>
 			<properties>
-				<java.os.include>-I${JAVA_HOME}/include/win32</java.os.include>
-				<architecture.option>-m32</architecture.option>
-				<subsystem.option>-mwindows</subsystem.option>
-				<libdl.name>kernel32</libdl.name>
 				<ij.executable.name>ImageJ-win32.exe</ij.executable.name>
-				<nar.arch.path>x86</nar.arch.path>
+				<target.architecture>x86</target.architecture>
+				<make.binary>mingw32-make</make.binary>
+				<cmake.generator.option>-G "MinGW Makefiles"</cmake.generator.option>
 			</properties>
 		</profile>
 
@@ -394,13 +284,9 @@ Institute of Molecular Cell Biology and Genetics.</license.copyrightOwners>
 				</os>
 			</activation>
 			<properties>
-				<java.os.include>-I${JAVA_HOME}/include/win32</java.os.include>
-				<architecture.option>-m64</architecture.option>
-				<subsystem.option>-mwindows</subsystem.option>
-				<libdl.name>kernel32</libdl.name>
 				<ij.executable.name>ImageJ-win64.exe</ij.executable.name>
-				<nar.arch.path>amd64</nar.arch.path>
-				<int64.flag>-D__int64=int64_t</int64.flag>
+				<make.binary>mingw32-make</make.binary>
+				<cmake.generator.option>-G "MinGW Makefiles"</cmake.generator.option>
 			</properties>
 		</profile>
 
@@ -412,31 +298,8 @@ Institute of Molecular Cell Biology and Genetics.</license.copyrightOwners>
 				</os>
 			</activation>
 			<properties>
-				<java.os.include>-I${JAVA_HOME}/include/darwin</java.os.include>
-				<ij.executable.name>Contents/MacOSX/ImageJ-macosx</ij.executable.name>
-				<nar.arch.path>x86_64</nar.arch.path>
+				<ij.executable.name>ImageJ-macosx.exe</ij.executable.name>
 			</properties>
-			<build>
-				<plugins>
-					<plugin>
-						<groupId>com.github.maven-nar</groupId>
-						<artifactId>nar-maven-plugin</artifactId>
-						<configuration>
-							<linker>
-								<options>
-									<option>-mmacosx-version-min=10.6</option>
-									<option>-arch</option>
-									<option>x86_64</option>
-									<option>-framework</option>
-									<option>CoreFoundation</option>
-									<option>-framework</option>
-									<option>ApplicationServices</option>
-								</options>
-							</linker>
-						</configuration>
-					</plugin>
-				</plugins>
-			</build>
 		</profile>
 
 		<profile>
