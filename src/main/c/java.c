@@ -42,6 +42,13 @@ static const char *absolute_java_home;
 static const char *relative_java_home;
 static const char *library_path;
 static const char *default_library_path;
+#if defined(__APPLE__)
+static const char *default_library_paths[1] = {"lib/server/libjvm.dylib"};
+#elif defined(WIN32)
+static const char *default_library_paths[2] = {"bin/client/jvm.dll", "bin/server/jvm.dll"};
+#else
+static const char *default_library_paths[3] = {"lib/i386/client/libjvm.so", "lib/server/libjvm.so", "lib/amd64/server/libjvm.so"};
+#endif
 static struct string *legacy_jre_path;
 
 const char *get_java_command(void)
@@ -51,6 +58,47 @@ const char *get_java_command(void)
 		return "javaw";
 #endif
 	return "java";
+}
+
+static const char *parse_number(const char *string, unsigned int *result, int shift)
+{
+	char *endp;
+	long value = strtol(string, &endp, 10);
+
+	if (string == endp)
+		return NULL;
+
+	*result |= (int)(value << shift);
+	return endp;
+}
+
+
+unsigned int guess_java_version(void)
+{
+	const char *java_home = get_jre_home();
+
+	while (java_home && *java_home) {
+		if (!prefixcmp(java_home, "jdk") || !prefixcmp(java_home, "jre")) {
+			unsigned int result = 0;
+			// Depends on Java version: "jdkX.Y.Z_b" vs "jdk-X.Y.Z"
+			const char *p = java_home + 3;
+			// Move pointer by one for Java 9
+			if (*p == '-') p++;
+
+			p = parse_number(p, &result, 24);
+			if (p && *p == '.')
+				p = parse_number(p + 1, &result, 16);
+			if (p && *p == '.')
+				p = parse_number(p + 1, &result, 8);
+			if (p) {
+				if (*p == '_')
+					p = parse_number(p + 1, &result, 0);
+				return result;
+			}
+		}
+		java_home += strcspn(java_home, "\\/") + 1;
+	}
+	return 0;
 }
 
 void set_java_home(const char *absolute_path)
@@ -67,18 +115,24 @@ int is_jre_home(const char *directory)
 {
 	int result = 0;
 	if (dir_exists(directory)) {
-		struct string* libjvm = string_initf("%s/%s", directory, library_path);
-		if (!file_exists(libjvm->buffer)) {
-			if (debug)
-				error("Ignoring JAVA_HOME (does not exist): %s", libjvm->buffer);
+		// Check if one of default_library_paths exists
+		int arrayLength = sizeof(default_library_paths)/sizeof(default_library_paths[0]);
+		for (int i=0; i<arrayLength; i++) {
+			struct string* libjvm = string_initf("%s/%s", directory, default_library_paths[i]);
+			if (!file_exists(libjvm->buffer)) {
+				if (debug)
+					error("Ignoring JAVA_HOME (does not exist): %s", libjvm->buffer);
+			}
+			else if (!is_native_library(libjvm->buffer)) {
+				if (debug)
+					error("Ignoring JAVA_HOME (wrong arch): %s", libjvm->buffer);
+			}
+			else {
+				result = 1;
+				break;
+			}
+			string_release(libjvm);
 		}
-		else if (!is_native_library(libjvm->buffer)) {
-			if (debug)
-				error("Ignoring JAVA_HOME (wrong arch): %s", libjvm->buffer);
-		}
-		else
-			result = 1;
-		string_release(libjvm);
 	}
 	return result;
 }
@@ -87,6 +141,11 @@ int is_java_home(const char *directory)
 {
 	struct string *jre = string_initf("%s/jre", directory);
 	int result = is_jre_home(jre->buffer);
+	if (!result) {
+		// Java9 does not have a jre subfolder -> check directory
+		string_set(jre, directory);
+		result = is_jre_home(jre->buffer);
+	}
 	string_release(jre);
 	return result;
 }
@@ -294,7 +353,7 @@ void set_default_library_path(void)
 #elif defined(WIN32)
 		sizeof(void *) < 8 ? "bin/client/jvm.dll" : "bin/server/jvm.dll";
 #else
-		sizeof(void *) < 8 ? "lib/i386/client/libjvm.so" : "lib/amd64/server/libjvm.so";
+		sizeof(void *) < 8 ? "lib/i386/client/libjvm.so" : (guess_java_version() >= 0x09000000 ? "lib/server/libjvm.so" : "lib/amd64/server/libjvm.so");
 #endif
 }
 

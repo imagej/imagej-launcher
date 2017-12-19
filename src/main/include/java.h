@@ -31,6 +31,8 @@
 #ifndef JAVA_H
 #define JAVA_H
 
+extern unsigned int guess_java_version(void);
+
 extern const char *get_java_command(void);
 
 extern void set_java_home(const char *absolute_path);
