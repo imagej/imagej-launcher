@@ -775,12 +775,35 @@ int get_fiji_bundle_variable(const char *key, struct string *value)
 	if (!propertyString)
 		return -5;
 
-	const char *c_string = CFStringGetCStringPtr(propertyString, kCFStringEncodingMacRoman);
-	if (!c_string)
+	/*
+	 * The CFStringGetCStringPtr documentation at
+	 * https://developer.apple.com/documentation/corefoundation/1542133-cfstringgetcstringptr
+	 * states:
+	 *
+	 * > This function either returns the requested pointer immediately, with no
+	 * > memory allocations and no copying, in constant time, or returns NULL.
+	 * > If the latter is the result, call an alternative function such as the
+	 * > CFStringGetCString(_:_:_:_:) function to extract the characters.
+	 * >
+	 * > Whether or not this function returns a valid pointer or NULL depends on
+	 * > many factors, all of which depend on how the string was created and its
+	 * > properties. In addition, the function result might change between
+	 * > different releases and on different platforms. So do not count on
+	 * > receiving a non-NULL result from this function under any circumstances.
+	 *
+	 * Therefore, we avoid that function in favor of CFStringGetCString,
+	 * which makes a copy.
+	 */
+	CFIndex length = CFStringGetLength(propertyString);
+	struct string *temp = string_init(length + 1);
+	int success = CFStringGetCString(propertyString,
+		temp->buffer, length + 1, kCFStringEncodingMacRoman);
+	if (!success) {
+		string_release(temp);
 		return -6;
-
-	string_set_length(value, 0);
-	string_append(value, c_string);
+	}
+	string_set(value, temp->buffer);
+	string_release(temp);
 
 	return 0;
 }
