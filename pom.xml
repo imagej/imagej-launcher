@@ -129,7 +129,7 @@ Wisconsin-Madison, Broad Institute of MIT and Harvard, and Max Planck
 Institute of Molecular Cell Biology and Genetics.</license.copyrightOwners>
 		<license.projectName>ImageJ software for multidimensional image processing and analysis.</license.projectName>
 
-		<scijava.jvm.version>1.6</scijava.jvm.version>
+		<scijava.jvm.version>1.8</scijava.jvm.version>
 
 		<architecture.option />
 		<debug.option />

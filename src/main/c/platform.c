@@ -33,7 +33,6 @@
 #include "platform.h"
 #include "file-funcs.h"
 #include "java.h"
-#include "splash.h"
 #include "xalloc.h"
 
 #include <fcntl.h>
@@ -949,7 +948,6 @@ int launch_32bit_on_tiger(int argc, char **argv)
 		strcpy(argv[0] + offset, match);
 		return 0;
 	}
-	hide_splash();
 	execv(argv[0], argv);
 	fprintf(stderr, "Could not execute %s: %d(%s)\n",
 		argv[0], errno, strerror(errno));
