@@ -113,11 +113,12 @@ void set_relative_java_home(const char *relative_path)
 
 int is_jre_home(const char *directory)
 {
+	int i;
 	int result = 0;
 	if (dir_exists(directory)) {
 		// Check if one of default_library_paths exists
 		int arrayLength = sizeof(default_library_paths)/sizeof(default_library_paths[0]);
-		for (int i=0; i<arrayLength; i++) {
+		for (i=0; i<arrayLength; i++) {
 			struct string* libjvm = string_initf("%s/%s", directory, default_library_paths[i]);
 			if (!file_exists(libjvm->buffer)) {
 				if (debug)
