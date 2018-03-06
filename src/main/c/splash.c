@@ -62,7 +62,7 @@ struct string *get_splashscreen_lib_path(const char *jre_home)
 #if defined(WIN32)
 	return string_initf("%s/bin/splashscreen.dll", jre_home);
 #elif defined(__linux__)
-	return string_initf("%s/lib/%s/libsplashscreen.so", jre_home, sizeof(void *) == 8 ? "amd64" : "i386");
+	return string_initf("%s/lib/%slibsplashscreen.so", jre_home, sizeof(void *) == 8 ? (guess_java_version() >= 0x09000000 ? "" : "amd64/") : "i386/");
 #else
 	return NULL;
 #endif
