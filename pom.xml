@@ -43,6 +43,18 @@
 				<role>maintainer</role>
 			</roles>
 		</developer>
+		<developer>
+			<id>stelfrich</id>
+			<name>Stefan Helfrich</name>
+			<url>http://imagej.net/User:Stelfrich</url>
+			<roles>
+				<role>developer</role>
+				<role>debugger</role>
+				<role>reviewer</role>
+				<role>support</role>
+				<role>maintainer</role>
+			</roles>
+		</developer>
 	</developers>
 	<contributors>
 		<contributor>
@@ -90,11 +102,6 @@
 			<name>Benjamin Schmid</name>
 			<url>http://imagej.net/User:Bene</url>
 			<properties><id>bene51</id></properties>
-		</contributor>
-		<contributor>
-			<name>Stefan Helfrich</name>
-			<url>http://imagej.net/User:Stelfrich</url>
-			<properties><id>stelfrich</id></properties>
 		</contributor>
 	</contributors>
 
