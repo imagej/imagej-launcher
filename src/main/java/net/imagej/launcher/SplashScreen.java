@@ -82,18 +82,22 @@ public class SplashScreen {
 		window.setVisible(true);
 
 		// Watch for other windows; kill the splash screen when one shows up.
-		new Thread((Runnable) () -> {
-			while (true) {
-				try {
-					Thread.sleep(100);
-				}
-				catch (final InterruptedException exc) {}
-				if (splashWindow == null) return;
-				final Window[] windows = Window.getWindows();
-				for (final Window win : windows) {
-					if (win.isVisible() && win != splashWindow) {
-						hide();
-						return;
+		new Thread(new Runnable() {
+
+			@Override
+			public void run() {
+				while (true) {
+					try {
+						Thread.sleep(100);
+					}
+					catch (final InterruptedException exc) {}
+					if (splashWindow == null) return;
+					final Window[] windows = Window.getWindows();
+					for (final Window win : windows) {
+						if (win.isVisible() && win != splashWindow) {
+							hide();
+							return;
+						}
 					}
 				}
 			}
