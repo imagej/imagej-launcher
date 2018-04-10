@@ -58,7 +58,9 @@ public class SplashScreen {
 		if (Boolean.getBoolean("java.awt.headless")) return;
 		final JWindow window = new JWindow();
 		splashWindow = window; // Save a non-AWT reference to the window.
-		final File logoFile = new File(new File(System.getProperty("imagej.dir")), LOGO_PATH);
+		final String parent = System.getProperty("imagej.dir") != null ? System
+			.getProperty("imagej.dir") : ".";
+		final File logoFile = new File(parent, LOGO_PATH);
 		final JLabel logoImage = new JLabel(new ImageIcon(logoFile.getPath()));
 		final JProgressBar bar = new JProgressBar();
 		bar.setMaximum(PROGRESS_MAX);
