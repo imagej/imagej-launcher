@@ -1770,7 +1770,7 @@ static void parse_command_line(void)
 
 	maybe_reexec_with_correct_lib_path(java_library_path);
 
-	if (splash && !options.dry_run && !options.use_system_jvm && !headless && (is_default_ij1_class(main_class) || !strcmp(default_main_class, main_class)))
+	if (splash && !headless && (is_default_ij1_class(main_class) || !strcmp(default_main_class, main_class)))
 		add_option(&options, "-Dimagej.splash=true", 0);
 
 	/* set up class path */
