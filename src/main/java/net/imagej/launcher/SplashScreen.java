@@ -115,14 +115,4 @@ public class SplashScreen {
 		((Window) splashWindow).dispose();
 		splashWindow = null;
 	}
-
-	public static void main(final String[] args) throws Exception {
-		SplashScreen.show();
-		int steps = 40;
-		for (int i=1; i<=steps; i++) {
-			SplashScreen.update(i + "/" + steps, (double) i / steps);
-			Thread.sleep(100);
-		}
-		SplashScreen.hide();
-	}
 }
