@@ -75,7 +75,12 @@ public class ClassLauncher {
 	public static void main(final String[] arguments) {
 		originalArguments = arguments;
 		if (Boolean.getBoolean("imagej.splash") || System.getProperty("imagej.splash") == null) {
-			SplashScreen.show();
+			try {
+				SplashScreen.show();
+			}
+			catch (Throwable t) {
+				t.printStackTrace();
+			}
 		}
 		run(arguments);
 	}
