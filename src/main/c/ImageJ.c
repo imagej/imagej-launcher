@@ -1875,6 +1875,8 @@ static void parse_command_line(void)
 	properties[i++] = java_library_path->buffer;
 	properties[i++] = "scijava.context.strict";
 	properties[i++] = "false";
+	properties[i++] = "python.console.encoding";
+	properties[i++] = "UTF-8";
 	if (debug) {
 		properties[i++] = "ij.debug";
 		properties[i++] = "true";
