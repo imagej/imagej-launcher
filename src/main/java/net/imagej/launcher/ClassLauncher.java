@@ -74,6 +74,18 @@ public class ClassLauncher {
 	 */
 	public static void main(final String[] arguments) {
 		originalArguments = arguments;
+		// If the imagej.splash system property is not set, the splash screen is not
+		// shown. The --dry-run option of the launcher will set this property to
+		// true by default. Starting the launcher with --no-splash does not set the
+		// property.
+		if (Boolean.getBoolean("imagej.splash")) {
+			try {
+				SplashScreen.show();
+			}
+			catch (Throwable t) {
+				t.printStackTrace();
+			}
+		}
 		run(arguments);
 	}
 

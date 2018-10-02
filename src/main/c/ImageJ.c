@@ -73,7 +73,6 @@
 #include "file-funcs.h"
 #include "java.h"
 #include "platform.h"
-#include "splash.h"
 #include "string-funcs.h"
 #include "xalloc.h"
 
@@ -198,7 +197,6 @@ static void maybe_reexec_with_correct_lib_path(struct string *java_library_path)
 	setenv_or_exit("LD_LIBRARY_PATH", java_library_path->buffer, 1);
 	if (debug)
 		error("Re-executing with correct library lookup path (%s)", java_library_path->buffer);
-	hide_splash();
 	execvp(main_argv_backup[0], main_argv_backup);
 	die("Could not re-exec with correct library lookup (%d: %s)!", errno, strerror(errno));
 #elif defined(__APPLE__)
@@ -214,7 +212,6 @@ static void maybe_reexec_with_correct_lib_path(struct string *java_library_path)
 	setenv_or_exit("DYLD_LIBRARY_PATH", java_library_path->buffer, 1);
 	if (debug)
 		error("Re-executing with correct library lookup path (%s)", java_library_path->buffer);
-	hide_splash();
 	execvp(main_argv_backup[0], main_argv_backup);
 	die("Could not re-exec with correct library lookup: %d (%s)", errno, strerror(errno));
 #endif
@@ -1206,8 +1203,6 @@ static void try_with_less_memory(long megabytes)
 	if (debug)
 		error("Trying with a smaller heap: %s", buffer->buffer);
 
-	hide_splash();
-
 #ifdef WIN32
 	new_argv[0] = dos_path(new_argv[0]);
 	for (i = 0; i < j; i++)
@@ -1285,6 +1280,7 @@ static struct options options;
 static long megabytes = 0;
 static struct string buffer, buffer2, arg, plugin_path;
 static int jdb, advanced_gc = 1, debug_gc;
+static int splash = 1;
 static int allow_multiple, skip_class_launcher, full_class_path;
 static int dont_patch_ij1;
 
@@ -1499,7 +1495,7 @@ static int handle_one_option2(int *i, int argc, const char **argv)
 		add_option_string(&options, &arg, 0);
 	}
 	else if (!strcmp("--no-splash", argv[*i]))
-		disable_splash();
+		splash = 0;
 	else if (!strcmp("--help", argv[*i]) ||
 			!strcmp("-h", argv[*i]))
 		usage();
@@ -1774,8 +1770,8 @@ static void parse_command_line(void)
 
 	maybe_reexec_with_correct_lib_path(java_library_path);
 
-	if (!options.dry_run && !options.use_system_jvm && !headless && (is_default_ij1_class(main_class) || !strcmp(default_main_class, main_class)))
-		show_splash(imagej_launcher_jar);
+	if (splash && !headless && (is_default_ij1_class(main_class) || !strcmp(default_main_class, main_class)))
+		add_option(&options, "-Dimagej.splash=true", 0);
 
 	/* set up class path */
 	if (full_class_path || !strcmp(default_main_class, main_class)) {
@@ -2199,7 +2195,6 @@ int start_ij(void)
 		args = prepare_ij_options(env, &options.ij_options);
 		(*env)->CallStaticVoidMethodA(env, instance,
 				method, (jvalue *)&args);
-		hide_splash();
 		if ((*vm)->DetachCurrentThread(vm))
 			error("Could not detach current thread");
 		/* This does not return until ImageJ exits */
@@ -2251,7 +2246,6 @@ int start_ij(void)
 #endif
 		}
 		options.java_options.list[0] = buffer->buffer;
-		hide_splash();
 #ifndef WIN32
 		if (execvp(buffer->buffer, options.java_options.list))
 			error("Could not launch system-wide Java (%s)", strerror(errno));
