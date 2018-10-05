@@ -78,10 +78,12 @@ unsigned int guess_java_version(void)
 	const char *java_home = get_jre_home();
 
 	while (java_home && *java_home) {
-		if (!prefixcmp(java_home, "jdk") || !prefixcmp(java_home, "jre")) {
+		if (!prefixcmp(java_home, "jdk") || !prefixcmp(java_home, "jre") || !prefixcmp(java_home, "java")) {
 			unsigned int result = 0;
 			// Depends on Java version: "jdkX.Y.Z_b" vs "jdk-X.Y.Z"
 			const char *p = java_home + 3;
+			// Move pointer by one for OpenJDK (where folder names start with "java")
+			if (*p == 'a') p++;
 			// Move pointer by one for Java 9
 			if (*p == '-') p++;
 
