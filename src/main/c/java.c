@@ -103,6 +103,38 @@ unsigned int guess_java_version(void)
 	return 0;
 }
 
+unsigned int guess_java_version_for_path(const char *java_home)
+{
+	error("guess_java_version_for_path: Entering with %s", java_home);
+
+	while (java_home && *java_home) {
+		if (!prefixcmp(java_home, "jdk") || !prefixcmp(java_home, "jre") || !prefixcmp(java_home, "java")) {
+			unsigned int result = 0;
+			// Depends on Java version: "jdkX.Y.Z_b" vs "jdk-X.Y.Z"
+			const char *p = java_home + 3;
+			// Move pointer by one for OpenJDK (where folder names start with "java")
+			if (*p == 'a') p++;
+			// Move pointer by one for Java 9
+			if (*p == '-') p++;
+
+			p = parse_number(p, &result, 24);
+			if (p && *p == '.')
+				p = parse_number(p + 1, &result, 16);
+			if (p && *p == '.')
+				p = parse_number(p + 1, &result, 8);
+			if (p) {
+				if (*p == '_')
+					p = parse_number(p + 1, &result, 0);
+				error("guess_java_version_for_path: Returning %d", result);
+				return result;
+			}
+		}
+		java_home += strcspn(java_home, "\\/") + 1;
+	}
+	error("guess_java_version_for_path: Returning 0");
+	return 0;
+}
+
 void set_java_home(const char *absolute_path)
 {
 	absolute_java_home = absolute_path;
@@ -164,18 +196,27 @@ const char *get_java_home_env(void)
 const char *get_java_home(void)
 {
 	const char *result;
-	if (absolute_java_home)
+
+	/* Check if an absolute path has been previously set */
+	if (absolute_java_home) {
+		error("Using absolute_java_home: %s", absolute_java_home);
 		return absolute_java_home;
+	}
+
+	/* Check if a relative path has been previously set */
 	result = !relative_java_home ? NULL : ij_path(relative_java_home);
 	if (result && is_java_home(result))
 		return result;
 	if (result && (!suffixcmp(result, -1, "/jre") ||
 			 !suffixcmp(result, -1, "/jre/")) &&
 			is_jre_home(result)) {
+		/* Strip jre/ from result */
 		char *new_eol = (char *)(result + strlen(result) - 4);
 		*new_eol = '\0';
 		return result;
 	}
+
+	/* Check JAVA_HOME environment variable */
 	result = get_java_home_env();
 	if (result)
 		return result;

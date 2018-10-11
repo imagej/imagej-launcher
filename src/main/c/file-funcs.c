@@ -487,6 +487,9 @@ void read_file_as_string(const char *file_name, struct string *contents)
 	fclose(in);
 }
 
+/*
+ * Traverses subfolders of a path up to a defined depth to find a file.
+ */
 void find_newest(struct string *path, int max_depth, const char *file, struct string *result)
 {
 	int len = path->length;

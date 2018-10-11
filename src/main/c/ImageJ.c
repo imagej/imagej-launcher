@@ -2301,16 +2301,21 @@ static void adjust_java_home_if_necessary(void)
 	if (get_library_path())
 		return; /* already set, no need to adjust */
 
-	set_default_library_path();
-	set_library_path(get_default_library_path());
-
-	char* debugPath = get_library_path();
-	if (debug)
-		error("Default library path (relative): %s", debugPath);
-
 	buffer = string_copy(ij_path("java"));
 	ij_dir_len = buffer->length - 4;
 	result = string_init(32);
+
+	// HACK: We are looking for a bundled JDK first
+	set_library_path(
+#if defined(__APPLE__)
+		"lib/server/libjvm.dylib"
+#elif defined(WIN32)
+		sizeof(void *) < 8 ? "bin/client/jvm.dll" : "bin/server/jvm.dll"
+#else
+		sizeof(void *) < 8 ? "lib/i386/client/libjvm.so" : (guess_java_version_for_path(result->buffer) >= 0x09000000 ? "lib/server/libjvm.so" : "lib/amd64/server/libjvm.so")
+#endif
+	);
+
 	path = string_initf("%s%s", prefix, get_library_path());
 
 	find_newest(buffer, depth, path->buffer, result);
@@ -2325,6 +2330,14 @@ static void adjust_java_home_if_necessary(void)
 		if (result->length)
 			set_relative_java_home(xstrdup(result->buffer + ij_dir_len));
 	}
+
+	set_default_library_path();
+	set_library_path(get_default_library_path());
+
+	char* debugPath = get_library_path();
+	if (debug)
+		error("Default library path (relative): %s", debugPath);
+
 	string_release(buffer);
 	string_release(result);
 	string_release(path);
