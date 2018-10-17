@@ -2294,6 +2294,9 @@ int start_ij(void)
 /* TODO: try to find Java even if there is JRE local to ImageJ */
 static void adjust_java_home_if_necessary(void)
 {
+	if (debug)
+		error("Entering adjust_java_home_if_necessary.");
+
 	struct string *result, *buffer, *path;
 	const char *prefix = "jre/";
 	int depth = 2, ij_dir_len;
