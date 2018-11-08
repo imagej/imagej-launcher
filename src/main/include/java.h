@@ -32,6 +32,7 @@
 #define JAVA_H
 
 extern unsigned int guess_java_version(void);
+extern unsigned int guess_java_version_for_path(const char *java_home);
 
 extern const char *get_java_command(void);
 
