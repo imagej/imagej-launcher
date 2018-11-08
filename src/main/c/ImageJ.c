@@ -2311,7 +2311,7 @@ static void adjust_java_home_if_necessary(void)
 	// HACK: We are looking for a bundled JDK first
 	set_library_path(
 #if defined(__APPLE__)
-		"lib/server/libjvm.dylib"
+		"Contents/Home/lib/server/libjvm.dylib"
 #elif defined(WIN32)
 		sizeof(void *) < 8 ? "bin/client/jvm.dll" : "bin/server/jvm.dll"
 #else

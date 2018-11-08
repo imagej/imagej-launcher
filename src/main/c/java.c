@@ -43,7 +43,7 @@ static const char *relative_java_home;
 static const char *library_path;
 static const char *default_library_path;
 #if defined(__APPLE__)
-static const char *default_library_paths[1] = {"lib/server/libjvm.dylib"};
+static const char *default_library_paths[1] = {"Contents/Home/lib/server/libjvm.dylib"};
 #elif defined(WIN32)
 static const char *default_library_paths[2] = {"bin/client/jvm.dll", "bin/server/jvm.dll"};
 #else
@@ -433,7 +433,7 @@ void set_default_library_path(void)
 {
 	default_library_path =
 #if defined(__APPLE__)
-		"lib/server/libjvm.dylib";
+		"Contents/Home/lib/server/libjvm.dylib";
 #elif defined(WIN32)
 		sizeof(void *) < 8 ? "bin/client/jvm.dll" : "bin/server/jvm.dll";
 #else
