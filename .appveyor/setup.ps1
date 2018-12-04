@@ -10,7 +10,7 @@ If ($Env:PLATFORM -match "x64") {
 [Environment]::SetEnvironmentVariable("Path", "C:\Program Files\AppVeyor\BuildAgent\", "Machine");
 
 # Set up this process' Path environment variable
-$Env:Path = "$Env:GIT_BIN;$Env:MAVEN_BIN;${Env:JAVA_HOME}bin;$Env:GNUPG_HOME;$Env:MINGW64_BIN;$Env:MINGW32_BIN;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;"
+$Env:Path = "$Env:CMAKE_BIN;$Env:GIT_BIN;$Env:MAVEN_BIN;${Env:JAVA_HOME}bin;$Env:GNUPG_HOME;$Env:MINGW64_BIN;$Env:MINGW32_BIN;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;"
 
 # Set up the machine-wide Path environment variable
 [Environment]::SetEnvironmentVariable("Path", $Env:Path, "Machine");
