@@ -11,11 +11,10 @@ version="$(sed -n 's/^	<version>\(.*\)<\/version>$/\1/p' pom.xml)"
 if [ "$TRAVIS_OS_NAME" = "linux" ]
 then
 	classifier="linux64"
-	executablePath="target/ImageJ-$classifier"
 else
 	classifier="macosx"
-	executablePath="target/Contents/MacOSX/ImageJ-$classifier"
 fi
+executablePath="target/ImageJ-$classifier"
 
 if [ "$TRAVIS_SECURE_ENV_VARS" = true \
 	-a "$TRAVIS_PULL_REQUEST" = false \

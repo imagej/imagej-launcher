@@ -11,7 +11,8 @@ environment:
   GNUPG_HOME: C:\Gpg4win\
   MAVEN_BIN: C:\Program Files (x86)\Apache\Maven\bin\
   MAVEN_OPTS: "-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn"
-  GIT_BIN: C:\Program Files\Git\bin\
+  GIT_BIN: C:\Program Files\Git\cmd\
+  CMAKE_BIN: C:\Program Files (x86)\CMake\bin\
   CERTIFICATE_KEY:
     secure: 8lYslVDOXaNTMGHpFSFVH40OzX70ofXnVW35qCNVkZvjHKJODVDwuGkndacv4hv7
   MAVEN_PASS:
