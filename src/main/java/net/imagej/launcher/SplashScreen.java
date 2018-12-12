@@ -32,7 +32,7 @@ package net.imagej.launcher;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Window;
-import java.io.File;
+import java.net.URL;
 
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
@@ -49,7 +49,7 @@ public class SplashScreen {
 
 	private static final int PROGRESS_MAX = 10000;
 
-	private static final String LOGO_PATH = "images/logo.png";
+	private static final String LOGO_PATH = "splash/imagej.png";
 
 	private static Object splashWindow;
 	private static Object progressBar;
@@ -58,10 +58,11 @@ public class SplashScreen {
 		if (Boolean.getBoolean("java.awt.headless")) return;
 		final JWindow window = new JWindow();
 		splashWindow = window; // Save a non-AWT reference to the window.
-		final String parent = System.getProperty("imagej.dir") != null ? System
-			.getProperty("imagej.dir") : ".";
-		final File logoFile = new File(parent, LOGO_PATH);
-		final JLabel logoImage = new JLabel(new ImageIcon(logoFile.getPath()));
+		final ClassLoader classLoader = //
+			Thread.currentThread().getContextClassLoader();
+		final URL logo = classLoader.getResource(LOGO_PATH);
+		if (logo == null) return;
+		final JLabel logoImage = new JLabel(new ImageIcon(logo));
 		final JProgressBar bar = new JProgressBar();
 		bar.setMaximum(PROGRESS_MAX);
 		progressBar = bar; // Save a non-AWT reference to the progress bar.
