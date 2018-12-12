@@ -32,6 +32,7 @@ package net.imagej.launcher;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Window;
+import java.io.File;
 import java.net.URL;
 
 import javax.swing.ImageIcon;
@@ -60,9 +61,19 @@ public class SplashScreen {
 		splashWindow = window; // Save a non-AWT reference to the window.
 		final ClassLoader classLoader = //
 			Thread.currentThread().getContextClassLoader();
-		final URL logo = classLoader.getResource(LOGO_PATH);
-		if (logo == null) return;
-		final JLabel logoImage = new JLabel(new ImageIcon(logo));
+		final URL logoURL = classLoader.getResource(LOGO_PATH);
+		final ImageIcon imageIcon;
+		if (logoURL == null) {
+			// Look for images/icon.png on disk, as a fallback.
+			// For backwards compatibility with old Fiji installations.
+			final String parent = System.getProperty("imagej.dir") != null ? //
+				System.getProperty("imagej.dir") : ".";
+			final File logoFile = new File(parent, "images/icon.png");
+			if (!logoFile.exists()) return;
+			imageIcon = new ImageIcon(logoFile.getPath());
+		}
+		else imageIcon = new ImageIcon(logoURL);
+		final JLabel logoImage = new JLabel(imageIcon);
 		final JProgressBar bar = new JProgressBar();
 		bar.setMaximum(PROGRESS_MAX);
 		progressBar = bar; // Save a non-AWT reference to the progress bar.
