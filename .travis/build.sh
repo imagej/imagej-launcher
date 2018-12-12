@@ -27,10 +27,10 @@ elif [ "$TRAVIS_SECURE_ENV_VARS" = true \
 then
 	echo "== Deploying binaries =="
 	# Check if a release has been deployed for that version
-	folderStatus=$(curl -s -o /dev/null -I -w '%{http_code}' http://maven.imagej.net/content/repositories/releases/$groupIdForURL/$artifactId/$version/)
+	folderStatus=$(curl -s -o /dev/null -I -w '%{http_code}' https://maven.imagej.net/content/repositories/releases/$groupIdForURL/$artifactId/$version/)
 
 	# Check if the launcher for that version has already been deployed
-	fileStatus=$(curl -s -o /dev/null -I -w '%{http_code}' http://maven.imagej.net/content/repositories/releases/$groupIdForURL/$artifactId/$version/$artifactId-$version-$classifier.exe)
+	fileStatus=$(curl -s -o /dev/null -I -w '%{http_code}' https://maven.imagej.net/content/repositories/releases/$groupIdForURL/$artifactId/$version/$artifactId-$version-$classifier.exe)
 
 	if [ "$folderStatus" = "200" -a "$fileStatus" != "200" ]
 	then
