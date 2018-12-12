@@ -2,18 +2,9 @@ This document describes how to debug the ImageJ launcher.
 
 # Build the launcher
 
-1.  Build using the debug profile, which passes `-g` to the compiler.
+1.  Build with `mvn -Pdebug`, which passes `-g` to the native compiler.
 
-2.  Copy the executable from:
-    ```
-    target/nar/imagej-launcher-<version>-<AOL>-executable/bin/<AOL>/imagej-launcher
-    ```
-    Where:
-    * `<version>` is the current version in the POM; and
-    * `<AOL>` is your NAR Architecture-OS-Linker identifier.
-    And rename it to `debug`.
-
-You can use the `build` shell script to do these things.
+2.  Copy the executable from the `target` folder, and rename it to `debug`.
 
 # Run the launcher using a debugger
 
@@ -28,7 +19,7 @@ lldb -a x86_64 -f ./debug -- --ij-dir=/Applications/ImageJ.app
 You can also add on any other flags you wish to use; e.g.:
 ```shell
 #!/bin/sh
-JAVA_DIR="/Library/Java/JavaVirtualMachines/jdk1.7.0_21.jdk/Contents/Home"
+JAVA_DIR="/Library/Java/JavaVirtualMachines/jdk1.8.0_172.jdk/Contents/Home"
 lldb -a x86_64 -f ./debug -- --ij-dir=/Applications/ImageJ.app --java-home "$JAVA_DIR"
 ```
 
