@@ -400,7 +400,7 @@ release_buffer:
 
 int set_path_to_apple_JVM(void)
 {
-	error("set_path_to_apple_JVM: Entering");
+	if (debug) error("set_path_to_apple_JVM: Entering");
 
 	/*
 	 * MacOSX specific stuff for system java
