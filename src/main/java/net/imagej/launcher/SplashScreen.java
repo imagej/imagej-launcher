@@ -129,4 +129,8 @@ public class SplashScreen {
 		((Window) splashWindow).dispose();
 		splashWindow = null;
 	}
+
+	public static void main(String[] args) {
+		SplashScreen.show();
+	}
 }
