@@ -80,10 +80,23 @@ public class ClassLauncher {
 		// property.
 		if (Boolean.getBoolean("imagej.splash")) {
 			try {
-				SplashScreen.show();
-			}
-			catch (Throwable t) {
-				t.printStackTrace();
+				URLClassLoader classLoader = ClassLoaderPlus.getInImageJDirectory(null, "jars/imagej-launcher.jar");
+				classLoader = ClassLoaderPlus.getInImageJDirectory(classLoader, "jars/scijava-common.jar");
+				try {
+					// Invoke SplashScreen.show() with the previously
+					// constructed class loader
+					Class<?> splashScreen = classLoader.loadClass("net.imagej.launcher.SplashScreen");
+					Method method = splashScreen.getMethod("show");
+					method.invoke(null);
+				} catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException e) {
+					if (debug)
+						e.printStackTrace();
+				} catch (final InvocationTargetException e) {
+					if (debug)
+						e.getTargetException().printStackTrace();
+				}
+			} catch (Throwable e) {
+				e.printStackTrace();
 			}
 		}
 		run(arguments);
