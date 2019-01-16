@@ -47,7 +47,7 @@ import javax.swing.ImageIcon;
 public class SplashIcon extends ImageIcon {
 
 	private static final long serialVersionUID = 1L;
-	private final List<ImageIcon> splashs = new LinkedList<>();
+	private final List<ImageIcon> splashs = new LinkedList<ImageIcon>();
 	private static final int ICON_HEIGHT = 24;
 	private static final int ICON_WIDTH = 24;
 	private static final int GAP_WIDTH = 2;

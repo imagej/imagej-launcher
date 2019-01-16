@@ -88,7 +88,13 @@ public class ClassLauncher {
 					Class<?> splashScreen = classLoader.loadClass("net.imagej.launcher.SplashScreen");
 					Method method = splashScreen.getMethod("show");
 					method.invoke(null);
-				} catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException e) {
+				} catch (final ClassNotFoundException e) {
+					if (debug)
+						e.printStackTrace();
+				} catch (final NoSuchMethodException e) {
+					if (debug)
+						e.printStackTrace();
+				} catch (final IllegalAccessException e) {
 					if (debug)
 						e.printStackTrace();
 				} catch (final InvocationTargetException e) {
