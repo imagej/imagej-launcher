@@ -51,6 +51,7 @@
  * @author Benjamin Schmid
  * @author Gregory Jefferis
  * @author Curtis Rueden
+ * @author Ulrik Guenther
  */
 
 #define _BSD_SOURCE
@@ -75,6 +76,10 @@
 #include "platform.h"
 #include "string-funcs.h"
 #include "xalloc.h"
+
+#ifdef __linux__
+	void (*xinit_threads_reference)();
+#endif
 
 static const char *default_fiji1_class = "fiji.Main";
 static const char *default_main_class = "net.imagej.Main";
@@ -2421,6 +2426,26 @@ int main(int argc, char **argv, char **e)
 	maybe_write_legacy_config();
 	if (!debug)
 		maybe_write_desktop_file();
+
+#ifdef __linux__
+	// This call is neccessary on Linux to avoid X11 errors when using
+	// various 3D graphics APIs like Vulkan or OpenGL.
+	if (!headless) {
+		void *libX11Handle = dlopen("libX11.so", RTLD_LAZY);
+		if(libX11Handle != NULL) {
+			printf("Running XInitThreads\n");
+			xinit_threads_reference = dlsym(libX11Handle, "XInitThreads");
+
+			if(xinit_threads_reference != NULL) {
+				xinit_threads_reference();
+			} else {
+				fprintf(stderr, "Could not find XInitThreads in X11 library: %s\n", dlerror());
+			}
+		} else {
+			fprintf(stderr, "Could not find X11 library, not running XInitThreads.\n");
+		}
+	}
+#endif
 
 #ifdef __APPLE__
 	return start_ij_macosx(main_argv0);
