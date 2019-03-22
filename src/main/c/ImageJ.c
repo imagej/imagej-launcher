@@ -34,7 +34,7 @@
  * startup of Java and ImageJ.
  *
  * This program was originally developed as the Fiji launcher
- * (http://fiji.sc/), but has been adapted and improved for use with ImageJ
+ * (https://fiji.sc/), but has been adapted and improved for use with ImageJ
  * core. It is also meant to be the default launcher of ImageJ 1.x.
  *
  * The ImageJ launcher is copyright 2007 - 2013 Johannes Schindelin, Mark
@@ -1439,8 +1439,8 @@ static int handle_one_option2(int *i, int argc, const char **argv)
 #ifdef WIN32
 		open_win_console();
 #endif
-		error("Fiji Build is deprecated! Please port your project to (Mini)Maven:\n"
-			"\n\thttp://fiji.sc/Maven");
+		error("Fiji Build is deprecated! Please port your project to Maven:\n"
+			"\n\thttps://imagej.net/Maven");
 		skip_class_launcher = 1;
 		headless = 1;
 		fake_jar = ij_path("jars/fake.jar");

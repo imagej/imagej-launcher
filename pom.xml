@@ -16,11 +16,11 @@
 
 	<name>ImageJ Launcher</name>
 	<description>The executable which runs ImageJ. Its purpose is also to make sure that updates downloaded by the ImageJ Updater will be put into place before starting the Java Virtual Machine. It was formerly known as the Fiji launcher.</description>
-	<url>http://imagej.net/Launcher</url>
+	<url>https://imagej.net/Launcher</url>
 	<inceptionYear>2007</inceptionYear>
 	<organization>
 		<name>ImageJ</name>
-		<url>http://imagej.net/</url>
+		<url>https://imagej.net/</url>
 	</organization>
 	<licenses>
 		<license>
@@ -33,7 +33,7 @@
 		<developer>
 			<id>ctrueden</id>
 			<name>Curtis Rueden</name>
-			<url>http://imagej.net/User:Rueden</url>
+			<url>https://imagej.net/User:Rueden</url>
 			<roles>
 				<role>lead</role>
 				<role>developer</role>
@@ -46,7 +46,7 @@
 		<developer>
 			<id>stelfrich</id>
 			<name>Stefan Helfrich</name>
-			<url>http://imagej.net/User:Stelfrich</url>
+			<url>https://imagej.net/User:Stelfrich</url>
 			<roles>
 				<role>developer</role>
 				<role>debugger</role>
@@ -59,48 +59,48 @@
 	<contributors>
 		<contributor>
 			<name>Johannes Schindelin</name>
-			<url>http://imagej.net/User:Schindelin</url>
+			<url>https://imagej.net/User:Schindelin</url>
 			<roles><role>founder</role></roles>
 			<properties><id>dscho</id></properties>
 		</contributor>
 		<contributor>
 			<name>Ben Booth</name>
-			<url>http://imagej.net/User:Benwbooth</url>
+			<url>https://imagej.net/User:Benwbooth</url>
 			<properties><id>benwbooth</id></properties>
 		</contributor>
 		<contributor>
 			<name>Albert Cardona</name>
-			<url>http://imagej.net/User:Albertcardona</url>
+			<url>https://imagej.net/User:Albertcardona</url>
 			<properties><id>acardona</id></properties>
 		</contributor>
 		<contributor>
 			<name>Erwin Frise</name>
-			<url>http://imagej.net/User:Frise</url>
+			<url>https://imagej.net/User:Frise</url>
 			<properties><id>frederikfly</id></properties>
 		</contributor>
 		<contributor>
 			<name>Mark Hiner</name>
-			<url>http://imagej.net/User:Hinerm</url>
+			<url>https://imagej.net/User:Hinerm</url>
 			<properties><id>hinerm</id></properties>
 		</contributor>
 		<contributor>
 			<name>Gregory Jefferis</name>
-			<url>http://imagej.net/User:Jefferis</url>
+			<url>https://imagej.net/User:Jefferis</url>
 			<properties><id>jefferis</id></properties>
 		</contributor>
 		<contributor>
 			<name>Mark Longair</name>
-			<url>http://imagej.net/User:Mark</url>
+			<url>https://imagej.net/User:Mark</url>
 			<properties><id>mhl</id></properties>
 		</contributor>
 		<contributor>
 			<name>Josh Moore</name>
-			<url>http://imagej.net/User:Moore</url>
+			<url>https://imagej.net/User:Moore</url>
 			<properties><id>joshmoore</id></properties>
 		</contributor>
 		<contributor>
 			<name>Benjamin Schmid</name>
-			<url>http://imagej.net/User:Bene</url>
+			<url>https://imagej.net/User:Bene</url>
 			<properties><id>bene51</id></properties>
 		</contributor>
 	</contributors>
