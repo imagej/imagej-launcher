@@ -2433,16 +2433,17 @@ int main(int argc, char **argv, char **e)
 	if (!headless) {
 		void *libX11Handle = dlopen("libX11.so", RTLD_LAZY);
 		if(libX11Handle != NULL) {
-			printf("Running XInitThreads\n");
+			if (debug)
+				error("Running XInitThreads\n");
 			xinit_threads_reference = dlsym(libX11Handle, "XInitThreads");
 
 			if(xinit_threads_reference != NULL) {
 				xinit_threads_reference();
 			} else {
-				fprintf(stderr, "Could not find XInitThreads in X11 library: %s\n", dlerror());
+				error("Could not find XInitThreads in X11 library: %s\n", dlerror());
 			}
 		} else {
-			fprintf(stderr, "Could not find X11 library, not running XInitThreads.\n");
+			error("Could not find X11 library, not running XInitThreads.\n");
 		}
 	}
 #endif
