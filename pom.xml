@@ -123,8 +123,8 @@
 		<url>https://github.com/imagej/imagej-launcher/issues</url>
 	</issueManagement>
 	<ciManagement>
-		<system>Jenkins</system>
-		<url>http://jenkins.imagej.net/job/ImageJ-launcher/</url>
+		<system>Travis CI</system>
+		<url>https://travis-ci.org/imagej/imagej-launcher</url>
 	</ciManagement>
 
 	<properties>
