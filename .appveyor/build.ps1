@@ -18,21 +18,21 @@ $version = (Select-Xml -Xml $pom -XPath '/pomNs:project/pomNs:version' -Namespac
 
 If (($Env:APPVEYOR_REPO_TAG -match "false") -and !(Test-Path Env:\APPVEYOR_PULL_REQUEST_NUMBER)) {
     "== Building and deploying master SNAPSHOT =="
-    & "mvn" "-B" "-Dos.arch=$arch" "-P$profiles,deploy-to-imagej" "deploy" 2> $null
-    & "mvn" "deploy:deploy-file" "-Dfile=`"target/ImageJ-$classifier.exe`"" "-DrepositoryId=`"imagej.snapshots`"" "-Durl=`"dav:https://maven.imagej.net/content/repositories/snapshots`"" "-DgeneratePom=`"false`"" "-DgroupId=`"$groupId`"" "-DartifactId=`"$artifactId`"" "-Dversion=`"$version`"" "-Dclassifier=`"$classifier`"" "-Dpackaging=`"exe`"" 2> $null
+    & "mvn" "-B" "-Dos.arch=$arch" "-P$profiles,deploy-to-scijava" "deploy" 2> $null
+    & "mvn" "deploy:deploy-file" "-Dfile=`"target/ImageJ-$classifier.exe`"" "-DrepositoryId=`"scijava.snapshots`"" "-Durl=`"dav:https://maven.scijava.org/content/repositories/snapshots`"" "-DgeneratePom=`"false`"" "-DgroupId=`"$groupId`"" "-DartifactId=`"$artifactId`"" "-Dversion=`"$version`"" "-Dclassifier=`"$classifier`"" "-Dpackaging=`"exe`"" 2> $null
 } ElseIf (($Env:APPVEYOR_REPO_TAG -match "true") -and (Test-Path ($Env:APPVEYOR_BUILD_FOLDER + "\release.properties"))) {
     "== Cutting and deploying release version =="
     & "mvn" "-B" "-Darguments=`"-Dos.arch=$arch -P$profiles`"" "release:perform" 2> $null
 
     # Check if the parent folder in the Nexus is available
-    $responseFolder = try { (Invoke-Webrequest -uri "http://maven.imagej.net/content/repositories/releases/$groupIdForURL/$artifactId/$version/" -UseBasicParsing -method head -TimeoutSec 5).statuscode } catch { $_.Exception.Response.StatusCode.Value__ }
+    $responseFolder = try { (Invoke-Webrequest -uri "http://maven.scijava.org/content/repositories/releases/$groupIdForURL/$artifactId/$version/" -UseBasicParsing -method head -TimeoutSec 5).statuscode } catch { $_.Exception.Response.StatusCode.Value__ }
 
     # Check if the launcher itself was already deployed
-    $responseFile = try { (Invoke-Webrequest -uri "http://maven.imagej.net/content/repositories/releases/$groupIdForURL/$artifactId/$version/$artifactId-$version-$classifier.exe" -UseBasicParsing -method head -TimeoutSec 5).statuscode } catch { $_.Exception.Response.StatusCode.Value__ }
+    $responseFile = try { (Invoke-Webrequest -uri "http://maven.scijava.org/content/repositories/releases/$groupIdForURL/$artifactId/$version/$artifactId-$version-$classifier.exe" -UseBasicParsing -method head -TimeoutSec 5).statuscode } catch { $_.Exception.Response.StatusCode.Value__ }
 
     # Deploy only iff the parent exists and the launcher does not exist
     If (($responseFolder -eq 200) -and ($responseFile -eq 404)) {
-        & "mvn" "deploy:deploy-file" "-Dfile=`"target/checkout/target/ImageJ-$classifier.exe`"" "-DrepositoryId=`"imagej.releases`"" "-Durl=`"dav:https://maven.imagej.net/content/repositories/releases`"" "-DgeneratePom=`"false`"" "-DgroupId=`"$groupId`"" "-DartifactId=`"$artifactId`"" "-Dversion=`"$version`"" "-Dclassifier=`"$classifier`"" "-Dpackaging=`"exe`"" 2> $null
+        & "mvn" "deploy:deploy-file" "-Dfile=`"target/checkout/target/ImageJ-$classifier.exe`"" "-DrepositoryId=`"scijava.releases`"" "-Durl=`"dav:https://maven.scijava.org/content/repositories/releases`"" "-DgeneratePom=`"false`"" "-DgroupId=`"$groupId`"" "-DartifactId=`"$artifactId`"" "-Dversion=`"$version`"" "-Dclassifier=`"$classifier`"" "-Dpackaging=`"exe`"" 2> $null
     }
 } Else {
     "== Building the artifact locally =="
