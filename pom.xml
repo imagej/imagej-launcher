@@ -48,11 +48,9 @@
 			<name>Stefan Helfrich</name>
 			<url>https://imagej.net/User:Stelfrich</url>
 			<roles>
-				<role>developer</role>
 				<role>debugger</role>
 				<role>reviewer</role>
 				<role>support</role>
-				<role>maintainer</role>
 			</roles>
 		</developer>
 	</developers>
