@@ -11,7 +11,7 @@
 
 	<groupId>net.imagej</groupId>
 	<artifactId>imagej-launcher</artifactId>
-	<version>5.0.1-SNAPSHOT</version>
+	<version>5.0.1</version>
 	<packaging>jar</packaging>
 
 	<name>ImageJ Launcher</name>
@@ -113,7 +113,7 @@
 	<scm>
 		<connection>scm:git:git://github.com/imagej/imagej-launcher</connection>
 		<developerConnection>scm:git:git@github.com:imagej/imagej-launcher</developerConnection>
-		<tag>HEAD</tag>
+		<tag>imagej-launcher-5.0.1</tag>
 		<url>https://github.com/imagej/imagej-launcher</url>
 	</scm>
 	<issueManagement>
@@ -215,11 +215,10 @@ Institute of Molecular Cell Biology and Genetics.</license.copyrightOwners>
 						<configuration>
 							<target>
 								<exec executable="cmake" dir="${project.build.directory}" failonerror="true">
-									<arg line="${cmake.generator.option} ${basedir} -DTARGET_ARCHITECTURE=${target.architecture} 
-									-DDEBUG_OPTION=${debug.option}" />
+									<arg line="${cmake.generator.option} ${basedir} -DTARGET_ARCHITECTURE=${target.architecture} -DDEBUG_OPTION=${debug.option}" />
 								</exec>
 								<exec executable="${make.binary}" dir="${project.build.directory}" failonerror="true">
-									<arg line="VERBOSE=1"/>
+									<arg line="VERBOSE=1" />
 								</exec>
 							</target>
 						</configuration>
