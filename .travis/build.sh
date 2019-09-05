@@ -1,6 +1,6 @@
 #!/bin/sh
 curl -fsLO https://raw.githubusercontent.com/scijava/scijava-scripts/master/travis-build.sh
-sh travis-build.sh $encrypted_944d1976a731_key $encrypted_944d1976a731
+sh travis-build.sh $encrypted_944d1976a731_key $encrypted_944d1976a731 || exit 1
 
 # Get GAV
 groupId="$(sed -n 's/^	<groupId>\(.*\)<\/groupId>$/\1/p' pom.xml)"
