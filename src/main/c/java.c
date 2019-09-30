@@ -85,27 +85,40 @@ unsigned int guess_java_version_for_path(const char *java_home)
 	if (debug) error("guess_java_version_for_path: Entering with %s", java_home);
 
 	while (java_home && *java_home) {
-		if (!prefixcmp(java_home, "jdk") || !prefixcmp(java_home, "jre") || !prefixcmp(java_home, "java")) {
+		// Known naming conventions include:
+		// - X.Y.Z.jdk
+		// - jdkX.Y.Z_b
+		// - jdkX.Y.Z_b.jdk
+		// - jdk-X.Y.Z
+		// - jdk-X
+		// - java-X
+		// - openjdk-X
+		// - adoptopenjdk-X.jdk
+		if (!prefixcmp(java_home, "jdk") ||
+		    !prefixcmp(java_home, "jre") ||
+		    !prefixcmp(java_home, "java") ||
+		    !prefixcmp(java_home, "openjdk") ||
+		    !prefixcmp(java_home, "adoptopenjdk") ||
+		    !prefixcmp(java_home, "1.")) {
 			unsigned int result = 0;
-			// Depends on Java version: "jdkX.Y.Z_b" vs "jdk-X.Y.Z"
-			const char *p = java_home + 3;
-			// Move pointer by one for OpenJDK (where folder names start with "java")
-			if (*p == 'a') p++;
-			// Move pointer by one for Java 9
-			if (*p == '-') p++;
+			const char *p = java_home;
+			// Skip to next number, to account for variety in naming conventions
+			while ((*p < '0' || *p > '9') && *p != '\0') p++;
 
 			p = parse_number(p, &result, 24);
-			if (p && *p == '.')
-				p = parse_number(p + 1, &result, 16);
-			if (p && *p == '.')
-				p = parse_number(p + 1, &result, 8);
 			if (p) {
-				if (*p == '_')
+				// parsing first number was successful
+				if (p && *p == '.')
+					p = parse_number(p + 1, &result, 16);
+				if (p && *p == '.')
+					p = parse_number(p + 1, &result, 8);
+				if (p && *p == '_')
 					p = parse_number(p + 1, &result, 0);
-				if (debug) error("guess_java_version_for_path: Returning %d", result);
+				if (debug) error("guess_java_version: Returning %d", result);
 				return result;
 			}
 		}
+		// Folder is unlikely to be a Java home; move deeper
 		java_home += strcspn(java_home, "\\/") + 1;
 	}
 	if (debug) error("guess_java_version_for_path: Returning 0");
