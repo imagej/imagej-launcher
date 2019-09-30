@@ -77,33 +77,7 @@ unsigned int guess_java_version(void)
 {
 	if (debug) error("guess_java_version: Entering");
 	const char *java_home = get_jre_home();
-
-	while (java_home && *java_home) {
-		if (!prefixcmp(java_home, "jdk") || !prefixcmp(java_home, "jre") || !prefixcmp(java_home, "java")) {
-			unsigned int result = 0;
-			// Depends on Java version: "jdkX.Y.Z_b" vs "jdk-X.Y.Z"
-			const char *p = java_home + 3;
-			// Move pointer by one for OpenJDK (where folder names start with "java")
-			if (*p == 'a') p++;
-			// Move pointer by one for Java 9
-			if (*p == '-') p++;
-
-			p = parse_number(p, &result, 24);
-			if (p && *p == '.')
-				p = parse_number(p + 1, &result, 16);
-			if (p && *p == '.')
-				p = parse_number(p + 1, &result, 8);
-			if (p) {
-				if (*p == '_')
-					p = parse_number(p + 1, &result, 0);
-				if (debug) error("guess_java_version: Returning %d", result);
-				return result;
-			}
-		}
-		java_home += strcspn(java_home, "\\/") + 1;
-	}
-	if (debug) error("guess_java_version: Returning 0");
-	return 0;
+	return guess_java_version_for_path(java_home);
 }
 
 unsigned int guess_java_version_for_path(const char *java_home)
