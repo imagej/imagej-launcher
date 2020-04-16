@@ -145,9 +145,6 @@ static MAYBE_UNUSED struct string *get_parent_directory(const char *path)
 }
 
 /*
- * On Linux, Java5 does not find the library path with libmlib_image.so,
- * so we have to add that explicitely to the LD_LIBRARY_PATH.
- *
  * Unfortunately, ld.so only looks at LD_LIBRARY_PATH at startup, so we
  * have to reexec after setting that variable.
  *
@@ -156,39 +153,17 @@ static MAYBE_UNUSED struct string *get_parent_directory(const char *path)
  *
  * As noticed by Ilan Tal, we also need to re-execute if the LD_LIBRARY_PATH
  * was extended for some other reason, e.g. when native libraries were discovered
- * in $IJDIR/lib/; This also affects Java6 because it is only clever enough to handle
+ * in $IJDIR/lib/; This affects Java because it is only clever enough to handle
  * the inter-dependent JRE libraries without requiring a correctly set LD_LIBRARY_PATH.
  *
  * We assume here that java_library_path was initialized with the value
  * of the environment variable LD_LIBRARY_PATH; if at the end, java_library_path
- * is longer than LD_LIBRARY_PATH, we have to reset it (and for Java5, re-execute).
+ * is longer than LD_LIBRARY_PATH, we have to reset it.
  */
 static void maybe_reexec_with_correct_lib_path(struct string *java_library_path)
 {
 #ifdef __linux__
-	const char *jre_home = get_jre_home(), *original = getenv("LD_LIBRARY_PATH");
-
-	if (jre_home) {
-		struct string *path, *parent, *lib_path, *jli;
-
-		path = string_initf("%s/%s", jre_home, get_library_path());
-		parent = get_parent_directory(path->buffer);
-		lib_path = get_parent_directory(parent->buffer);
-		jli = string_initf("%s/jli", lib_path->buffer);
-
-		/* Is this JDK5? */
-		if (dir_exists(get_jre_home()) && !dir_exists(jli->buffer)) {
-			/* need to make sure the JRE lib/ is in LD_LIBRARY_PATH */
-			if (!path_list_contains(java_library_path->buffer, lib_path->buffer))
-				string_append_path_list(java_library_path, lib_path->buffer);
-			if (!path_list_contains(java_library_path->buffer, parent->buffer))
-				string_append_path_list(java_library_path, parent->buffer);
-		}
-		string_release(jli);
-		string_release(lib_path);
-		string_release(parent);
-		string_release(path);
-	}
+	const char *original = getenv("LD_LIBRARY_PATH");
 
 	/* Was LD_LIBRARY_PATH already correct? */
 	if (java_library_path->length == (original ? strlen(original) : 0))
