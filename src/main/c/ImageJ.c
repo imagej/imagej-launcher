@@ -782,10 +782,6 @@ struct subcommand
 {
 	char *name, *expanded;
 	struct string description;
-	struct {
-		char **list;
-		int alloc, size;
-	} extensions;
 };
 
 struct {
@@ -798,30 +794,11 @@ static int iswhitespace(char c)
 	return c == ' ' || c == '\t' || c == '\n';
 }
 
-static void add_extension(struct subcommand *subcommand, const char *extension)
-{
-	int length = strlen(extension);
-
-	while (length && iswhitespace(extension[length - 1]))
-		length--;
-	if (!length)
-		return;
-
-	if (subcommand->extensions.size + 1 >= subcommand->extensions.alloc) {
-		int alloc = (16 + subcommand->extensions.alloc) * 3 / 2;
-		subcommand->extensions.list = xrealloc(subcommand->extensions.list, alloc * sizeof(char *));
-		subcommand->extensions.alloc = alloc;
-	}
-	subcommand->extensions.list[subcommand->extensions.size++] = xstrndup(extension, length);
-}
-
 /*
  * The files for subcommand configuration are of the form
  *
  * <option>: <command-line options to replacing the subcommand options>
  *  <description>
- *  [<possible continuation>]
- * [.extension]
  *
  * Example:
  *
@@ -873,50 +850,11 @@ static void add_subcommand(const char *line)
 			current->name = xstrndup(line, length);
 		all_subcommands.size++;
 	}
-	else if (line[0] == '.') {
-		add_extension(latest, line);
-	}
 }
 
 const char *default_subcommands[] = {
 	"--update --info --dont-patch-ij1 --full-classpath --main-class=net.imagej.updater.CommandLine",
 	" start the command-line version of the ImageJ updater",
-	"--jython --ij-jar=jars/jython.jar --full-classpath --main-class=org.python.util.jython",
-	".py",
-	" start Jython instead of ImageJ (this is the",
-	" default when called with a file ending in .py)",
-	"--jruby --ij-jar=jars/jruby.jar --full-classpath --main-class=org.jruby.Main",
-	".rb",
-	" start JRuby instead of ImageJ (this is the",
-	" default when called with a file ending in .rb)",
-	"--clojure --ij-jar=jars/clojure.jar --full-classpath --main-class=clojure.lang.Repl",
-	".clj",
-	" start Clojure instead of ImageJ (this is the """,
-	" default when called with a file ending in .clj)",
-	"--beanshell --ij-jar=jars/bsh.jar --full-classpath --main-class=bsh.Interpreter",
-	".bs",
-	"--bsh --ij-jar=jars/bsh.jar --full-classpath --main-class=bsh.Interpreter",
-	".bsh",
-	" start BeanShell instead of ImageJ (this is the",
-	" default when called with a file ending in .bs or .bsh",
-	"--javascript --ij-jar=jars/js.jar --full-classpath --main-class=org.mozilla.javascript.tools.shell.Main",
-	"--js --ij-jar=jars/js.jar --full-classpath --main-class=org.mozilla.javascript.tools.shell.Main",
-	".js",
-	" start Javascript (the Rhino engine) instead of",
-	" ImageJ (this is the default when called with a",
-	" file ending in .js)",
-	"--ant --tools-jar --ij-jar=jars/ant.jar --ij-jar=jars/ant-launcher.jar --ij-jar=jars/ant-nodeps.jar --ij-jar=jars/ant-junit.jar --dont-patch-ij1 --headless --main-class=org.apache.tools.ant.Main",
-	" run Apache Ant",
-	"--mini-maven --ij-jar=jars/ij-minimaven.jar --dont-patch-ij1 --main-class=org.scijava.minimaven.MiniMaven",
-	" run Fiji's very simple Maven mockup",
-	"--javac --ij-jar=jars/javac.jar --freeze-classloader --headless --full-classpath --dont-patch-ij1 --pass-classpath --main-class=com.sun.tools.javac.Main",
-	" start JavaC, the Java Compiler, instead of ImageJ",
-	"--javah --only-tools-jar --headless --full-classpath --dont-patch-ij1 --pass-classpath --main-class=com.sun.tools.javah.Main",
-	" start javah instead of ImageJ",
-	"--javap --only-tools-jar --headless --full-classpath --dont-patch-ij1 --pass-classpath --main-class=sun.tools.javap.Main",
-	" start javap instead of ImageJ",
-	"--javadoc --only-tools-jar --headless --full-classpath --dont-patch-ij1 --pass-classpath --main-class=com.sun.tools.javadoc.Main",
-	" start javadoc instead of ImageJ",
 };
 
 static void initialize_subcommands(void)
@@ -939,90 +877,6 @@ static const char *expand_subcommand(const char *option)
 	return NULL;
 }
 
-static const char *expand_subcommand_for_extension(const char *extension)
-{
-	int i, j;
-
-	if (!extension)
-		return NULL;
-
-	initialize_subcommands();
-	for (i = 0; i < all_subcommands.size; i++)
-		for (j = 0; j < all_subcommands.list[i].extensions.size; j++)
-			if (!strcmp(extension, all_subcommands.list[i].extensions.list[j]))
-				return all_subcommands.list[i].expanded;
-	return NULL;
-}
-
-static const char *get_file_extension(const char *path)
-{
-	int i = strlen(path);
-
-	while (i)
-		if (path[i - 1] == '.')
-			return path + i - 1;
-		else if (path[i - 1] == '/' || path[i - 1] == '\\')
-			return NULL;
-		else
-			i--;
-	return NULL;
-}
-
-__attribute__((format (printf, 1, 2)))
-static int jar_exists(const char *fmt, ...)
-{
-	struct string string = { 0, 0, NULL };
-	va_list ap;
-	int result;
-
-	va_start(ap, fmt);
-	string_vaddf(&string, fmt, ap);
-	result = file_exists(string.buffer);
-	free(string.buffer);
-	va_end(ap);
-
-	return result;
-}
-
-/*
- * Check whether all .jar files specified in the classpath are available.
- */
-static int check_subcommand_classpath(struct subcommand *subcommand)
-{
-	const char *expanded = subcommand->expanded;
-
-	while (expanded && *expanded) {
-		const char *space = strchr(expanded, ' ');
-		if (!space)
-			space = expanded + strlen(expanded);
-		if (!prefixcmp(expanded, "--fiji-jar=")) {
-			expanded += 11;
-			if (!jar_exists("%s/%.*s", ij_path(""), (int)(space - expanded), expanded))
-				return 0;
-		}
-		if (!prefixcmp(expanded, "--ij-jar=")) {
-			struct string *path = string_initf("%.*s", (int)(space - expanded) - 9, expanded + 9);
-			const char *slash = last_slash(path->buffer), *result;
-			if (!slash || suffixcmp(path->buffer, path->length,
-					".jar")) {
-				return 0;
-			}
-			path->buffer[slash - path->buffer] = '\0';
-			path->buffer[path->length - 4] = '\0';
-			result = find_jar(ij_path(path->buffer), slash + 1);
-			string_release(path);
-			return !!result;
-		}
-		else if (!prefixcmp(expanded, "--tools-jar") || !prefixcmp(expanded, "--only-tools-jar")) {
-			const char *jre_home = get_jre_home();
-			if (!jre_home || !jar_exists("%s/../lib/tools.jar", jre_home))
-				return 0;
-		}
-		expanded = space + !!*space;
-	}
-	return 1;
-}
-
 static void __attribute__((__noreturn__)) usage(void)
 {
 	struct string subcommands = { 0, 0, NULL };
@@ -1031,8 +885,6 @@ static void __attribute__((__noreturn__)) usage(void)
 	initialize_subcommands();
 	for (i = 0; i < all_subcommands.size; i++) {
 		struct subcommand *subcommand = &all_subcommands.list[i];
-		if (!check_subcommand_classpath(subcommand))
-			continue;
 		string_addf(&subcommands, "%s\n%s", subcommand->name,
 			subcommand->description.length ? subcommand->description.buffer : "");
 	}
@@ -1229,35 +1081,6 @@ static void try_with_less_memory(long megabytes)
 	die("%s", buffer->buffer);
 }
 
-static const char *maybe_substitute_ij_jar(const char *relative_path)
-{
-	const char *replacement = NULL;
-
-	if (!strcmp(relative_path, "jars/jython.jar"))
-		replacement = "/usr/share/java/jython.jar";
-	else if (!strcmp(relative_path, "jars/clojure.jar"))
-		replacement = "/usr/share/java/clojure.jar";
-	else if (!strcmp(relative_path, "jars/bsh-2.0b4.jar") || !strcmp(relative_path, "jars/bsh.jar"))
-		replacement = "/usr/share/java/bsh.jar";
-	else if (!strcmp(relative_path, "jars/ant.jar"))
-		replacement = "/usr/share/java/ant.jar";
-	else if (!strcmp(relative_path, "jars/ant-launcher.jar"))
-		replacement = "/usr/share/java/ant-launcher.jar";
-	else if (!strcmp(relative_path, "jars/ant-nodeps.jar"))
-		replacement = "/usr/share/java/ant-nodeps.jar";
-	else if (!strcmp(relative_path, "jars/ant-junit.jar"))
-		replacement = "/usr/share/java/ant-junit.jar";
-	else if (!strcmp(relative_path, "jars/jsch-0.1.44.jar") || !strcmp(relative_path, "jars/jsch.jar"))
-		replacement = "/usr/share/java/jsch.jar";
-	else if (!strcmp(relative_path, "jars/javassist.jar"))
-		replacement = "/usr/share/java/javassist.jar";
-
-	if (!replacement || file_exists(ij_path(relative_path)))
-		return NULL;
-
-	return replacement;
-}
-
 /*
  * Returns the number of elements which this option spans if it is an ImageJ1 option, 0 otherwise.
  */
@@ -1424,13 +1247,6 @@ static int handle_one_option2(int *i, int argc, const char **argv)
 			handle_one_option(i, argv, "--cp", &arg) ||
 			handle_one_option(i, argv, "-cp", &arg))
 		add_launcher_option(&options, "-classpath", arg.buffer);
-	else if (handle_one_option(i, argv, "--fiji-jar", &arg) || handle_one_option(i, argv, "--ij-jar", &arg)) {
-		const char *path = maybe_substitute_ij_jar(arg.buffer);
-		if (path)
-			add_launcher_option(&options, "-classpath", path);
-		else
-			add_launcher_option(&options, "-ijclasspath", arg.buffer);
-	}
 	else if (handle_one_option(i, argv, "--jar-path", &arg) ||
 			handle_one_option(i, argv, "--jarpath", &arg) ||
 			handle_one_option(i, argv, "-jarpath", &arg))
@@ -1763,8 +1579,6 @@ static void parse_command_line(void)
 
 		if (len > 1 && !strncmp(first, "--", 2))
 			len = 0;
-		if (len > 3 && (expanded = expand_subcommand_for_extension(get_file_extension(first))))
-			handle_commandline(expanded);
 		else if (len > 6 && !strcmp(first + len - 6, ".class")) {
 			struct string *dotted = string_copy(first);
 			add_launcher_option(&options, "-classpath", ".");
