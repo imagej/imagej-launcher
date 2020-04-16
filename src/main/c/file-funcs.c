@@ -542,7 +542,11 @@ void find_newest(struct string *path, int max_depth, const char *file, struct st
 	directory = opendir(path->buffer);
 	if (!directory)
 		return;
-	string_add_char(path, '/');
+
+	if (path->buffer[path->length - 1] != '/')
+	{
+		string_add_char(path, '/');
+	}
 
 	// Recursive step - descend to each subdirectory
 	while (NULL != (entry = readdir(directory))) {

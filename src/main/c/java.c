@@ -31,6 +31,7 @@
 #include "file-funcs.h"
 #include "platform.h"
 #include "string-funcs.h"
+#include "xalloc.h"
 
 /*
  * If set, overrides the environment variable JAVA_HOME, which in turn
@@ -39,15 +40,17 @@
 static const char *absolute_java_home;
 static const char *relative_java_home;
 static const char *library_path;
+// NB: any changes here must also be reflected in initialize_java_home_and_library_path
 static const char *default_library_path;
 #if defined(__APPLE__)
-static const char *default_library_paths[1] = {"Contents/Home/lib/server/libjvm.dylib"};
+static const char *default_library_paths[6] = {"Contents/Home/jre/lib/server/libjvm.dylib", "Contents/Libraries/libjvm.dylib", "jre/lib/server/libjvm.dylib", "lib/server/libjvm.dylib", "jre/Contents/Home/lib/server/libjvm.dylib", "Contents/Home/lib/server/libjvm.dylib"};
 #elif defined(WIN32)
-static const char *default_library_paths[2] = {"bin/client/jvm.dll", "bin/server/jvm.dll"};
+static const char *default_library_paths[4] = {"jre/bin/client/jvm.dll", "bin/client/jvm.dll", "jre/bin/server/jvm.dll", "bin/server/jvm.dll"};
 #else
-static const char *default_library_paths[3] = {"lib/i386/client/libjvm.so", "lib/server/libjvm.so", "lib/amd64/server/libjvm.so"};
+static const char *default_library_paths[6] = {"lib/i386/server/libjvm.so", "jre/lib/i386/server/libjvm.so", "lib/i386/client/libjvm.so", "jre/lib/i386/client/libjvm.so", "lib/amd64/server/libjvm.so", "jre/lib/amd64/server/libjvm.so"};
 #endif
 static struct string *legacy_jre_path;
+
 
 const char *get_java_command(void)
 {
@@ -68,59 +71,6 @@ static const char *parse_number(const char *string, unsigned int *result, int sh
 
 	*result |= (int)(value << shift);
 	return endp;
-}
-
-
-unsigned int guess_java_version(void)
-{
-	if (debug) error("guess_java_version: Entering");
-	const char *java_home = get_jre_home();
-	return guess_java_version_for_path(java_home);
-}
-
-unsigned int guess_java_version_for_path(const char *java_home)
-{
-	if (debug) error("guess_java_version_for_path: Entering with %s", java_home);
-
-	while (java_home && *java_home) {
-		// Known naming conventions include:
-		// - X.Y.Z.jdk
-		// - jdkX.Y.Z_b
-		// - jdkX.Y.Z_b.jdk
-		// - jdk-X.Y.Z
-		// - jdk-X
-		// - java-X
-		// - openjdk-X
-		// - adoptopenjdk-X.jdk
-		if (!prefixcmp(java_home, "jdk") ||
-		    !prefixcmp(java_home, "jre") ||
-		    !prefixcmp(java_home, "java") ||
-		    !prefixcmp(java_home, "openjdk") ||
-		    !prefixcmp(java_home, "adoptopenjdk") ||
-		    !prefixcmp(java_home, "1.")) {
-			unsigned int result = 0;
-			const char *p = java_home;
-			// Skip to next number, to account for variety in naming conventions
-			while ((*p < '0' || *p > '9') && *p != '\0') p++;
-
-			p = parse_number(p, &result, 24);
-			if (p) {
-				// parsing first number was successful
-				if (p && *p == '.')
-					p = parse_number(p + 1, &result, 16);
-				if (p && *p == '.')
-					p = parse_number(p + 1, &result, 8);
-				if (p && *p == '_')
-					p = parse_number(p + 1, &result, 0);
-				if (debug) error("guess_java_version: Returning %d", result);
-				return result;
-			}
-		}
-		// Folder is unlikely to be a Java home; move deeper
-		java_home += strcspn(java_home, "\\/") + 1;
-	}
-	if (debug) error("guess_java_version_for_path: Returning 0");
-	return 0;
 }
 
 void set_java_home(const char *absolute_path)
@@ -156,6 +106,8 @@ int is_jre_home(const char *directory)
 					error("Ignoring JAVA_HOME (wrong arch): %s", libjvm->buffer);
 			}
 			else {
+				if (debug)
+					error("Identified JAVA_HOME: %s", libjvm->buffer);
 				result = 1;
 				break;
 			}
@@ -172,7 +124,7 @@ int is_jre_home(const char *directory)
 int is_java_home(const char *directory)
 {
 	if (debug) error("is_java_home: Entering with %s", directory);
-	struct string *jre = string_initf("%s/jre", directory);
+	struct string *jre = string_initf("%s", directory);
 	int result = is_jre_home(jre->buffer);
 	if (!result) {
 		// Java9 does not have a jre subfolder -> check directory
@@ -254,34 +206,7 @@ const char *get_jre_home(void)
 	initialized = 1;
 
 	/* ImageJ 1.x ships the JRE in <ij.dir>/jre/ */
-	result = legacy_jre_path ? legacy_jre_path->buffer : ij_path("jre");
-	if (dir_exists(result)) {
-		struct string *libjvm = string_initf("%s/%s", result, default_library_path);
-		if (!file_exists(libjvm->buffer)) {
-			if (debug)
-				error("Invalid jre/: '%s' does not exist!",
-						libjvm->buffer);
-		}
-		else if (!is_native_library(libjvm->buffer)) {
-			if (debug)
-				error("Invalid jre/: '%s' is not a %s library!",
-						libjvm->buffer, get_platform());
-		}
-		else {
-			string_release(libjvm);
-			jre = string_initf("%s", result);
-			if (debug)
-				error("JRE found in '%s'", jre->buffer);
-			return jre->buffer;
-		}
-		string_release(libjvm);
-	}
-	else {
-		if (debug)
-			error("JRE not found in '%s'", result);
-	}
-
-	result = get_java_home();
+	result = legacy_jre_path ? legacy_jre_path->buffer : get_java_home();
 	if (!result) {
 		const char *jre_home = getenv("JRE_HOME");
 		if (jre_home && *jre_home && is_jre_home(jre_home)) {
@@ -316,14 +241,7 @@ const char *get_jre_home(void)
 		return jre->buffer;
 	}
 
-	jre = string_initf("%s/jre", result);
-	if (debug) error("get_jre_home: Setting jre to %s", jre->buffer);
-	if (dir_exists(jre->buffer)) {
-		if (debug)
-			error("JAVA_HOME contains a JRE: '%s'", jre->buffer);
-		return jre->buffer;
-	}
-	string_set(jre, result);
+	jre = string_copy(result);
 	if (debug) {
 		error("get_jre_home: Setting jre to %s", jre->buffer);
 		error("JAVA_HOME appears to be a JRE: '%s'", jre->buffer);
@@ -422,16 +340,100 @@ const char *get_default_library_path(void)
 {
 	if (!default_library_path)
 	{
-		default_library_path =
-#if defined(__APPLE__)
-			"Contents/Home/lib/server/libjvm.dylib";
-#elif defined(WIN32)
-			sizeof(void *) < 8 ? "bin/client/jvm.dll" : "bin/server/jvm.dll";
-#else
-			sizeof(void *) < 8 ? "lib/i386/client/libjvm.so" : (guess_java_version() >= 0x09000000 ? "lib/server/libjvm.so" : "lib/amd64/server/libjvm.so");
-#endif
+		initialize_java_home_and_library_path();
 	}
 	return default_library_path;
+}
+
+/*
+ * Searches for a bundled platform-specific java, updating relative_java_home and the (default_)library_path if found.
+ */
+void *initialize_java_home_and_library_path(void)
+{
+	if (debug) error("Entering initialize_java_home_and_library_path");
+
+	struct string *bundled_dir;
+
+	// Identify the platform-specific subdirectory in /java to search for a bundled JVM
+	bundled_dir = string_copy(ij_path("java/"));
+	string_append(bundled_dir, 
+#if defined(__APPLE__)
+		"macosx/"
+#elif defined(WIN32)
+		sizeof(void *) < 8 ? "win32/" : "win64/"
+#else
+		sizeof(void *) < 8 ? "linux32/" : "linux64/"
+#endif
+		);
+
+	// Search for each possible java for the current platform
+	// NB: this will update relative_java_home and (default_)library_path, and will short-circuit once these are found.
+	// NB: these values must be reflected as possibile options in default_library_path
+#if defined(__APPLE__)
+	search_for_java(bundled_dir, "Contents/Home/jre/lib/server/libjvm.dylib");
+	search_for_java(bundled_dir, "Contents/Libraries/libjvm.dylib");
+	search_for_java(bundled_dir, "jre/lib/server/libjvm.dylib");
+	search_for_java(bundled_dir, "lib/server/libjvm.dylib");
+	search_for_java(bundled_dir, "jre/Contents/Home/lib/server/libjvm.dylib");
+	search_for_java(bundled_dir, "Contents/Home/lib/server/libjvm.dylib");
+#elif defined(WIN32)
+	search_for_java(bundled_dir, "jre/bin/client/jvm.dll");
+	search_for_java(bundled_dir, "bin/client/jvm.dll");
+	search_for_java(bundled_dir, "jre/bin/server/jvm.dll");
+	search_for_java(bundled_dir, "bin/server/jvm.dll");
+#else
+	if ( sizeof(void *) < 8 )
+	{
+		search_for_java(bundled_dir, "lib/i386/server/libjvm.so");
+		search_for_java(bundled_dir, "jre/lib/i386/server/libjvm.so");
+		search_for_java(bundled_dir, "lib/i386/client/libjvm.so");
+		search_for_java(bundled_dir, "jre/lib/i386/client/libjvm.so");
+	}
+	else
+	{
+		search_for_java(bundled_dir, "lib/amd64/server/libjvm.so");
+		search_for_java(bundled_dir, "jre/lib/amd64/server/libjvm.so");
+	}
+#endif
+	string_release(bundled_dir);
+}
+
+/*
+ * Recursively searches bundled_dir and the level below for java_library_path.
+ * If found:
+ *  the (default_)library_path(s) are set to java_library_path
+ *  relative_java_home is set to the directory containing java_library_path, with the ij_path popped off.
+ */
+void search_for_java(struct string *bundled_dir, const char *java_library_path)
+{
+	if (!default_library_path)
+	{
+		int depth = 1;
+		struct string *search_path, *result;
+		result = string_init(32);
+		search_path = string_initf("%s", java_library_path);
+		find_newest(bundled_dir, depth, search_path->buffer, result);
+		if (debug) error( "set_library_path: find_newest complete with result: '%s'", result->buffer);
+		if (result->length)
+		{
+			// Found a hit
+			// Need to subtract off the ij_path to get the relative_path
+			struct string *ij_base_dir = string_initf("%s", ij_path(""));
+			int ij_dir_len = ij_base_dir->length;
+			string_release(ij_base_dir);
+			// Append a path separator if needed
+			if (result->buffer[result->length - 1] != '/')
+			{
+				string_add_char(result, '/');
+			}
+			set_relative_java_home(xstrdup(result->buffer + ij_dir_len));
+			set_library_path(java_library_path);
+			default_library_path = java_library_path;
+			if (debug) error("Default library path (relative): %s", java_library_path);
+		}
+		string_release(search_path);
+		string_release(result);
+	}
 }
 
 void set_library_path(const char *path)

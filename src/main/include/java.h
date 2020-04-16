@@ -29,8 +29,7 @@
 #ifndef JAVA_H
 #define JAVA_H
 
-extern unsigned int guess_java_version(void);
-extern unsigned int guess_java_version_for_path(const char *java_home);
+#include "string-funcs.h"
 
 extern const char *get_java_command(void);
 
@@ -44,6 +43,8 @@ extern char *discover_system_java_home(void);
 extern const char *get_java_home(void);
 extern const char *get_jre_home(void);
 
+extern void *initialize_java_home_and_library_path(void);
+extern void search_for_java(struct string *bundled_dir, const char *java_library_path);
 extern const char *get_default_library_path(void);
 extern void set_library_path(const char *path);
 extern const char *get_library_path(void);
