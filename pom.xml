@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.scijava</groupId>
 		<artifactId>pom-scijava</artifactId>
-		<version>26.0.0</version>
+		<version>28.0.0</version>
 		<relativePath />
 	</parent>
 
@@ -127,6 +127,7 @@
 
 	<properties>
 		<package-name>net.imagej.launcher</package-name>
+		<main-class>net.imagej.launcher.ClassLauncher</main-class>
 
 		<license.licenseName>bsd_2</license.licenseName>
 		<license.copyrightOwners>ImageJ developers.</license.copyrightOwners>
@@ -137,7 +138,6 @@
 		<target.architecture />
 		<debug.option />
 		<skipTests>true</skipTests>
-		<maven.antrun.version>1.8</maven.antrun.version>
 		<cmake.generator.option />
 		<make.binary>make</make.binary>
 
@@ -155,17 +155,6 @@
 
 	<build>
 		<plugins>
-			<plugin>
-				<artifactId>maven-jar-plugin</artifactId>
-				<configuration>
-					<archive>
-						<manifest>
-							<packageName>net.imagej.launcher</packageName>
-							<mainClass>net.imagej.launcher.ClassLauncher</mainClass>
-						</manifest>
-					</archive>
-				</configuration>
-			</plugin>
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>exec-maven-plugin</artifactId>
@@ -202,7 +191,6 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-antrun-plugin</artifactId>
-				<version>${maven.antrun.version}</version>
 				<executions>
 					<execution>
 						<id>make</id>
@@ -302,46 +290,6 @@
 			<properties>
 				<debug.option>-g</debug.option>
 			</properties>
-		</profile>
-
-		<profile>
-			<!-- TODO: Move this configuration to pom-scijava-base. -->
-			<id>eclipse-pacifier</id>
-			<activation>
-				<property>
-					<name>m2e.version</name>
-				</property>
-			</activation>
-			<build>
-				<pluginManagement>
-					<plugins>
-						<plugin>
-							<groupId>org.eclipse.m2e</groupId>
-							<artifactId>lifecycle-mapping</artifactId>
-							<version>1.0.0</version>
-							<configuration>
-								<lifecycleMappingMetadata>
-									<pluginExecutions>
-										<pluginExecution>
-											<pluginExecutionFilter>
-												<groupId>org.apache.maven.plugins</groupId>
-												<artifactId>maven-antrun-plugin</artifactId>
-												<versionRange>[1.8,)</versionRange>
-												<goals>
-													<goal>run</goal>
-												</goals>
-											</pluginExecutionFilter>
-											<action>
-												<ignore />
-											</action>
-										</pluginExecution>
-									</pluginExecutions>
-								</lifecycleMappingMetadata>
-							</configuration>
-						</plugin>
-					</plugins>
-				</pluginManagement>
-			</build>
 		</profile>
 	</profiles>
 </project>
