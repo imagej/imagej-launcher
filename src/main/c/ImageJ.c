@@ -203,9 +203,6 @@ static void maybe_reexec_with_correct_lib_path(struct string *java_library_path)
 #elif defined(__APPLE__)
 	const char *original;
 
-	if (!is_lion())
-		return;
-
 	original = getenv("DYLD_LIBRARY_PATH");
 	if (original != NULL && strlen(original) == java_library_path->length)
 		return;
@@ -2391,7 +2388,6 @@ int main(int argc, char **argv, char **e)
 	update_all_files();
 
 #if defined(__APPLE__)
-	launch_32bit_on_tiger(argc, argv);
 #if !defined(NO_JAVA_FRAMEWORK)
 	set_path_to_apple_JVM();
 #endif
