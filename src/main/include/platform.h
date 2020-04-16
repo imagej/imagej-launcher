@@ -64,8 +64,6 @@ extern void append_icon_path(struct string *str, const char *main_argv0);
 extern int set_path_to_apple_JVM(void);
 extern int get_fiji_bundle_variable(const char *key, struct string *value);
 extern int start_ij_macosx(const char *main_argv0);
-extern int launch_32bit_on_tiger(int argc, char **argv);
-extern int is_lion(void);
 
 #elif defined (__linux__)
 
