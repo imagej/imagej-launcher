@@ -2022,76 +2022,6 @@ int start_ij(void)
 	return 0;
 }
 
-/* Try to find Java even if there is JRE local to ImageJ. Note that this
- * performs a two-pass search, first in java/jre/ and then an optional second
- * pass in java/. The newest (in terms of file-system modified) JRE discovered
- * in a pass wins and will be used to launch ImageJ.
- */
-static void adjust_java_home_if_necessary(void)
-{
-	if (debug)
-		error("Entering adjust_java_home_if_necessary.");
-
-	struct string *result, *buffer, *path;
-	const char *prefix = "jre/";
-	int depth = 2, ij_dir_len;
-
-	if (get_library_path())
-		return; /* already set, no need to adjust */
-
-	buffer = string_copy(ij_path("java"));
-	ij_dir_len = buffer->length - 4;
-	result = string_init(32);
-
-	// HACK: We are looking for a bundled JDK first
-	// NB: As we are using the system to determine the search target, we will
-	// never find a 32-bit JRE on a 64-bit system.
-	set_library_path(
-#if defined(__APPLE__)
-		"Contents/Home/lib/server/libjvm.dylib"
-#elif defined(WIN32)
-		sizeof(void *) < 8 ? "bin/client/jvm.dll" : "bin/server/jvm.dll"
-#else
-		sizeof(void *) < 8 ? "lib/i386/client/libjvm.so" : (guess_java_version_for_path(result->buffer) >= 0x09000000 ? "lib/server/libjvm.so" : "lib/amd64/server/libjvm.so")
-#endif
-	);
-
-	path = string_initf("%s%s", prefix, get_library_path());
-
-	// Pass 1: java/jre/
-	find_newest(buffer, depth, path->buffer, result);
-	if (debug) {
-		error( "set_library_path: find_newest complete with result: '%s'", result->buffer);
-	}
-	if (result->length) {
-		if (result->buffer[result->length - 1] != '/')
-			string_add_char(result, '/');
-		string_append(result, prefix);
-		set_relative_java_home(xstrdup(result->buffer + ij_dir_len));
-	}
-	else if (*prefix) {
-		// Pass 2: java/
-		find_newest(buffer, depth + 1, get_library_path(), result);
-		if (debug) {
-			error( "set_library_path: find_newest complete with result: '%s'", result->buffer);
-		}
-		if (result->length)
-			if (result->buffer[result->length - 1] != '/')
-				string_add_char(result, '/');
-			set_relative_java_home(xstrdup(result->buffer + ij_dir_len));
-	}
-
-	set_library_path(get_default_library_path());
-
-	char* debugPath = get_library_path();
-	if (debug)
-		error("Default library path (relative): %s", debugPath);
-
-	string_release(buffer);
-	string_release(result);
-	string_release(path);
-}
-
 int main(int argc, char **argv, char **e)
 {
 	int size;
@@ -2126,7 +2056,7 @@ int main(int argc, char **argv, char **e)
 	argv = __argv;
 	argv[0] = _pgmptr;
 #endif
-	adjust_java_home_if_necessary();
+	initialize_java_home_and_library_path();
 	main_argv0 = argv[0];
 	main_argv = argv;
 	main_argc = argc;
