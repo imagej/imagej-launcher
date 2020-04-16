@@ -85,7 +85,6 @@ extern int start_ij(void);
 /* Global variables */
 extern int debug;
 extern int info;
-extern int retrotranslator;
 
 static inline int prefixcmp(const char *string, const char *prefix)
 {

@@ -83,7 +83,6 @@ static const char *default_main_class = "net.imagej.Main";
 /* Define global variables declared in common.h */
 int debug = 0;
 int info = 0;
-int retrotranslator = 0;
 
 static const char *legacy_ij1_class = "ij.ImageJ";
 
@@ -325,31 +324,6 @@ static void initialize_imagej_launcher_jar_path(void)
 	imagej_launcher_jar = find_jar(ij_path("jars/"), "imagej-launcher");
 	if (!imagej_launcher_jar)
 		imagej_launcher_jar = find_jar(ij_path("jars/"), "ij-launcher");
-}
-
-static int add_retrotranslator_to_path(struct string *path)
-{
-	const char *retro = ij_path("retro/");
-	DIR *dir = opendir(retro);
-	struct dirent *entry;
-	int counter = 0;
-
-	if (!dir) {
-		error("Could not find Retrotranslator, trying to continue without.");
-		return 0;
-	}
-
-	while ((entry = readdir(dir))) {
-		if (suffixcmp(entry->d_name, -1, ".jar"))
-			continue;
-		string_append_path_list(path, retro);
-		string_append(path, entry->d_name);
-		counter++;
-	}
-
-	if (!counter)
-		error("Could not find Retrotranslator, trying to continue without.");
-	return counter;
 }
 
 static int headless, headless_argc, batch;
@@ -975,9 +949,7 @@ static void __attribute__((__noreturn__)) usage(void)
 		subcommands.buffer,
 		"--main-class <class name> (this is the\n"
 		"\tdefault when called with a file ending in .class)\n"
-		"\tstart the given class instead of ImageJ\n"
-		"--retrotranslator\n"
-		"\tuse Retrotranslator to support Java < 1.6\n\n");
+		"\tstart the given class instead of ImageJ\n\n");
 	string_release(&subcommands);
 }
 
@@ -999,8 +971,6 @@ static void jvm_workarounds(struct options *options)
 		if (main_class && !strcmp(main_class, "sun.tools.javap.Main"))
 			main_class = "com.sun.tools.javap.Main";
 	}
-	else if (java_version && java_version < 0x01060000)
-		retrotranslator = 1;
 }
 
 /* the maximal size of the heap on 32-bit systems, in megabyte */
@@ -1289,9 +1259,6 @@ static int handle_one_option2(int *i, int argc, const char **argv)
 	}
 	else if (!strcmp(argv[*i], "--pass-classpath"))
 		add_launcher_option(&options, "-pass-classpath", NULL);
-	else if (!strcmp(argv[*i], "--retrotranslator") ||
-			!strcmp(argv[*i], "--retro"))
-		retrotranslator = 1;
 	else if (handle_one_option(i, argv, "--fiji-dir", &arg))
 		set_ij_dir(xstrdup(arg.buffer));
 	else if (handle_one_option(i, argv, "--ij-dir", &arg))
@@ -1733,8 +1700,6 @@ static void parse_command_line(void)
 
 	if (!skip_class_launcher && strcmp(main_class, "org.apache.tools.ant.Main")) {
 		struct string *string = string_initf("-Djava.class.path=%s", imagej_launcher_jar);
-		if (retrotranslator && !add_retrotranslator_to_path(string))
-			retrotranslator = 0;
 		add_option_string(&options, string, 0);
 		add_launcher_option(&options, main_class, NULL);
 		prepend_string_array(&options.ij_options, &options.launcher_options);
@@ -1762,12 +1727,6 @@ static void parse_command_line(void)
 		if (class_path->length)
 			add_option_string(&options, class_path, 0);
 		string_release(class_path);
-	}
-
-	if (retrotranslator) {
-		prepend_string(&options.ij_options, strdup(main_class));
-		prepend_string(&options.ij_options, "-advanced");
-		main_class = "net.sf.retrotranslator.transformer.JITRetrotranslator";
 	}
 
 	if (options.dry_run || debug) {

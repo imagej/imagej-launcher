@@ -94,7 +94,7 @@ public class ClassLauncher {
 	}
 
 	protected static void run(String[] arguments) {
-		boolean retrotranslator = false, jdb = false, passClasspath = false;
+		boolean jdb = false, passClasspath = false;
 		URLClassLoader classLoader = null;
 		int i = 0;
 		for (; i < arguments.length && arguments[i].charAt(0) == '-'; i++) {
@@ -135,11 +135,6 @@ public class ClassLauncher {
 				}
 			}
 			else if (option.equals("-jdb")) jdb = true;
-			else if (option.equals("-retrotranslator")) {
-				classLoader =
-					ClassLoaderPlus.getRecursivelyInImageJDirectory(classLoader, true, "retro");
-				retrotranslator = true;
-			}
 			else if (option.equals("-pass-classpath")) passClasspath = true;
 			else if (option.equals("-freeze-classloader")) ClassLoaderPlus.freeze(classLoader);
 			else {
@@ -182,11 +177,6 @@ public class ClassLauncher {
 					prepend(arguments, "-classpath", ClassLoaderPlus.getClassPath(classLoader));
 			}
 			mainClass = "com.sun.tools.example.debug.tty.TTY";
-		}
-
-		if (retrotranslator) {
-			arguments = prepend(arguments, "-advanced", mainClass);
-			mainClass = "net.sf.retrotranslator.transformer.JITRetrotranslator";
 		}
 
 		if (debug) System.err.println("Launching main class " + mainClass +
