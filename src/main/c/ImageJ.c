@@ -2065,7 +2065,6 @@ static void adjust_java_home_if_necessary(void)
 			set_relative_java_home(xstrdup(result->buffer + ij_dir_len));
 	}
 
-	set_default_library_path();
 	set_library_path(get_default_library_path());
 
 	char* debugPath = get_library_path();

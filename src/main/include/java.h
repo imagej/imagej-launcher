@@ -44,7 +44,6 @@ extern char *discover_system_java_home(void);
 extern const char *get_java_home(void);
 extern const char *get_jre_home(void);
 
-extern void set_default_library_path(void);
 extern const char *get_default_library_path(void);
 extern void set_library_path(const char *path);
 extern const char *get_library_path(void);

@@ -418,20 +418,19 @@ void set_legacy_jre_path(const char *path)
 		error("Using JRE from ImageJ.cfg: %s", legacy_jre_path->buffer);
 }
 
-void set_default_library_path(void)
-{
-	default_library_path =
-#if defined(__APPLE__)
-		"Contents/Home/lib/server/libjvm.dylib";
-#elif defined(WIN32)
-		sizeof(void *) < 8 ? "bin/client/jvm.dll" : "bin/server/jvm.dll";
-#else
-		sizeof(void *) < 8 ? "lib/i386/client/libjvm.so" : (guess_java_version() >= 0x09000000 ? "lib/server/libjvm.so" : "lib/amd64/server/libjvm.so");
-#endif
-}
-
 const char *get_default_library_path(void)
 {
+	if (!default_library_path)
+	{
+		default_library_path =
+#if defined(__APPLE__)
+			"Contents/Home/lib/server/libjvm.dylib";
+#elif defined(WIN32)
+			sizeof(void *) < 8 ? "bin/client/jvm.dll" : "bin/server/jvm.dll";
+#else
+			sizeof(void *) < 8 ? "lib/i386/client/libjvm.so" : (guess_java_version() >= 0x09000000 ? "lib/server/libjvm.so" : "lib/amd64/server/libjvm.so");
+#endif
+	}
 	return default_library_path;
 }
 
