@@ -931,19 +931,6 @@ static const char *skip_whitespace(const char *string)
 	return string;
 }
 
-static void jvm_workarounds(struct options *options)
-{
-	unsigned int java_version = guess_java_version();
-
-	if (java_version == 0x01070000 || java_version == 0x01070001) {
-#ifndef WIN32
-		add_option(options, "-XX:-UseLoopPredicate", 0);
-#endif
-		if (main_class && !strcmp(main_class, "sun.tools.javap.Main"))
-			main_class = "com.sun.tools.javap.Main";
-	}
-}
-
 /* the maximal size of the heap on 32-bit systems, in megabyte */
 #ifdef WIN32
 #define MAX_32BIT_HEAP 1024
@@ -1478,8 +1465,6 @@ static void parse_command_line(void)
 
 	if (is_ipv6_broken())
 		add_option(&options, "-Djava.net.preferIPv4Stack=true", 0);
-
-	jvm_workarounds(&options);
 
 	if (advanced_gc == 1) {
 		// NB: No difference between advanced_gc 0 or 1 anymore.
