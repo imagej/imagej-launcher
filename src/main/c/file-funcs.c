@@ -486,20 +486,28 @@ void read_file_as_string(const char *file_name, struct string *contents)
 }
 
 /*
- * Traverses subfolders of a path up to a defined depth to find a file.
+ * Recursively traverses subfolders of a path up to a defined depth to find a
+ * file. If multiple candidates are found, the newest will be returned.
+ *
+ * @param path - base directory to start search
+ * @param max_depth - maximum subfolder distance to travel from base
+ * @param file - the file we are looking for
+ * @param result - reference to path where the file is found
  */
 void find_newest(struct string *path, int max_depth, const char *file, struct string *result)
 {
+	// NB: we temporarily combine the file and path, this allows resetting the path.
 	int len = path->length;
 	DIR *directory;
 	struct dirent *entry;
 
 	if (debug) error("find_newest: searching '%s' for '%s'", path->buffer, file);
 
+	// Update the current path
 	if (!len || path->buffer[len - 1] != '/')
 		string_add_char(path, '/');
-
 	string_append(path, file);
+
 	if (file_exists(path->buffer)) {
 		if (is_native_library(path->buffer)) {
 			string_set_length(path, len);
