@@ -9,7 +9,7 @@
 #   "target/gauntlet_out"
 
 if [ -z "$1" ]; then
-  searchdir=~/Java_vers/*
+  searchdir=~/Java_vers/*/
 else
   searchdir=$1
 fi
@@ -18,16 +18,18 @@ fi
 mvn clean package
 
 mkdir target/gauntlet_out
-
+mkdir target/java
 
 echo "Testing all Java installations in directory $searchdir"
 
 for d in $searchdir ; do
-  # Point imagej to this JRE
-  ln -s "$d" target/java
+  echo "testing $d"
 
   expected=$( basename "$d" )
   logfile=target/gauntlet_out/$expected.log
+
+  # Point imagej to this JRE
+  ln -s "$d" "target/java/$basename"
 
   # Run the script to check this jre
   source ./check-java-version.sh 2> $logfile
