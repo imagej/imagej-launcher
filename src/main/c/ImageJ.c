@@ -2063,7 +2063,7 @@ static void adjust_java_home_if_necessary(void)
 		set_relative_java_home(xstrdup(result->buffer + ij_dir_len));
 	}
 	else if (*prefix) {
-		find_newest(buffer, depth + 1, get_library_path(), buffer);
+		find_newest(buffer, depth + 1, get_library_path(), result);
 		if (debug) {
 			error( "set_library_path: find_newest complete with result: '%s'", result->buffer);
 		}
