@@ -38,11 +38,15 @@ for d in $searchdir ; do
   actual=$( echo $( tail -n 1 $logfile )|cut -d '=' -f2 )
   actual=$(basename "$actual")
 
+  # Test if the correct JDK was used
   echo "actual: $actual" >> $logfile
   echo "expected: $expected" >> $logfile
+  success="FAILED"
   if [ "$actual" == "$expected" ]; then
-    echo "PASSED" >> $logfile
-  else
-    echo "FAILED" >> $logfile
+    success="PASSED"
   fi
+  echo "$success" >> $logfile
+
+  # Mark the file as pased/failed
+  mv $logfile target/gauntlet_out/$success.$expected.log
 done
