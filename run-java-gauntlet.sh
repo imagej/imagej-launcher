@@ -3,13 +3,13 @@
 # run-java-gauntlet - A script to test the ImageJ native launcher against one
 # or more Java installation(s)
 # Inputs:
-#   - base directory containing Java installations (default: ~/Java_vers/*/)
+#   - base directory containing Java installations (default: ~/Java_all/*/)
 # Outputs:
 #   Summary logs for each Java installation, one file each, in
 #   "target/gauntlet_out"
 
 if [ -z "$1" ]; then
-  searchdir=~/Java_vers/*/
+  searchdir=~/Java_all/*/
 else
   searchdir=$1
 fi
