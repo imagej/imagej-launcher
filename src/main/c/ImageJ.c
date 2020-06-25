@@ -2076,6 +2076,8 @@ static void adjust_java_home_if_necessary(void)
 			error( "set_library_path: find_newest complete with result: '%s'", result->buffer);
 		}
 		if (result->length)
+			if (result->buffer[result->length - 1] != '/')
+				string_add_char(result, '/');
 			set_relative_java_home(xstrdup(result->buffer + ij_dir_len));
 	}
 
