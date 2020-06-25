@@ -508,6 +508,7 @@ void find_newest(struct string *path, int max_depth, const char *file, struct st
 		string_add_char(path, '/');
 	string_append(path, file);
 
+	// Check if the file exists and, if so, it is the newest candidate
 	if (file_exists(path->buffer)) {
 		if (is_native_library(path->buffer)) {
 			string_set_length(path, len);
@@ -533,6 +534,7 @@ void find_newest(struct string *path, int max_depth, const char *file, struct st
 		error("find_newest: file not found: '%s'", path->buffer);
 	}
 
+	// Recursive end
 	if (max_depth <= 0)
 		return;
 
@@ -541,6 +543,8 @@ void find_newest(struct string *path, int max_depth, const char *file, struct st
 	if (!directory)
 		return;
 	string_add_char(path, '/');
+
+	// Recursive step - descend to each subdirectory
 	while (NULL != (entry = readdir(directory))) {
 		if (entry->d_name[0] == '.')
 			continue;
@@ -550,5 +554,7 @@ void find_newest(struct string *path, int max_depth, const char *file, struct st
 		string_set_length(path, len + 1);
 	}
 	closedir(directory);
+
+	// Reset the search path
 	string_set_length(path, len);
 }
