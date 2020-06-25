@@ -2022,7 +2022,11 @@ int start_ij(void)
 	return 0;
 }
 
-/* TODO: try to find Java even if there is JRE local to ImageJ */
+/* Try to find Java even if there is JRE local to ImageJ. Note that this
+ * performs a two-pass search, first in java/jre/ and then an optional second
+ * pass in java/. The newest (in terms of file-system modified) JRE discovered
+ * in a pass wins and will be used to launch ImageJ.
+ */
 static void adjust_java_home_if_necessary(void)
 {
 	if (debug)
@@ -2040,6 +2044,8 @@ static void adjust_java_home_if_necessary(void)
 	result = string_init(32);
 
 	// HACK: We are looking for a bundled JDK first
+	// NB: As we are using the system to determine the search target, we will
+	// never find a 32-bit JRE on a 64-bit system.
 	set_library_path(
 #if defined(__APPLE__)
 		"Contents/Home/lib/server/libjvm.dylib"
@@ -2052,6 +2058,7 @@ static void adjust_java_home_if_necessary(void)
 
 	path = string_initf("%s%s", prefix, get_library_path());
 
+	// Pass 1: java/jre/
 	find_newest(buffer, depth, path->buffer, result);
 	if (debug) {
 		error( "set_library_path: find_newest complete with result: '%s'", result->buffer);
@@ -2063,6 +2070,7 @@ static void adjust_java_home_if_necessary(void)
 		set_relative_java_home(xstrdup(result->buffer + ij_dir_len));
 	}
 	else if (*prefix) {
+		// Pass 2: java/
 		find_newest(buffer, depth + 1, get_library_path(), result);
 		if (debug) {
 			error( "set_library_path: find_newest complete with result: '%s'", result->buffer);
