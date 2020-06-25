@@ -17,8 +17,11 @@ fi
 # Ensure the native launcher is built
 mvn clean package
 
-mkdir target/gauntlet_out
+# Make JRE discovery directory
 mkdir target/java
+
+# Make output dir
+mkdir target/gauntlet_out
 
 echo "Testing all Java installations in directory $searchdir"
 
@@ -29,16 +32,16 @@ for d in $searchdir ; do
   logfile=target/gauntlet_out/$expected.log
 
   # Point imagej to this JRE
-  ln -s "$d" "target/java/$basename"
+  ln -sn $d target/java/$expected
 
-  # Run the script to check this jre
+  # Run the script to check this JRE
   source ./check-java-version.sh 2> $logfile
 
-  # Extract the actual JDK used
+  # Extract the actual JRE used
   actual=$( echo $( tail -n 1 $logfile )|cut -d '=' -f2 )
   actual=$(basename "$actual")
 
-  # Test if the correct JDK was used
+  # Test if the correct JRE was used
   echo "actual: $actual" >> $logfile
   echo "expected: $expected" >> $logfile
   success="FAILED"
@@ -49,4 +52,11 @@ for d in $searchdir ; do
 
   # Mark the file as pased/failed
   mv $logfile target/gauntlet_out/$success.$expected.log
+
+  # NB: this is ESSENTIAL because the adjust_java_home_if_necessary() method
+  # does a two-pass search such that, even if a desired JDK is "newer", if it
+  # is found by the second pass, then even an "older" JDK found by the first
+  # pass will win.
+  # Rename this JRE out of the "java" folder so it is not discovered in future tests
+  mv target/java/$expected target/$expected
 done
