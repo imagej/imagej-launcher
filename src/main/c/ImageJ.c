@@ -2053,6 +2053,9 @@ static void adjust_java_home_if_necessary(void)
 	path = string_initf("%s%s", prefix, get_library_path());
 
 	find_newest(buffer, depth, path->buffer, result);
+	if (debug) {
+		error( "set_library_path: find_newest complete with result: '%s'", result->buffer);
+	}
 	if (result->length) {
 		if (result->buffer[result->length - 1] != '/')
 			string_add_char(result, '/');
@@ -2061,6 +2064,9 @@ static void adjust_java_home_if_necessary(void)
 	}
 	else if (*prefix) {
 		find_newest(buffer, depth + 1, get_library_path(), buffer);
+		if (debug) {
+			error( "set_library_path: find_newest complete with result: '%s'", result->buffer);
+		}
 		if (result->length)
 			set_relative_java_home(xstrdup(result->buffer + ij_dir_len));
 	}
