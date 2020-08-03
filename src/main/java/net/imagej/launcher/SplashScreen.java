@@ -33,13 +33,17 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Window;
 import java.io.File;
+import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Map;
 
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JWindow;
+
+import org.scijava.util.FileUtils;
 
 /**
  * Application splash screen.
@@ -50,7 +54,8 @@ public class SplashScreen {
 
 	private static final int PROGRESS_MAX = 10000;
 
-	private static final String LOGO_PATH = "splash/imagej.png";
+	private static final String LOGO_FILENAME = "imagej.png";
+	private static final String LOGO_PATH = "splash/" + LOGO_FILENAME;
 
 	private static Object splashWindow;
 	private static Object progressBar;
@@ -59,10 +64,12 @@ public class SplashScreen {
 		if (Boolean.getBoolean("java.awt.headless")) return;
 		final JWindow window = new JWindow();
 		splashWindow = window; // Save a non-AWT reference to the window.
+
+		// Get splash icon from current class loader
 		final ClassLoader classLoader = //
 			Thread.currentThread().getContextClassLoader();
-		final URL logoURL = classLoader.getResource(LOGO_PATH);
-		final ImageIcon imageIcon;
+		URL logoURL = classLoader.getResource(LOGO_PATH);
+
 		if (logoURL == null) {
 			// Look for images/icon.png on disk, as a fallback.
 			// For backwards compatibility with old Fiji installations.
@@ -70,9 +77,19 @@ public class SplashScreen {
 				System.getProperty("imagej.dir") : ".";
 			final File logoFile = new File(parent, "images/icon.png");
 			if (!logoFile.exists()) return;
-			imageIcon = new ImageIcon(logoFile.getPath());
+			try {
+				logoURL = logoFile.toURI().toURL();
+			} catch (MalformedURLException e) {
+				e.printStackTrace();
+				return;
+			}
 		}
-		else imageIcon = new ImageIcon(logoURL);
+
+		// Find all splash icons on the classpath
+		Map<String, URL> splashs = FileUtils.findResources(".*", "splash", null);
+		splashs.remove(LOGO_FILENAME); // We are using this as the main logo already
+
+		final ImageIcon imageIcon = new SplashIcon(logoURL, splashs.values());
 		final JLabel logoImage = new JLabel(imageIcon);
 		final JProgressBar bar = new JProgressBar();
 		bar.setMaximum(PROGRESS_MAX);
@@ -128,5 +145,9 @@ public class SplashScreen {
 		if (splashWindow == null) return;
 		((Window) splashWindow).dispose();
 		splashWindow = null;
+	}
+
+	public static void main(String[] args) {
+		SplashScreen.show();
 	}
 }
