@@ -1156,7 +1156,7 @@ static void jvm_workarounds(struct options *options)
 
 /* the maximal size of the heap on 32-bit systems, in megabyte */
 #ifdef WIN32
-#define MAX_32BIT_HEAP 1224
+#define MAX_32BIT_HEAP 1024
 #else
 #define MAX_32BIT_HEAP 1920
 #endif
