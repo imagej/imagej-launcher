@@ -1071,7 +1071,11 @@ static void __attribute__((__noreturn__)) usage(void)
 		"\tprint where ImageJ thinks it is located\n",
 #ifdef WIN32
 		"--console\n"
-		"\talways open an error console\n"
+		"\tattempt to attach output to the calling console\n"
+		"--attach-console\n"
+		"\talias for --console\n"
+		"--new-console\n"
+		"\ensure the launch of a new, dedicated console for output\n"
 		"--set-icon <exe-file> <ico-file>\n"
 		"\tadd/replace the icon of the given program\n"
 #endif
@@ -1330,12 +1334,27 @@ static int handle_one_option2(int *i, int argc, const char **argv)
 		die("Setting an .exe file's icon requires Windows!");
 #endif
 	}
-	else if (!strcmp(argv[*i], "--console"))
+	else if (!strcmp(argv[*i], "--console")) {
 #ifdef WIN32
-		open_win_console();
+		attach_win_console();
 #else
 		; /* ignore */
 #endif
+	}
+	else if (!strcmp(argv[*i], "--attach-console")) {
+#ifdef WIN32
+		attach_win_console();
+#else
+		; /* ignore */
+#endif
+	}
+	else if (!strcmp(argv[*i], "--new-console")) {
+#ifdef WIN32
+		new_win_console();
+#else
+		; /* ignore */
+#endif
+	}
 	else if (!strcmp(argv[*i], "--jdb")) {
 		add_tools_jar(&options);
 		add_launcher_option(&options, "-jdb", NULL);
@@ -1437,7 +1456,7 @@ static int handle_one_option2(int *i, int argc, const char **argv)
 			!strcmp(argv[*i], "--fake")) {
 		const char *fake_jar;
 #ifdef WIN32
-		open_win_console();
+		attach_win_console();
 #endif
 		error("Fiji Build is deprecated! Please port your project to Maven:\n"
 			"\n\thttps://imagej.net/Maven");
@@ -2366,7 +2385,7 @@ int main(int argc, char **argv, char **e)
 			!suffixcmp(argv[0], -1, "debug")) {
 		debug++;
 #ifdef WIN32
-		open_win_console();
+		new_win_console();
 #endif
 	}
 

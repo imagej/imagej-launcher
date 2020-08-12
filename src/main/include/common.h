@@ -53,7 +53,8 @@ extern void die(const char *fmt, ...);
 #include <process.h>
 #define PATH_SEP ";"
 
-extern void open_win_console();
+extern void attach_win_console();
+extern void new_win_console();
 extern void win_error(const char *fmt, ...);
 extern void win_verror(const char *fmt, va_list ap);
 
