@@ -42,13 +42,14 @@ static const char *relative_java_home;
 static const char *library_path;
 static const char *default_library_path;
 #if defined(__APPLE__)
-static const char *default_library_paths[6] = {
-	"Contents/Home/jre/lib/server/libjvm.dylib",
-	"Contents/Libraries/libjvm.dylib",
-	"jre/lib/server/libjvm.dylib",
-	"lib/server/libjvm.dylib",
-	"jre/Contents/Home/lib/server/libjvm.dylib",
-	"Contents/Home/lib/server/libjvm.dylib"
+static const char *default_library_paths[6] =
+{
+	"Contents/Home/jre/lib/jli/libjli.dylib",
+	"jre/lib/jli/libjli.dylib",
+	"Contents/Home/lib/jli/libjli.dylib",
+	"lib/jli/libjli.dylib",
+	"Contents/MacOS/libjli.dylib",
+	"Contents/Libraries/libjli.jnilib"
 };
 #elif defined(WIN32)
 static const char *default_library_paths[4] =
