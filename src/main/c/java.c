@@ -42,11 +42,32 @@ static const char *relative_java_home;
 static const char *library_path;
 static const char *default_library_path;
 #if defined(__APPLE__)
-static const char *default_library_paths[6] = {"Contents/Home/jre/lib/server/libjvm.dylib", "Contents/Libraries/libjvm.dylib", "jre/lib/server/libjvm.dylib", "lib/server/libjvm.dylib", "jre/Contents/Home/lib/server/libjvm.dylib", "Contents/Home/lib/server/libjvm.dylib"};
+static const char *default_library_paths[6] = {
+	"Contents/Home/jre/lib/server/libjvm.dylib",
+	"Contents/Libraries/libjvm.dylib",
+	"jre/lib/server/libjvm.dylib",
+	"lib/server/libjvm.dylib",
+	"jre/Contents/Home/lib/server/libjvm.dylib",
+	"Contents/Home/lib/server/libjvm.dylib"
+};
 #elif defined(WIN32)
-static const char *default_library_paths[4] = {"jre/bin/client/jvm.dll", "bin/client/jvm.dll", "jre/bin/server/jvm.dll", "bin/server/jvm.dll"};
+static const char *default_library_paths[4] =
+{
+	"jre/bin/client/jvm.dll",
+	"bin/client/jvm.dll",
+	"jre/bin/server/jvm.dll",
+	"bin/server/jvm.dll"
+};
 #else
-static const char *default_library_paths[6] = {"lib/i386/server/libjvm.so", "jre/lib/i386/server/libjvm.so", "lib/i386/client/libjvm.so", "jre/lib/i386/client/libjvm.so", "lib/amd64/server/libjvm.so", "jre/lib/amd64/server/libjvm.so"};
+static const char *default_library_paths[6] =
+{
+	"lib/i386/server/libjvm.so",
+	"jre/lib/i386/server/libjvm.so",
+	"lib/i386/client/libjvm.so",
+	"jre/lib/i386/client/libjvm.so",
+	"lib/amd64/server/libjvm.so",
+	"jre/lib/amd64/server/libjvm.so"
+};
 #endif
 static struct string *legacy_jre_path;
 
