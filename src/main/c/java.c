@@ -40,7 +40,6 @@
 static const char *absolute_java_home;
 static const char *relative_java_home;
 static const char *library_path;
-// NB: any changes here must also be reflected in initialize_java_home_and_library_path
 static const char *default_library_path;
 #if defined(__APPLE__)
 static const char *default_library_paths[6] = {"Contents/Home/jre/lib/server/libjvm.dylib", "Contents/Libraries/libjvm.dylib", "jre/lib/server/libjvm.dylib", "lib/server/libjvm.dylib", "jre/Contents/Home/lib/server/libjvm.dylib", "Contents/Home/lib/server/libjvm.dylib"};
@@ -351,6 +350,7 @@ const char *get_default_library_path(void)
 void *initialize_java_home_and_library_path(void)
 {
 	if (debug) error("Entering initialize_java_home_and_library_path");
+	int i;
 
 	struct string *bundled_dir;
 
@@ -366,35 +366,12 @@ void *initialize_java_home_and_library_path(void)
 #endif
 		);
 
-	// Search for each possible java for the current platform
-	// NB: this will update relative_java_home and (default_)library_path, and will short-circuit once these are found.
-	// NB: these values must be reflected as possibile options in default_library_path
-#if defined(__APPLE__)
-	search_for_java(bundled_dir, "Contents/Home/jre/lib/server/libjvm.dylib");
-	search_for_java(bundled_dir, "Contents/Libraries/libjvm.dylib");
-	search_for_java(bundled_dir, "jre/lib/server/libjvm.dylib");
-	search_for_java(bundled_dir, "lib/server/libjvm.dylib");
-	search_for_java(bundled_dir, "jre/Contents/Home/lib/server/libjvm.dylib");
-	search_for_java(bundled_dir, "Contents/Home/lib/server/libjvm.dylib");
-#elif defined(WIN32)
-	search_for_java(bundled_dir, "jre/bin/client/jvm.dll");
-	search_for_java(bundled_dir, "bin/client/jvm.dll");
-	search_for_java(bundled_dir, "jre/bin/server/jvm.dll");
-	search_for_java(bundled_dir, "bin/server/jvm.dll");
-#else
-	if ( sizeof(void *) < 8 )
-	{
-		search_for_java(bundled_dir, "lib/i386/server/libjvm.so");
-		search_for_java(bundled_dir, "jre/lib/i386/server/libjvm.so");
-		search_for_java(bundled_dir, "lib/i386/client/libjvm.so");
-		search_for_java(bundled_dir, "jre/lib/i386/client/libjvm.so");
-	}
-	else
-	{
-		search_for_java(bundled_dir, "lib/amd64/server/libjvm.so");
-		search_for_java(bundled_dir, "jre/lib/amd64/server/libjvm.so");
-	}
-#endif
+	// Search for each possible java for the current platform.
+	// This will update relative_java_home and (default_)library_path,
+	// and will short-circuit once these are found.
+	int arrayLength = sizeof(default_library_paths)/sizeof(default_library_paths[0]);
+	for (i=0; i<arrayLength; i++)
+		search_for_java(bundled_dir, default_library_paths[i]);
 	string_release(bundled_dir);
 }
 
