@@ -27,7 +27,7 @@ where `xyz` is your platform.
 ## Download
 
 Up-to-date versions can always be downloaded from the
-[ImageJ Nexus](https://maven.scijava.org):
+[SciJava Maven repository](https://maven.scijava.org):
 
 - [Windows 64-bit](https://maven.scijava.org/service/local/artifact/maven/redirect?r=snapshots&g=net.imagej&a=imagej-launcher&v=LATEST&e=exe&c=win64)
 - [Windows 32-bit](https://maven.scijava.org/service/local/artifact/maven/redirect?r=snapshots&g=net.imagej&a=imagej-launcher&v=LATEST&e=exe&c=win32)
