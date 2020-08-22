@@ -405,34 +405,33 @@ void *initialize_java_home_and_library_path(void)
  */
 void search_for_java(struct string *bundled_dir, const char *java_library_path)
 {
-	if (!default_library_path)
+	if (default_library_path) return; // already found
+
+	int depth = 1;
+	struct string *search_path, *result;
+	result = string_init(32);
+	search_path = string_initf("%s", java_library_path);
+	find_newest(bundled_dir, depth, search_path->buffer, result);
+	if (debug) error( "set_library_path: find_newest complete with result: '%s'", result->buffer);
+	if (result->length)
 	{
-		int depth = 1;
-		struct string *search_path, *result;
-		result = string_init(32);
-		search_path = string_initf("%s", java_library_path);
-		find_newest(bundled_dir, depth, search_path->buffer, result);
-		if (debug) error( "set_library_path: find_newest complete with result: '%s'", result->buffer);
-		if (result->length)
+		// Found a hit
+		// Need to subtract off the ij_path to get the relative_path
+		struct string *ij_base_dir = string_initf("%s", ij_path(""));
+		int ij_dir_len = ij_base_dir->length;
+		string_release(ij_base_dir);
+		// Append a path separator if needed
+		if (result->buffer[result->length - 1] != '/')
 		{
-			// Found a hit
-			// Need to subtract off the ij_path to get the relative_path
-			struct string *ij_base_dir = string_initf("%s", ij_path(""));
-			int ij_dir_len = ij_base_dir->length;
-			string_release(ij_base_dir);
-			// Append a path separator if needed
-			if (result->buffer[result->length - 1] != '/')
-			{
-				string_add_char(result, '/');
-			}
-			set_relative_java_home(xstrdup(result->buffer + ij_dir_len));
-			set_library_path(java_library_path);
-			default_library_path = java_library_path;
-			if (debug) error("Default library path (relative): %s", java_library_path);
+			string_add_char(result, '/');
 		}
-		string_release(search_path);
-		string_release(result);
+		set_relative_java_home(xstrdup(result->buffer + ij_dir_len));
+		set_library_path(java_library_path);
+		default_library_path = java_library_path;
+		if (debug) error("Default library path (relative): %s", java_library_path);
 	}
+	string_release(search_path);
+	string_release(result);
 }
 
 void set_library_path(const char *path)
