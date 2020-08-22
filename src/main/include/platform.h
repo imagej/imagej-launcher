@@ -61,7 +61,6 @@ int is_native_library(const char *path);
 #include <pthread.h>
 
 extern void append_icon_path(struct string *str, const char *main_argv0);
-extern int set_path_to_apple_JVM(void);
 extern int get_fiji_bundle_variable(const char *key, struct string *value);
 extern int start_ij_macosx(const char *main_argv0);
 

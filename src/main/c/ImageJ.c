@@ -2065,11 +2065,7 @@ int main(int argc, char **argv, char **e)
 	/* Handle update/ */
 	update_all_files();
 
-#if defined(__APPLE__)
-#if !defined(NO_JAVA_FRAMEWORK)
-	set_path_to_apple_JVM();
-#endif
-#elif defined(WIN64)
+#if defined(WIN64)
 	/* work around MinGW64 breakage */
 	argc = __argc;
 	argv = __argv;
