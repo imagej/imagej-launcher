@@ -98,14 +98,14 @@ void set_java_home(const char *absolute_path)
 {
 	if (debug) error("set_java_home: Entering with %s", absolute_path);
 	absolute_java_home = absolute_path;
-	if (debug) error("set_java_home: absolute_java_home is now: %s", absolute_java_home);
+	if (debug) error("--> absolute_java_home is now: %s", absolute_java_home);
 }
 
 void set_relative_java_home(const char *relative_path)
 {
 	if (debug) error("set_relative_java_home: Entering with %s", relative_path);
 	relative_java_home = relative_path;
-	if (debug) error("set_relative_java_home: relative_java_home is now: %s", relative_java_home);
+	if (debug) error("--> relative_java_home is now: %s", relative_java_home);
 }
 
 int is_jre_home(const char *directory)
@@ -120,15 +120,15 @@ int is_jre_home(const char *directory)
 			struct string* libjvm = string_initf("%s/%s", directory, default_library_paths[i]);
 			if (!file_exists(libjvm->buffer)) {
 				if (debug)
-					error("Ignoring JAVA_HOME (does not exist): %s", libjvm->buffer);
+					error("--> Ignoring JAVA_HOME (does not exist): %s", libjvm->buffer);
 			}
 			else if (!is_native_library(libjvm->buffer)) {
 				if (debug)
-					error("Ignoring JAVA_HOME (wrong arch): %s", libjvm->buffer);
+					error("--> Ignoring JAVA_HOME (wrong arch): %s", libjvm->buffer);
 			}
 			else {
 				if (debug)
-					error("Identified JAVA_HOME: %s", libjvm->buffer);
+					error("--> Identified JAVA_HOME: %s", libjvm->buffer);
 				result = 1;
 				break;
 			}
@@ -160,7 +160,7 @@ const char *get_java_home_env(void)
 {
 	if (debug) error("get_java_home_env: Entering");
 	const char *env = getenv("JAVA_HOME");
-	if (debug) error("get_java_home_env: JAVA_HOME is set to %s", env);
+	if (debug) error("--> JAVA_HOME is set to %s", env);
 	if (env && is_java_home(env))
 		return env;
 	return NULL;
