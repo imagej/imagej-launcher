@@ -85,6 +85,7 @@ void debug(const char *fmt, ...)
 	vfprintf(stderr, fmt, ap);
 	va_end(ap);
 	fputc('\n', stderr);
+	fflush(stderr);
 }
 
 __attribute__((__noreturn__))
