@@ -246,8 +246,7 @@ const char *find_in_path(const char *path, int die_if_not_found)
 	if (!p) {
 		if (die_if_not_found)
 			die("Could not get PATH");
-		if (debug)
-			error("Could not get PATH");
+		debug("Could not get PATH");
 		return NULL;
 	}
 
@@ -265,8 +264,7 @@ const char *find_in_path(const char *path, int die_if_not_found)
 			}
 			if (die_if_not_found)
 				die("Could not find %s in PATH", path);
-			if (debug)
-				error("Could not find '%s' in the PATH", path);
+			debug("Could not find '%s' in the PATH", path);
 			return NULL;
 		}
 
@@ -501,7 +499,7 @@ void find_newest(struct string *path, int max_depth, const char *file, struct st
 	DIR *directory;
 	struct dirent *entry;
 
-	if (debug) error("find_newest: searching '%s' for '%s'", path->buffer, file);
+	debug("find_newest: searching '%s' for '%s'", path->buffer, file);
 
 	// Update the current path
 	if (!len || path->buffer[len - 1] != '/')
@@ -513,26 +511,18 @@ void find_newest(struct string *path, int max_depth, const char *file, struct st
 		if (is_native_library(path->buffer)) {
 			string_set_length(path, len);
 			if (!result->length) {
-				if (debug) error("find_newest: found a candidate: '%s'", path->buffer);
+				debug("find_newest: found a candidate: '%s'", path->buffer);
 				string_set(result, path->buffer);
 			}
 			else if (file_is_newer(path->buffer, result->buffer)) {
-				if (debug) {
-					error("find_newest: found newer candidate: '%s'", path->buffer);
-				}
+				debug("find_newest: found newer candidate: '%s'", path->buffer);
 				string_set(result, path->buffer);
 			}
-			else if (debug) {
-				error("find_newest: rejected older candidate: '%s'", path->buffer);
-			}
+			else debug("find_newest: rejected older candidate: '%s'", path->buffer);
 		}
-		else if (debug) {
-			error("find_newest: not a native library: '%s'", path->buffer);
-		}
+		else debug("find_newest: not a native library: '%s'", path->buffer);
 	}
-	else if (debug) {
-		error("find_newest: file not found: '%s'", path->buffer);
-	}
+	else debug("find_newest: file not found: '%s'", path->buffer);
 
 	// Recursive end
 	if (max_depth <= 0)

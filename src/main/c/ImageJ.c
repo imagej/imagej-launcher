@@ -81,8 +81,8 @@ static const char *default_fiji1_class = "fiji.Main";
 static const char *default_main_class = "net.imagej.Main";
 
 /* Define global variables declared in common.h */
-int debug = 0;
-int info = 0;
+int debug_mode = 0;
+int info_mode = 0;
 
 static const char *legacy_ij1_class = "ij.ImageJ";
 
@@ -170,8 +170,7 @@ static void maybe_reexec_with_correct_lib_path(struct string *java_library_path)
 		return;
 
 	setenv_or_exit("LD_LIBRARY_PATH", java_library_path->buffer, 1);
-	if (debug)
-		error("Re-executing with correct library lookup path (%s)", java_library_path->buffer);
+	debug("Re-executing with correct library lookup path (%s)", java_library_path->buffer);
 	execvp(main_argv_backup[0], main_argv_backup);
 	die("Could not re-exec with correct library lookup (%d: %s)!", errno, strerror(errno));
 #elif defined(__APPLE__)
@@ -182,8 +181,7 @@ static void maybe_reexec_with_correct_lib_path(struct string *java_library_path)
 		return;
 
 	setenv_or_exit("DYLD_LIBRARY_PATH", java_library_path->buffer, 1);
-	if (debug)
-		error("Re-executing with correct library lookup path (%s)", java_library_path->buffer);
+	debug("Re-executing with correct library lookup path (%s)", java_library_path->buffer);
 	execvp(main_argv_backup[0], main_argv_backup);
 	die("Could not re-exec with correct library lookup: %d (%s)", errno, strerror(errno));
 #endif
@@ -217,8 +215,7 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 		error("No known JRE; cannot link to Java library");
 		return 1;
 	}
-	if (debug)
-		error("Using JAVA_HOME %s", java_home);
+	debug("Using JAVA_HOME %s", java_home);
 
 #ifdef WIN32
 	/* On Windows, a setenv() invalidates strings obtained by getenv(). */
@@ -230,18 +227,15 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 
 	string_addf(buffer, "%s/%s", java_home, get_library_path());
 
-	if (debug)
-		error("Opening Java library %s", buffer->buffer);
+	debug("Opening Java library %s", buffer->buffer);
 
 	handle = dlopen(buffer->buffer, RTLD_LAZY);
 	if (!handle) {
 		const char *err;
-		if (debug)
-			error("Could not open '%s'", buffer->buffer);
+		debug("Could not open '%s'", buffer->buffer);
 		setenv_or_exit("JAVA_HOME", original_java_home_env, 1);
 		if (!file_exists(java_home)) {
-			if (debug)
-				error("'%s' does not exist", java_home);
+			debug("'%s' does not exist", java_home);
 			string_release(buffer);
 			return 2;
 		}
@@ -962,8 +956,7 @@ static void try_with_less_memory(long megabytes)
 	}
 	new_argv[j] = NULL;
 
-	if (debug)
-		error("Trying with a smaller heap: %s", buffer->buffer);
+	debug("Trying with a smaller heap: %s", buffer->buffer);
 
 #ifdef WIN32
 	new_argv[0] = dos_path(new_argv[0]);
@@ -1035,10 +1028,10 @@ static int handle_one_option2(int *i, int argc, const char **argv)
 	if (!strcmp(argv[*i], "--dry-run"))
 		options.dry_run++;
 	else if (!strcmp(argv[*i], "--debug")) {
-		debug++;
+		debug_mode++;
 	}
 	else if (!strcmp(argv[*i], "--info"))
-		info++;
+		info_mode++;
 	else if (handle_one_option(i, argv, "--java-home", &arg)) {
 		set_java_home(xstrdup(arg.buffer));
 		setenv_or_exit("JAVA_HOME", xstrdup(arg.buffer), 1);
@@ -1410,7 +1403,7 @@ static void parse_command_line(void)
 
 	/* If arguments don't set the memory size, set it after available memory. */
 	if (megabytes == 0 && !has_memory_option(&options.java_options)) {
-		struct string *message = !debug ? NULL : string_init(32);
+		struct string *message = debug_mode ? string_init(32) : NULL;
 		megabytes = (long)(get_memory_size(0) >> 20);
 		if (message)
 			string_addf(message,"Available RAM: %dMB", (int)megabytes);
@@ -1568,8 +1561,7 @@ static void parse_command_line(void)
 		add_option(&options, main_argv[i], 1);
 
 	if (batch < 0) {
-		if (debug)
-			error("Appending missing -batch flag for headless operation.");
+		debug("Appending missing -batch flag for headless operation.");
 		add_option(&options, "-batch", 1);
 	}
 
@@ -1592,13 +1584,13 @@ static void parse_command_line(void)
 	properties[i++] = "false";
 	properties[i++] = "python.console.encoding";
 	properties[i++] = "UTF-8";
-	if (debug) {
+	if (debug_mode) {
 		properties[i++] = "ij.debug";
 		properties[i++] = "true";
 		properties[i++] = "scijava.log.level";
 		properties[i++] = "debug";
 	}
-	else if (info) {
+	else if (info_mode) {
 		properties[i++] = "scijava.log.level";
 		properties[i++] = "info";
 	}
@@ -1650,7 +1642,7 @@ static void parse_command_line(void)
 		string_release(class_path);
 	}
 
-	if (options.dry_run || debug) {
+	if (options.dry_run || debug_mode) {
 		for (i = 0; properties[i]; i += 2) {
 			if (!properties[i] || !properties[i + 1])
 				continue;
@@ -1701,8 +1693,7 @@ static int write_desktop_file(const char *path, const char *title, const char *e
 	FILE *f = fopen(path, "w");
 
 	if (!f) {
-		if (debug)
-			error("Could not write to '%s': %d (%s)", path, errno, strerror(errno));
+		debug("Could not write to '%s': %d (%s)", path, errno, strerror(errno));
 		return 1;
 	}
 
@@ -1741,8 +1732,7 @@ static void maybe_write_desktop_file(void)
 	if (!startup_class)
 		return;
 	if (!strcmp("net.imagej.launcher.ClassLauncher", startup_class)) {
-		if (debug)
-			error("Could not determine startup class!");
+		debug("Could not determine startup class!");
 		return;
 	}
 	if (!strcmp(startup_class, legacy_ij1_class)) {
@@ -1765,8 +1755,7 @@ static void maybe_write_desktop_file(void)
 
 	path = string_initf("%s%s.desktop", ij_path(""), name);
 	if (file_exists(path->buffer)) {
-		if (debug)
-			error("Keep existing '%s'", path->buffer);
+		debug("Keep existing '%s'", path->buffer);
 		string_release(path);
 		return;
 	}
@@ -1776,8 +1765,7 @@ static void maybe_write_desktop_file(void)
 	else {
 		const char *in_path = find_in_path(main_argv0, 0);
 		if (!in_path) {
-			if (debug)
-				error("Did not find '%s' in PATH, skipping %s\n", main_argv0, path->buffer);
+			debug("Did not find '%s' in PATH, skipping %s\n", main_argv0, path->buffer);
 			string_release(path);
 			return;
 		}
@@ -1790,22 +1778,18 @@ static void maybe_write_desktop_file(void)
 			icon_path = string_copy(icon);
 	}
 
-	if (debug)
-		error("Writing '%s'", path->buffer);
+	debug("Writing '%s'", path->buffer);
 	write_desktop_file(path->buffer, title, executable_path->buffer, icon_path ? icon_path->buffer : NULL, wm_class);
 	string_setf(path, "%s/.local/share/applications", getenv("HOME"));
 	if (dir_exists(path->buffer)) {
 		string_addf(path, "/%s.desktop", name);
 		if (!file_exists(path->buffer)) {
-			if (debug)
-				error("Writing '%s'", path->buffer);
+			debug("Writing '%s'", path->buffer);
 			write_desktop_file(path->buffer, title, executable_path->buffer, icon_path ? icon_path->buffer : NULL, wm_class);
 		}
-		else if (debug)
-			error("Keep existing '%s'", path->buffer);
+		else debug("Keep existing '%s'", path->buffer);
 	}
-	else if (debug)
-		error("Skipping user-wide .desktop file: '%s' does not exist", path->buffer);
+	else debug("Skipping user-wide .desktop file: '%s' does not exist", path->buffer);
 
 	string_release(path);
 	string_release(executable_path);
@@ -1867,8 +1851,7 @@ int start_ij(void)
 					// "${java.home}/.." or similar hacks.
 					string_set_length(buffer, buffer->length - 4);
 					string_replace_range(buffer, 0, 0, "-Djava.home=");
-					if (debug)
-						error("Adding option: %s", buffer->buffer);
+					debug("Adding option: %s", buffer->buffer);
 					prepend_string_copy(&options.java_options, buffer->buffer);
 				}
 			}
@@ -2011,11 +1994,11 @@ int main(int argc, char **argv, char **e)
 	 * Without this, the --debug CLI flag parsing happens too late
 	 * to see debugging output such as JVM detection on OS X.
 	 */
-	if (getenv("DEBUG")) debug++;
+	if (getenv("DEBUG")) debug_mode++;
 
 	if (!suffixcmp(argv[0], -1, "debug.exe") ||
 			!suffixcmp(argv[0], -1, "debug")) {
-		debug++;
+		debug_mode++;
 #ifdef WIN32
 		open_win_console();
 #endif
@@ -2045,14 +2028,11 @@ int main(int argc, char **argv, char **e)
 
 	if (has_jar(ij_path("jars/"), "imagej")) {
 		/* Launch ImageJ2 */
-		if (debug) {
-			error("Detected ImageJ2");
-		}
+		debug("Detected ImageJ2");
 	}
 	else if (has_jar(ij_path("jars/"), "fiji-compat")) {
 		/* Launch Fiji1 when fiji-compat.jar was found */
-		if (debug)
-			error("Detected Fiji1");
+		debug("Detected Fiji1");
 		legacy_mode = 1;
 	}
 	else if (has_jar(ij_path("jars/"), "ij-app")) {
@@ -2060,8 +2040,7 @@ int main(int argc, char **argv, char **e)
 	}
 	else {
 		/* If no ImageJ2 was found, try to fall back to ImageJ 1.x */
-		if (debug)
-			error("Detected ImageJ 1.x");
+		debug("Detected ImageJ 1.x");
 		legacy_mode = 1;
 		main_class = legacy_ij1_class;
 	}
@@ -2070,7 +2049,7 @@ int main(int argc, char **argv, char **e)
 	parse_command_line();
 
 	maybe_write_legacy_config();
-	if (!debug)
+	if (!debug_mode)
 		maybe_write_desktop_file();
 
 #ifdef __linux__
@@ -2079,8 +2058,7 @@ int main(int argc, char **argv, char **e)
 	if (!headless) {
 		void *libX11Handle = dlopen("libX11.so", RTLD_LAZY);
 		if(libX11Handle != NULL) {
-			if (debug)
-				error("Running XInitThreads\n");
+			debug("Running XInitThreads\n");
 			xinit_threads_reference = dlsym(libX11Handle, "XInitThreads");
 
 			if(xinit_threads_reference != NULL) {

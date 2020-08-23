@@ -96,21 +96,21 @@ static const char *parse_number(const char *string, unsigned int *result, int sh
 
 void set_java_home(const char *absolute_path)
 {
-	if (debug) error("set_java_home: Entering with %s", absolute_path);
+	debug("set_java_home: Entering with %s", absolute_path);
 	absolute_java_home = absolute_path;
-	if (debug) error("--> absolute_java_home is now: %s", absolute_java_home);
+	debug("--> absolute_java_home is now: %s", absolute_java_home);
 }
 
 void set_relative_java_home(const char *relative_path)
 {
-	if (debug) error("set_relative_java_home: Entering with %s", relative_path);
+	debug("set_relative_java_home: Entering with %s", relative_path);
 	relative_java_home = relative_path;
-	if (debug) error("--> relative_java_home is now: %s", relative_java_home);
+	debug("--> relative_java_home is now: %s", relative_java_home);
 }
 
 int is_jre_home(const char *directory)
 {
-	if (debug) error("is_jre_home: Entering with %s", directory);
+	debug("is_jre_home: Entering with %s", directory);
 	int i;
 	int result = 0;
 	if (dir_exists(directory)) {
@@ -119,16 +119,13 @@ int is_jre_home(const char *directory)
 		for (i=0; i<arrayLength; i++) {
 			struct string* libjvm = string_initf("%s/%s", directory, default_library_paths[i]);
 			if (!file_exists(libjvm->buffer)) {
-				if (debug)
-					error("--> Ignoring JAVA_HOME (does not exist): %s", libjvm->buffer);
+				debug("--> Ignoring JAVA_HOME (does not exist): %s", libjvm->buffer);
 			}
 			else if (!is_native_library(libjvm->buffer)) {
-				if (debug)
-					error("--> Ignoring JAVA_HOME (wrong arch): %s", libjvm->buffer);
+				debug("--> Ignoring JAVA_HOME (wrong arch): %s", libjvm->buffer);
 			}
 			else {
-				if (debug)
-					error("--> Identified JAVA_HOME: %s", libjvm->buffer);
+				debug("--> Identified JAVA_HOME: %s", libjvm->buffer);
 				result = 1;
 				break;
 			}
@@ -144,7 +141,7 @@ int is_jre_home(const char *directory)
  */
 int is_java_home(const char *directory)
 {
-	if (debug) error("is_java_home: Entering with %s", directory);
+	debug("is_java_home: Entering with %s", directory);
 	struct string *jre = string_initf("%s", directory);
 	int result = is_jre_home(jre->buffer);
 	if (!result) {
@@ -158,9 +155,9 @@ int is_java_home(const char *directory)
 
 const char *get_java_home_env(void)
 {
-	if (debug) error("get_java_home_env: Entering");
+	debug("get_java_home_env: Entering");
 	const char *env = getenv("JAVA_HOME");
-	if (debug) error("--> JAVA_HOME is set to %s", env);
+	debug("--> JAVA_HOME is set to %s", env);
 	if (env && is_java_home(env))
 		return env;
 	return NULL;
@@ -168,20 +165,20 @@ const char *get_java_home_env(void)
 
 const char *get_java_home(void)
 {
-	if (debug) error("get_java_home: Entering");
+	debug("get_java_home: Entering");
 	const char *result;
 
 	/* Check if an absolute path has been previously set */
 	if (absolute_java_home) {
-		if (debug) error("Using absolute_java_home: %s", absolute_java_home);
+		debug("Using absolute_java_home: %s", absolute_java_home);
 		return absolute_java_home;
 	}
 
 	/* Check if a relative path has been previously set */
 	result = !relative_java_home ? NULL : ij_path(relative_java_home);
-	if (debug) error("get_java_home: Trying to use relative_java_home: %s", result);
+	debug("get_java_home: Trying to use relative_java_home: %s", result);
 	if (result && is_java_home(result)) {
-		if (debug) error("get_java_home: Returning %s", result);
+		debug("get_java_home: Returning %s", result);
 		return result;
 	}
 	if (result && (!suffixcmp(result, -1, "/jre") ||
@@ -190,38 +187,38 @@ const char *get_java_home(void)
 		/* Strip jre/ from result */
 		char *new_eol = (char *)(result + strlen(result) - 4);
 		*new_eol = '\0';
-		if (debug) error("get_java_home: Returning %s", result);
+		debug("get_java_home: Returning %s", result);
 		return result;
 	}
 
 	/* Check JAVA_HOME environment variable */
 	result = get_java_home_env();
 	if (result) {
-		if (debug) error("get_java_home: Returning %s", result);
+		debug("get_java_home: Returning %s", result);
 		return result;
 	}
 
 	/* Otherwise use the system's Java */
-	if (debug) error("get_java_home: Returning discover_system_java_home()");
+	debug("get_java_home: Returning discover_system_java_home()");
 	return discover_system_java_home();
 }
 
 /* Returns the JRE/JAVA HOME folder that will be used */
 const char *get_jre_home(void)
 {
-	if (debug) error("get_jre_home: Entering");
+	debug("get_jre_home: Entering");
 	const char *result;
 	int len;
 	static struct string *jre;
 	static int initialized;
 
 	if (jre) {
-		if (debug) error("get_jre_home: Returning %s", jre->buffer);
+		debug("get_jre_home: Returning %s", jre->buffer);
 		return jre->buffer;
 	}	
 
 	if (initialized) {
-		if (debug) error("get_jre_home: Returning NULL");
+		debug("get_jre_home: Returning NULL");
 		return NULL;
 	}	
 	initialized = 1;
@@ -232,47 +229,38 @@ const char *get_jre_home(void)
 		const char *jre_home = getenv("JRE_HOME");
 		if (jre_home && *jre_home && is_jre_home(jre_home)) {
 			jre = string_copy(jre_home);
-			if (debug) {
-				error("get_jre_home: Setting jre to %s", jre->buffer);
-				error("Found a JRE in JRE_HOME: %s", jre->buffer);
-			}
+			debug("get_jre_home: Setting jre to %s", jre->buffer);
+			debug("Found a JRE in JRE_HOME: %s", jre->buffer);
 			return jre->buffer;
 		}
 		jre_home = getenv("JAVA_HOME");
 		if (jre_home && *jre_home && is_jre_home(jre_home)) {
 			jre = string_copy(jre_home);
-			if (debug) {
-				error("get_jre_home: Setting jre to %s", jre->buffer);
-				error("Found a JRE in JAVA_HOME: %s", jre->buffer);
-			}
+			debug("get_jre_home: Setting jre to %s", jre->buffer);
+			debug("Found a JRE in JAVA_HOME: %s", jre->buffer);
 			return jre->buffer;
 		}
-		if (debug)
-			error("No JRE was found in default locations");
+		debug("No JRE was found in default locations");
 		return NULL;
 	}
 
 	len = strlen(result);
 	if (len > 4 && !suffixcmp(result, len, "/jre")) {
 		jre = string_copy(result);
-		if (debug) {
-			error("get_jre_home: Setting jre to %s", jre->buffer);
-			error("JAVA_HOME points to a JRE: '%s'", result);
-		}
+		debug("get_jre_home: Setting jre to %s", jre->buffer);
+		debug("JAVA_HOME points to a JRE: '%s'", result);
 		return jre->buffer;
 	}
 
 	jre = string_copy(result);
-	if (debug) {
-		error("get_jre_home: Setting jre to %s", jre->buffer);
-		error("JAVA_HOME appears to be a JRE: '%s'", jre->buffer);
-	}
+	debug("get_jre_home: Setting jre to %s", jre->buffer);
+	debug("JAVA_HOME appears to be a JRE: '%s'", jre->buffer);
 	return jre->buffer;
 }
 
 char *discover_system_java_home(void)
 {
-	if (debug) error("discover_system_java_home: Entering");
+	debug("discover_system_java_home: Entering");
 #ifdef WIN32
 	HKEY key;
 	HRESULT result;
@@ -322,9 +310,8 @@ char *discover_system_java_home(void)
 		 * with Current symlinked to A, resulting in a failure of this PATH-based
 		 * strategy to find the actual JRE. So we simply give up in that case.
 		 */
-		if (debug) 
-			error("Ignoring Apple Framework java executable: '%s'", java_executable);
-		if (debug) error("discover_system_java_home: Returning NULL");
+		debug("Ignoring Apple Framework java executable: '%s'", java_executable);
+		debug("discover_system_java_home: Returning NULL");
 		return NULL;
 	}
 #endif
@@ -340,10 +327,10 @@ char *discover_system_java_home(void)
 				len -= strlen(suffixes[i]);
 				path[len] = '\0';
 			}
-		if (debug) error("discover_system_java_home: Returning %s", path);
+		debug("discover_system_java_home: Returning %s", path);
 		return path;
 	}
-	if (debug) error("discover_system_java_home: Returning NULL");
+	debug("discover_system_java_home: Returning NULL");
 	return NULL;
 #endif
 }
@@ -353,8 +340,7 @@ void set_legacy_jre_path(const char *path)
 	if (!legacy_jre_path)
 		legacy_jre_path = string_init(32);
 	string_set(legacy_jre_path, is_absolute_path(path) ? path : ij_path(path));
-	if (debug)
-		error("Using JRE from ImageJ.cfg: %s", legacy_jre_path->buffer);
+	debug("Using JRE from ImageJ.cfg: %s", legacy_jre_path->buffer);
 }
 
 const char *get_default_library_path(void)
@@ -371,7 +357,7 @@ const char *get_default_library_path(void)
  */
 void *initialize_java_home_and_library_path(void)
 {
-	if (debug) error("Entering initialize_java_home_and_library_path");
+	debug("initialize_java_home_and_library_path: Entering");
 	int i;
 
 	struct string *bundled_dir;
@@ -412,7 +398,7 @@ void search_for_java(struct string *bundled_dir, const char *java_library_path)
 	result = string_init(32);
 	search_path = string_initf("%s", java_library_path);
 	find_newest(bundled_dir, depth, search_path->buffer, result);
-	if (debug) error( "set_library_path: find_newest complete with result: '%s'", result->buffer);
+	debug( "search_for_java: find_newest complete with result: '%s'", result->buffer);
 	if (result->length)
 	{
 		// Found a hit
@@ -428,7 +414,7 @@ void search_for_java(struct string *bundled_dir, const char *java_library_path)
 		set_relative_java_home(xstrdup(result->buffer + ij_dir_len));
 		set_library_path(java_library_path);
 		default_library_path = java_library_path;
-		if (debug) error("Default library path (relative): %s", java_library_path);
+		debug("Default library path (relative): %s", java_library_path);
 	}
 	string_release(search_path);
 	string_release(result);
@@ -436,9 +422,9 @@ void search_for_java(struct string *bundled_dir, const char *java_library_path)
 
 void set_library_path(const char *path)
 {
-	if (debug) error("set_library_path: Entering with %s", path);
+	debug("set_library_path: Entering with %s", path);
 	library_path = path;
-	if (debug) error("library_path is now %s", library_path);
+	debug("library_path is now %s", library_path);
 }
 
 const char *get_library_path(void)

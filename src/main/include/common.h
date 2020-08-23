@@ -42,6 +42,9 @@
 __attribute__((format (printf, 1, 2)))
 extern void error(const char *fmt, ...);
 
+__attribute__((format (printf, 1, 2)))
+extern void debug(const char *fmt, ...);
+
 __attribute__((__noreturn__))
 __attribute__((format (printf, 1, 2)))
 extern void die(const char *fmt, ...);
@@ -82,8 +85,8 @@ extern void win_verror(const char *fmt, va_list ap);
 extern int start_ij(void);
 
 /* Global variables */
-extern int debug;
-extern int info;
+extern int debug_mode;
+extern int info_mode;
 
 static inline int prefixcmp(const char *string, const char *prefix)
 {
