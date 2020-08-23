@@ -82,6 +82,7 @@ static const char *default_main_class = "net.imagej.Main";
 
 /* Define global variables declared in common.h */
 int debug_mode = 0;
+int debug_indent = 0;
 int info_mode = 0;
 
 static const char *legacy_ij1_class = "ij.ImageJ";

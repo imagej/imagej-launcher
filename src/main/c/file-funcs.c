@@ -494,12 +494,14 @@ void read_file_as_string(const char *file_name, struct string *contents)
  */
 void find_newest(struct string *path, int max_depth, const char *file, struct string *result)
 {
+	enter("find_newest");
+
 	// NB: we temporarily combine the file and path, this allows resetting the path.
 	int len = path->length;
 	DIR *directory;
 	struct dirent *entry;
 
-	debug("find_newest: searching '%s' for '%s'", path->buffer, file);
+	debug("searching '%s' for '%s'", path->buffer, file);
 
 	// Update the current path
 	if (!len || path->buffer[len - 1] != '/')
@@ -511,30 +513,33 @@ void find_newest(struct string *path, int max_depth, const char *file, struct st
 		if (is_native_library(path->buffer)) {
 			string_set_length(path, len);
 			if (!result->length) {
-				debug("find_newest: found a candidate: '%s'", path->buffer);
+				debug("found a candidate: '%s'", path->buffer);
 				string_set(result, path->buffer);
 			}
 			else if (file_is_newer(path->buffer, result->buffer)) {
-				debug("find_newest: found newer candidate: '%s'", path->buffer);
+				debug("found newer candidate: '%s'", path->buffer);
 				string_set(result, path->buffer);
 			}
-			else debug("find_newest: rejected older candidate: '%s'", path->buffer);
+			else debug("rejected older candidate: '%s'", path->buffer);
 		}
-		else debug("find_newest: not a native library: '%s'", path->buffer);
+		else debug("not a native library: '%s'", path->buffer);
 	}
-	else debug("find_newest: file not found: '%s'", path->buffer);
+	else debug("file not found: '%s'", path->buffer);
 
 	// Recursive end
-	if (max_depth <= 0)
+	if (max_depth <= 0) {
+		leave();
 		return;
+	}
 
 	string_set_length(path, len);
 	directory = opendir(path->buffer);
-	if (!directory)
+	if (!directory) {
+		leave();
 		return;
+	}
 
-	if (path->buffer[path->length - 1] != '/')
-	{
+	if (path->buffer[path->length - 1] != '/') {
 		string_add_char(path, '/');
 	}
 
@@ -551,4 +556,6 @@ void find_newest(struct string *path, int max_depth, const char *file, struct st
 
 	// Reset the search path
 	string_set_length(path, len);
+
+	leave();
 }

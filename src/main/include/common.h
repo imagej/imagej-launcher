@@ -42,6 +42,9 @@
 __attribute__((format (printf, 1, 2)))
 extern void error(const char *fmt, ...);
 
+extern void enter(const char *func);
+extern void leave(void);
+
 __attribute__((format (printf, 1, 2)))
 extern void debug(const char *fmt, ...);
 
@@ -86,6 +89,7 @@ extern int start_ij(void);
 
 /* Global variables */
 extern int debug_mode;
+extern int debug_indent;
 extern int info_mode;
 
 static inline int prefixcmp(const char *string, const char *prefix)
