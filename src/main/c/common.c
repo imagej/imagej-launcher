@@ -36,8 +36,30 @@ void error(const char *fmt, ...)
 {
 	va_list ap;
 #ifdef WIN32
-	const char *debug = getenv("WINDEBUG");
-	if (debug && *debug) {
+	const char *windebug = getenv("WINDEBUG");
+	if (windebug && *windebug) {
+		va_start(ap, fmt);
+		win_verror(fmt, ap);
+		va_end(ap);
+		return;
+	}
+	open_win_console();
+#endif
+
+	va_start(ap, fmt);
+	vfprintf(stderr, fmt, ap);
+	va_end(ap);
+	fputc('\n', stderr);
+}
+
+__attribute__((format (printf, 1, 2)))
+void debug(const char *fmt, ...)
+{
+	if (!debug_mode) return;
+	va_list ap;
+#ifdef WIN32
+	const char *windebug = getenv("WINDEBUG");
+	if (windebug && *windebug) {
 		va_start(ap, fmt);
 		win_verror(fmt, ap);
 		va_end(ap);
@@ -58,8 +80,8 @@ void die(const char *fmt, ...)
 {
 	va_list ap;
 #ifdef WIN32
-	const char *debug = getenv("WINDEBUG");
-	if (debug && *debug) {
+	const char *windebug = getenv("WINDEBUG");
+	if (windebug && *windebug) {
 		va_start(ap, fmt);
 		win_verror(fmt, ap);
 		va_end(ap);

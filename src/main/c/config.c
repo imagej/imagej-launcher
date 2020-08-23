@@ -49,8 +49,7 @@ void parse_legacy_config(struct string *jvm_options)
 		if (!eol)
 			eol = p + strlen(p);
 
-		if (debug > 1)
-			error("ImageJ.cfg:%d: %.*s", line, (int)(eol - p), p);
+		debug("ImageJ.cfg:%d: %.*s", line, (int)(eol - p), p);
 
 		if (line == 2) {
 			int jre_len = -1;
@@ -59,7 +58,7 @@ void parse_legacy_config(struct string *jvm_options)
 				jre_len = eol - p - 14;
 			else if (!suffixcmp(p, eol - p, "\\bin\\java.exe")) {
 				jre_len = eol - p - 13;
-				debug++;
+				debug_mode++;
 				new_win_console();
 				error("Enabling debug mode due to ImageJ.cfg mentioning java.exe");
 			}
@@ -86,16 +85,14 @@ void parse_legacy_config(struct string *jvm_options)
 					if (!legacy_ij1_options)
 						legacy_ij1_options = string_init(32);
 					string_setf(legacy_ij1_options, "%.*s", (int)(eol - rest), rest);
-					if (debug)
-						error("Found ImageJ options in ImageJ.cfg: '%s'", legacy_ij1_options->buffer);
+					debug("Found ImageJ options in ImageJ.cfg: '%s'", legacy_ij1_options->buffer);
 				}
 				eol = main_class;
 			}
 
 			string_replace_range(jvm_options, 0, p - jvm_options->buffer, "");
 			string_set_length(jvm_options, eol - p);
-			if (debug)
-				error("Found Java options in ImageJ.cfg: '%s'", jvm_options->buffer);
+			debug("Found Java options in ImageJ.cfg: '%s'", jvm_options->buffer);
 			return;
 		}
 
