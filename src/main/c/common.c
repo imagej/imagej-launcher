@@ -52,6 +52,15 @@ void error(const char *fmt, ...)
 	fputc('\n', stderr);
 }
 
+void enter(const char *func) {
+	debug("%s:", func);
+	debug_indent++;
+}
+
+void leave(void) {
+	debug_indent--;
+}
+
 __attribute__((format (printf, 1, 2)))
 void debug(const char *fmt, ...)
 {
@@ -68,6 +77,10 @@ void debug(const char *fmt, ...)
 	new_win_console();
 #endif
 
+	int i;
+	va_list nothing;
+	for (i=0; i<debug_indent; i++)
+		vfprintf(stderr, "    ", nothing);
 	va_start(ap, fmt);
 	vfprintf(stderr, fmt, ap);
 	va_end(ap);
