@@ -37,8 +37,8 @@ for pdir in $searchdir ; do
 		logfile=target/gauntlet_out/$expected.log
 
 		# Point imagej to this JRE
-		echo "linking $javadir to target/java/$platformname/$expected"
-		ln -sn $javadir "target/java/$platformname/$expected"
+		ln -sn $javadir
+		mv $expected target/java/$platformname
 
 		# Run the script to check this JRE
 		source ./check-java-version.sh 2> $logfile
