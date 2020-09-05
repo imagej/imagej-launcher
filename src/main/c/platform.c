@@ -1169,63 +1169,37 @@ static void sleep_a_while(void)
 	sleep(60);
 }
 
-void open_win_console(void)
+/*
+ * Attempts to attach output to the spawning console
+ */
+void attach_win_console(void)
 {
-	static int initialized = 0;
-	struct string *kernel32_dll_path;
-	void *kernel32_dll;
-	BOOL WINAPI (*attach_console)(DWORD process_id) = NULL;
-	SECURITY_ATTRIBUTES attributes;
-	HANDLE handle;
+	if (!console_attached) {
+		console_attached = 1;
+		AttachConsole(-1);
+		open_comm_channels();
+		printf("\n--ImageJ output attached--");
+	}
+}
 
-	if (initialized)
-		return;
-	initialized = 1;
-	console_attached = 1;
-	if (!isatty(1) && !isatty(2))
-		return;
-
-	kernel32_dll_path = string_initf("%s\\system32\\kernel32.dll",
-		getenv("WINDIR"));
-	kernel32_dll = dlopen(kernel32_dll_path->buffer, RTLD_LAZY);
-	string_release(kernel32_dll_path);
-	if (kernel32_dll)
-		attach_console = (typeof(attach_console))
-			dlsym(kernel32_dll, "AttachConsole");
-	if (!attach_console || !attach_console((DWORD)-1)) {
-		if (attach_console) {
-			if (GetLastError() == ERROR_ACCESS_DENIED)
-				/*
-				 * Already attached, according to
-				 * http://msdn.microsoft.com/en-us/library/windows/desktop/ms681952(v=vs.85).aspx
-				 */
-				return;
-			error("error attaching console: %s", get_win_error());
-		}
+/*
+ * Starts a new, dedicated console for output as if launched as a console application.
+ */
+void new_win_console(void)
+{
+	if (!console_attached) {
+		console_attached = 1;
+		FreeConsole();
 		AllocConsole();
-		console_opened = 1;
-		atexit(sleep_a_while);
-	} else {
-		char title[1024];
-		if (GetConsoleTitle(title, sizeof(title)) &&
-				!strncmp(title, "rxvt", 4))
-			return; /* Console already opened. */
+		open_comm_channels();
 	}
+}
 
-	memset(&attributes, 0, sizeof(attributes));
-	attributes.nLength = sizeof(SECURITY_ATTRIBUTES);
-	attributes.bInheritHandle = TRUE;
-
-	handle = CreateFile("CONOUT$", GENERIC_WRITE, FILE_SHARE_WRITE,
-		&attributes, OPEN_EXISTING, 0, NULL);
-	if (isatty(1)) {
-		freopen("CONOUT$", "wt", stdout);
-		SetStdHandle(STD_OUTPUT_HANDLE, handle);
-	}
-	if (isatty(2)) {
-		freopen("CONOUT$", "wb", stderr);
-		SetStdHandle(STD_ERROR_HANDLE, handle);
-	}
+void open_comm_channels(void)
+{
+	freopen("CONIN$", "r", stdin);
+	freopen("CONOUT$", "w", stdout);
+	freopen("CONOUT$", "w", stderr);
 }
 
 #undef mkdir

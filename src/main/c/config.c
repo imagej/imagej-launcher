@@ -62,7 +62,7 @@ void parse_legacy_config(struct string *jvm_options)
 			else if (!suffixcmp(p, eol - p, "\\bin\\java.exe")) {
 				jre_len = eol - p - 13;
 				debug++;
-				open_win_console();
+				new_win_console();
 				error("Enabling debug mode due to ImageJ.cfg mentioning java.exe");
 			}
 #else

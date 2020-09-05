@@ -45,7 +45,7 @@ void error(const char *fmt, ...)
 		va_end(ap);
 		return;
 	}
-	open_win_console();
+	new_win_console();
 #endif
 
 	va_start(ap, fmt);
@@ -67,7 +67,7 @@ void die(const char *fmt, ...)
 		va_end(ap);
 		exit(1);
 	}
-	open_win_console();
+	new_win_console();
 #endif
 
 	va_start(ap, fmt);
