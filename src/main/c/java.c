@@ -396,7 +396,6 @@ const char *get_default_library_path(void)
 void *initialize_java_home_and_library_path(void)
 {
 	enter("initialize_java_home_and_library_path");
-	int i;
 
 	struct string *bundled_dir;
 
@@ -412,13 +411,30 @@ void *initialize_java_home_and_library_path(void)
 #endif
 		);
 
-	// Search for each possible java for the current platform.
-	// This will update relative_java_home and (default_)library_path,
-	// and will short-circuit once these are found.
+	// Search the platform-specific subdirectory for a Java installation.
+	find_java_library_path(bundled_dir);
+
+	// Clean up
+	string_release(bundled_dir);
+
+	leave();
+}
+
+/**
+ * Search for a java installation beneath the given directory.
+ * This will update relative_java_home and (default_)library_path,
+ * and will short-circuit once these are found.
+ */
+void find_java_library_path(struct string *dir)
+{
+	enter("find_java_library_path");
+	debug("dir = %s", dir->buffer);
+
+	int i;
 	int arrayLength = sizeof(default_library_paths)/sizeof(default_library_paths[0]);
 	for (i=0; i<arrayLength; i++)
-		search_for_java(bundled_dir, default_library_paths[i]);
-	string_release(bundled_dir);
+		search_for_java(dir, default_library_paths[i]);
+
 	leave();
 }
 
