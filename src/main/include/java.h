@@ -44,7 +44,7 @@ extern const char *get_java_home(void);
 extern const char *get_jre_home(void);
 
 extern void *initialize_java_home_and_library_path(void);
-extern void search_for_java(struct string *bundled_dir, const char *java_library_path);
+extern void search_for_java(struct string *dir, const char *java_library_path);
 extern const char *get_default_library_path(void);
 extern void set_library_path(const char *path);
 extern const char *get_library_path(void);
