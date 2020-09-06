@@ -423,23 +423,23 @@ void *initialize_java_home_and_library_path(void)
 }
 
 /*
- * Recursively searches bundled_dir and the level below for java_library_path.
+ * Recursively searches dir and the level below for java_library_path.
  * If found:
  *  the (default_)library_path(s) are set to java_library_path
  *  relative_java_home is set to the directory containing java_library_path, with the ij_path popped off.
  */
-void search_for_java(struct string *bundled_dir, const char *java_library_path)
+void search_for_java(struct string *dir, const char *java_library_path)
 {
 	if (default_library_path) return; // already found
 	enter("search_for_java");
-	debug("bundled_dir = %s", bundled_dir->buffer);
+	debug("dir = %s", dir->buffer);
 	debug("java_library_path = %s", java_library_path);
 
 	int depth = 1;
 	struct string *search_path, *result;
 	result = string_init(32);
 	search_path = string_initf("%s", java_library_path);
-	find_newest(bundled_dir, depth, search_path->buffer, result);
+	find_newest(dir, depth, search_path->buffer, result);
 	debug("find_newest complete with result: '%s'", result->buffer);
 	if (result->length) {
 		// Found a hit
