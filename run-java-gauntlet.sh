@@ -6,22 +6,11 @@
 #   - base directory containing a platform-specific folder ('macosx', 'win32', 'win64', 'linux32', 'linux64') with Java installations (default: ~/.available_jdks/*/)
 # Outputs:
 #   Summary logs for each Java installation, one file each, in
-#   "target/gauntlet_out"
+#   "target/gauntlet"
 
-if [ -z "$1" ]; then
-  searchdir=~/.available_jdks/*/
-else
-  searchdir=$1
-fi
 
-# Ensure the native launcher is built and previous tests cleared
-mvn clean package
-
-# Make output dir
-mkdir target/gauntlet_out
-
-for pdir in $searchdir ; do
-
+runGauntlet() {
+	pdir=$1
 	echo "Testing all Java installations in platform directory: $pdir"
 
 	# Make a directory for this platform
@@ -29,38 +18,50 @@ for pdir in $searchdir ; do
 	mkdir -p "target/java/$platformname"
 
 	# Test each java installation for this platform
-	for java in $(ls $pdir) ; do
-		javadir=$pdir$java
+	for javadir in "$pdir"/* ; do
 		echo "testing $javadir"
 
 		expected=$( basename "$javadir" )
-		logfile=target/gauntlet_out/$expected.log
+		logfile="$outputDir/$expected.log"
 
 		# Point imagej to this JRE
-		ln -sn $javadir
-		mv $expected target/java/$platformname
+		ln -sn "$javadir"
+		mv "$expected" "target/java/$platformname"
 
 		# Run the script to check this JRE
-		source ./check-java-version.sh 2> $logfile
+		./check-java-version.sh 2> "$logfile"
 
 		# Extract the actual JRE used
-		actual=$( echo $( tail -n 1 $logfile )|cut -d '=' -f2 )
+		actual=$( echo $( tail -n 1 "$logfile" ) | cut -d '=' -f2 )
 		actual=$(basename "$actual")
 
 		# Test if the correct JRE was used
-		echo "actual: $actual" >> $logfile
-		echo "expected: $expected" >> $logfile
+		echo "actual: $actual" >> "$logfile"
+		echo "expected: $expected" >> "$logfile"
 		success="FAILED"
-		if [ "$actual" == "$expected" ]; then
-	  		success="PASSED"
+		if [ "$actual" = "$expected" ]; then
+			success="PASSED"
 		fi
-		echo "$success" >> $logfile
+		echo "$success" >> "$logfile"
 
 		# Mark the file as pased/failed
-		mv $logfile target/gauntlet_out/$success.$expected.log
+		mv "$logfile" "$outputDir/$success.$expected.log"
 
 		# NB: we currently don't guarantee behavior if multiple javas are present.
 		# Rename this JRE out of the "java" folder so it is not discovered in future tests
-		mv target/java/$platformname/$expected target/$expected
+		mv "target/java/$platformname/$expected" "target/$expected"
 	done
-done
+}
+
+# Ensure the native launcher is built and previous tests cleared
+mvn clean package
+
+# Make output dir
+outputDir=target/gauntlet
+mkdir "$outputDir"
+
+if [ $# -eq 0 ]; then
+	for pdir in "$HOME/.available_jdks"/* ; do runGauntlet "$pdir"; done
+else
+	for pdir in $@ ; do runGauntlet "$pdir"; done
+fi
