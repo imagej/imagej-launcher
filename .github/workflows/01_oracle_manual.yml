@@ -65,12 +65,12 @@ jobs:
       id: run_gauntlet
       run: |
         bash run-java-gauntlet.sh
-        echo "::set-output name=FAILED_COUNT::$(find target/gauntlet_out/ -name FAILED* | wc -l)"
-        echo "::set-output name=RUN_COUNT::$(ls target/gauntlet_out/ | wc -l)"
+        echo "::set-output name=FAILED_COUNT::$(find target/gauntlet/ -name FAILED* | wc -l)"
+        echo "::set-output name=RUN_COUNT::$(ls target/gauntlet/ | wc -l)"
 
     - name: Fail Gauntlet Output
       if: steps.run_gauntlet.outputs.FAILED_COUNT > 0
       run: |
         echo "Gauntlet Failed:"
-        ls target/gauntlet_out
+        ls target/gauntlet
         exit 1
