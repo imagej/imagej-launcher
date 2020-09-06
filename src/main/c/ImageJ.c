@@ -171,6 +171,7 @@ static void maybe_reexec_with_correct_lib_path(struct string *java_library_path)
 		return;
 
 	setenv_or_exit("LD_LIBRARY_PATH", java_library_path->buffer, 1);
+	debug("========================================================================");
 	debug("Re-executing with correct library lookup path (%s)", java_library_path->buffer);
 	execvp(main_argv_backup[0], main_argv_backup);
 	die("Could not re-exec with correct library lookup (%d: %s)!", errno, strerror(errno));
@@ -182,6 +183,7 @@ static void maybe_reexec_with_correct_lib_path(struct string *java_library_path)
 		return;
 
 	setenv_or_exit("DYLD_LIBRARY_PATH", java_library_path->buffer, 1);
+	debug("========================================================================");
 	debug("Re-executing with correct library lookup path (%s)", java_library_path->buffer);
 	execvp(main_argv_backup[0], main_argv_backup);
 	die("Could not re-exec with correct library lookup: %d (%s)", errno, strerror(errno));
@@ -226,8 +228,13 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 
 	setenv_or_exit("JAVA_HOME", java_home, 1);
 
-	string_addf(buffer, "%s/%s", java_home, get_library_path());
+	char *library_path = get_library_path();
+	if (!library_path) {
+		debug("ERROR: No library path!");
+		return 1;
+	}
 
+	string_addf(buffer, "%s/%s", java_home, library_path);
 	debug("Opening Java library %s", buffer->buffer);
 
 	handle = dlopen(buffer->buffer, RTLD_LAZY);
