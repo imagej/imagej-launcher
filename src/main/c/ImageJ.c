@@ -229,6 +229,15 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 	setenv_or_exit("JAVA_HOME", java_home, 1);
 
 	char *library_path = get_library_path();
+
+	if (!library_path) {
+		debug("Searching for Java library path");
+		struct string *dir = string_copy(java_home);
+		find_java_library_path(dir);
+		string_release(dir);
+		library_path = get_library_path();
+	}
+
 	if (!library_path) {
 		debug("ERROR: No library path!");
 		return 1;
