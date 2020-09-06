@@ -432,6 +432,8 @@ void search_for_java(struct string *bundled_dir, const char *java_library_path)
 {
 	if (default_library_path) return; // already found
 	enter("search_for_java");
+	debug("bundled_dir = %s", bundled_dir->buffer);
+	debug("java_library_path = %s", java_library_path);
 
 	int depth = 1;
 	struct string *search_path, *result;
