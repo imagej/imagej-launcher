@@ -90,4 +90,5 @@ jobs:
       run: |
         echo "Gauntlet Failed:"
         ls target/gauntlet
+        cat target/gauntlet/FAILED*
         exit 1
