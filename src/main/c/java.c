@@ -60,14 +60,18 @@ static const char *default_library_paths[4] =
 	"bin/server/jvm.dll"
 };
 #else
-static const char *default_library_paths[6] =
+static const char *default_library_paths[10] =
 {
 	"lib/i386/server/libjvm.so",
 	"jre/lib/i386/server/libjvm.so",
 	"lib/i386/client/libjvm.so",
 	"jre/lib/i386/client/libjvm.so",
 	"lib/amd64/server/libjvm.so",
-	"jre/lib/amd64/server/libjvm.so"
+	"jre/lib/amd64/server/libjvm.so",
+	"jbr/lib/server/libjvm.so",
+	"jbr/jre/lib/server/libjvm.so",
+	"lib/server/libjvm.so",
+	"jre/lib/server/libjvm.so"
 };
 #endif
 static struct string *legacy_jre_path;
