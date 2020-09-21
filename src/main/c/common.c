@@ -43,7 +43,7 @@ void error(const char *fmt, ...)
 		va_end(ap);
 		return;
 	}
-	open_win_console();
+	new_win_console();
 #endif
 
 	va_start(ap, fmt);
