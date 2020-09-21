@@ -60,7 +60,7 @@ static const char *default_library_paths[4] =
 	"bin/server/jvm.dll"
 };
 #else
-static const char *default_library_paths[10] =
+static const char *default_library_paths[8] =
 {
 	"lib/i386/server/libjvm.so",
 	"jre/lib/i386/server/libjvm.so",
@@ -68,8 +68,6 @@ static const char *default_library_paths[10] =
 	"jre/lib/i386/client/libjvm.so",
 	"lib/amd64/server/libjvm.so",
 	"jre/lib/amd64/server/libjvm.so",
-	"jbr/lib/server/libjvm.so",
-	"jbr/jre/lib/server/libjvm.so",
 	"lib/server/libjvm.so",
 	"jre/lib/server/libjvm.so"
 };
@@ -455,7 +453,7 @@ void search_for_java(struct string *dir, const char *java_library_path)
 	debug("dir = %s", dir->buffer);
 	debug("java_library_path = %s", java_library_path);
 
-	int depth = 1;
+	int depth = 2;
 	struct string *search_path, *result;
 	result = string_init(32);
 	search_path = string_initf("%s", java_library_path);

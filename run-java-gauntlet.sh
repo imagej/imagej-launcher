@@ -32,14 +32,12 @@ runGauntlet() {
 		./check-java-version.sh 2> "$logfile"
 
 		# Extract the actual JRE used
-		actual=$( echo $( tail -n 1 "$logfile" ) | cut -d '=' -f2 )
-		actual=$(basename "$actual")
+		actual=$( tail -n 1 "$logfile" )
 
 		# Test if the correct JRE was used
-		echo "actual: $actual" >> "$logfile"
 		echo "expected: $expected" >> "$logfile"
 		success="FAILED"
-		if [ "$actual" = "$expected" ]; then
+		if [[ "$actual" == *"$expected"* ]]; then
 			success="PASSED"
 		fi
 		echo "$success" >> "$logfile"
