@@ -1,0 +1,76 @@
+name: Manual Gauntlet - Oracle
+on: [workflow_dispatch]
+jobs:
+  run_gauntlet_oracle:
+    runs-on: ${{ matrix.os }}
+    strategy:
+        matrix:
+          os: [ubuntu-latest, windows-latest, macOS-latest]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install Prereqs - Windows
+      if: runner.os == 'Windows'
+      run: |
+        choco install wget
+
+    - name: JDK Oracle - Download
+      run: |
+        mkdir ~/.available_jdks
+        wget https://downloads.imagej.net/test/gauntlet/${{ runner.os }}_oracle.tar.bz2
+        mv ${{ runner.os }}_oracle.tar.bz2 ~/.available_jdks
+
+    - name: JDK Oracle - Decompress - Mac
+      if: runner.os == 'macOS'
+      run: |
+        brew install bzip2 
+        cd ~/.available_jdks
+        /usr/local/opt/bzip2/bin/bunzip2 ${{ runner.os }}_oracle.tar.bz2
+        tar -xf ${{ runner.os }}_oracle.tar
+
+    - name: JDK Oracle - Decompress - Linux
+      if: runner.os == 'Linux'
+      run: |
+        cd ~/.available_jdks
+        bunzip2 ${{ runner.os }}_oracle.tar.bz2
+        tar -xf ${{ runner.os }}_oracle.tar
+
+    - name: JDK Oracle - Decompress - Windows
+      if: runner.os == 'Windows'
+      run: |
+        cd ~/.available_jdks
+        7z x ${{ runner.os }}_oracle.tar.bz2
+        7z x ${{ runner.os }}_oracle.tar
+        rm ${{ runner.os }}_oracle.tar.bz2
+
+    - name: JDK Oracle - Clean-up
+      run: |
+        cd ~/.available_jdks
+        rm ${{ runner.os }}_oracle.tar
+
+    - name: Install System JDK 1.8
+      uses: actions/setup-java@v1
+      with:
+        java-version: 1.8
+
+    - name: Restore Maven Cache
+      uses: actions/cache@v2
+      with:
+        path: ~/.m2
+        key: m2-cache${{ hashFiles('**/pom.xml') }}
+        restore-keys: m2-cache
+
+    - name: Run the Gauntlet
+      id: run_gauntlet
+      run: |
+        bash run-java-gauntlet.sh
+        echo "::set-output name=FAILED_COUNT::$(find target/gauntlet/ -name FAILED* | wc -l)"
+        echo "::set-output name=RUN_COUNT::$(ls target/gauntlet/ | wc -l)"
+
+    - name: Fail Gauntlet Output
+      if: steps.run_gauntlet.outputs.FAILED_COUNT > 0
+      run: |
+        echo "Gauntlet Failed:"
+        ls target/gauntlet
+        exit 1

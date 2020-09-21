@@ -2,9 +2,7 @@
  * #%L
  * ImageJ software for multidimensional image processing and analysis.
  * %%
- * Copyright (C) 2007 - 2016 Board of Regents of the University of
- * Wisconsin-Madison, Broad Institute of MIT and Harvard, and Max Planck
- * Institute of Molecular Cell Biology and Genetics.
+ * Copyright (C) 2007 - 2020 ImageJ developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -43,6 +41,12 @@
  */
 __attribute__((format (printf, 1, 2)))
 extern void error(const char *fmt, ...);
+
+extern void enter(const char *func);
+extern void leave(void);
+
+__attribute__((format (printf, 1, 2)))
+extern void debug(const char *fmt, ...);
 
 __attribute__((__noreturn__))
 __attribute__((format (printf, 1, 2)))
@@ -85,9 +89,9 @@ extern void win_verror(const char *fmt, va_list ap);
 extern int start_ij(void);
 
 /* Global variables */
-extern int debug;
-extern int info;
-extern int retrotranslator;
+extern int debug_mode;
+extern int debug_indent;
+extern int info_mode;
 
 static inline int prefixcmp(const char *string, const char *prefix)
 {

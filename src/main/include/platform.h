@@ -2,9 +2,7 @@
  * #%L
  * ImageJ software for multidimensional image processing and analysis.
  * %%
- * Copyright (C) 2007 - 2016 Board of Regents of the University of
- * Wisconsin-Madison, Broad Institute of MIT and Harvard, and Max Planck
- * Institute of Molecular Cell Biology and Genetics.
+ * Copyright (C) 2007 - 2020 ImageJ developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -63,11 +61,8 @@ int is_native_library(const char *path);
 #include <pthread.h>
 
 extern void append_icon_path(struct string *str, const char *main_argv0);
-extern int set_path_to_apple_JVM(void);
 extern int get_fiji_bundle_variable(const char *key, struct string *value);
 extern int start_ij_macosx(const char *main_argv0);
-extern int launch_32bit_on_tiger(int argc, char **argv);
-extern int is_lion(void);
 
 #elif defined (__linux__)
 

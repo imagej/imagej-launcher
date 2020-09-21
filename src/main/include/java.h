@@ -2,9 +2,7 @@
  * #%L
  * ImageJ software for multidimensional image processing and analysis.
  * %%
- * Copyright (C) 2007 - 2016 Board of Regents of the University of
- * Wisconsin-Madison, Broad Institute of MIT and Harvard, and Max Planck
- * Institute of Molecular Cell Biology and Genetics.
+ * Copyright (C) 2007 - 2020 ImageJ developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -31,8 +29,7 @@
 #ifndef JAVA_H
 #define JAVA_H
 
-extern unsigned int guess_java_version(void);
-extern unsigned int guess_java_version_for_path(const char *java_home);
+#include "string-funcs.h"
 
 extern const char *get_java_command(void);
 
@@ -46,7 +43,9 @@ extern char *discover_system_java_home(void);
 extern const char *get_java_home(void);
 extern const char *get_jre_home(void);
 
-extern void set_default_library_path(void);
+extern void *initialize_java_home_and_library_path(void);
+extern void find_java_library_path(struct string *dir);
+extern void search_for_java(struct string *dir, const char *java_library_path);
 extern const char *get_default_library_path(void);
 extern void set_library_path(const char *path);
 extern const char *get_library_path(void);

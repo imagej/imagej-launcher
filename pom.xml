@@ -5,13 +5,13 @@
 	<parent>
 		<groupId>org.scijava</groupId>
 		<artifactId>pom-scijava</artifactId>
-		<version>26.0.0</version>
+		<version>28.0.0</version>
 		<relativePath />
 	</parent>
 
 	<groupId>net.imagej</groupId>
 	<artifactId>imagej-launcher</artifactId>
-	<version>5.0.4-SNAPSHOT</version>
+	<version>6.0.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
 	<name>ImageJ Launcher</name>
@@ -127,11 +127,10 @@
 
 	<properties>
 		<package-name>net.imagej.launcher</package-name>
+		<main-class>net.imagej.launcher.ClassLauncher</main-class>
 
 		<license.licenseName>bsd_2</license.licenseName>
-		<license.copyrightOwners>Board of Regents of the University of
-Wisconsin-Madison, Broad Institute of MIT and Harvard, and Max Planck
-Institute of Molecular Cell Biology and Genetics.</license.copyrightOwners>
+		<license.copyrightOwners>ImageJ developers.</license.copyrightOwners>
 		<license.projectName>ImageJ software for multidimensional image processing and analysis.</license.projectName>
 
 		<scijava.jvm.version>1.6</scijava.jvm.version>
@@ -139,7 +138,6 @@ Institute of Molecular Cell Biology and Genetics.</license.copyrightOwners>
 		<target.architecture />
 		<debug.option />
 		<skipTests>true</skipTests>
-		<maven.antrun.version>1.8</maven.antrun.version>
 		<cmake.generator.option />
 		<make.binary>make</make.binary>
 
@@ -157,17 +155,6 @@ Institute of Molecular Cell Biology and Genetics.</license.copyrightOwners>
 
 	<build>
 		<plugins>
-			<plugin>
-				<artifactId>maven-jar-plugin</artifactId>
-				<configuration>
-					<archive>
-						<manifest>
-							<packageName>net.imagej.launcher</packageName>
-							<mainClass>net.imagej.launcher.ClassLauncher</mainClass>
-						</manifest>
-					</archive>
-				</configuration>
-			</plugin>
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>exec-maven-plugin</artifactId>
@@ -204,7 +191,6 @@ Institute of Molecular Cell Biology and Genetics.</license.copyrightOwners>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-antrun-plugin</artifactId>
-				<version>${maven.antrun.version}</version>
 				<executions>
 					<execution>
 						<id>make</id>
@@ -304,46 +290,6 @@ Institute of Molecular Cell Biology and Genetics.</license.copyrightOwners>
 			<properties>
 				<debug.option>-g</debug.option>
 			</properties>
-		</profile>
-
-		<profile>
-			<!-- TODO: Move this configuration to pom-scijava-base. -->
-			<id>eclipse-pacifier</id>
-			<activation>
-				<property>
-					<name>m2e.version</name>
-				</property>
-			</activation>
-			<build>
-				<pluginManagement>
-					<plugins>
-						<plugin>
-							<groupId>org.eclipse.m2e</groupId>
-							<artifactId>lifecycle-mapping</artifactId>
-							<version>1.0.0</version>
-							<configuration>
-								<lifecycleMappingMetadata>
-									<pluginExecutions>
-										<pluginExecution>
-											<pluginExecutionFilter>
-												<groupId>org.apache.maven.plugins</groupId>
-												<artifactId>maven-antrun-plugin</artifactId>
-												<versionRange>[1.8,)</versionRange>
-												<goals>
-													<goal>run</goal>
-												</goals>
-											</pluginExecutionFilter>
-											<action>
-												<ignore />
-											</action>
-										</pluginExecution>
-									</pluginExecutions>
-								</lifecycleMappingMetadata>
-							</configuration>
-						</plugin>
-					</plugins>
-				</pluginManagement>
-			</build>
 		</profile>
 	</profiles>
 </project>

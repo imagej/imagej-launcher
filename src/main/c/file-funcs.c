@@ -2,9 +2,7 @@
  * #%L
  * ImageJ software for multidimensional image processing and analysis.
  * %%
- * Copyright (C) 2007 - 2016 Board of Regents of the University of
- * Wisconsin-Madison, Broad Institute of MIT and Harvard, and Max Planck
- * Institute of Molecular Cell Biology and Genetics.
+ * Copyright (C) 2007 - 2020 ImageJ developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -248,8 +246,7 @@ const char *find_in_path(const char *path, int die_if_not_found)
 	if (!p) {
 		if (die_if_not_found)
 			die("Could not get PATH");
-		if (debug)
-			error("Could not get PATH");
+		debug("Could not get PATH");
 		return NULL;
 	}
 
@@ -267,8 +264,7 @@ const char *find_in_path(const char *path, int die_if_not_found)
 			}
 			if (die_if_not_found)
 				die("Could not find %s in PATH", path);
-			if (debug)
-				error("Could not find '%s' in the PATH", path);
+			debug("Could not find '%s' in the PATH", path);
 			return NULL;
 		}
 
@@ -488,53 +484,66 @@ void read_file_as_string(const char *file_name, struct string *contents)
 }
 
 /*
- * Traverses subfolders of a path up to a defined depth to find a file.
+ * Recursively traverses subfolders of a path up to a defined depth to find a
+ * file. If multiple candidates are found, the newest will be returned.
+ *
+ * @param path - base directory to start search
+ * @param max_depth - maximum subfolder distance to travel from base
+ * @param file - the file we are looking for
+ * @param result - reference to path where the file is found
  */
 void find_newest(struct string *path, int max_depth, const char *file, struct string *result)
 {
+	enter("find_newest");
+
+	// NB: we temporarily combine the file and path, this allows resetting the path.
 	int len = path->length;
 	DIR *directory;
 	struct dirent *entry;
 
-	if (debug) error("find_newest: searching '%s' for '%s'", path->buffer, file);
+	debug("searching '%s' for '%s'", path->buffer, file);
 
+	// Update the current path
 	if (!len || path->buffer[len - 1] != '/')
 		string_add_char(path, '/');
-
 	string_append(path, file);
+
+	// Check if the file exists and, if so, it is the newest candidate
 	if (file_exists(path->buffer)) {
 		if (is_native_library(path->buffer)) {
 			string_set_length(path, len);
 			if (!result->length) {
-				if (debug) error("find_newest: found a candidate: '%s'", path->buffer);
+				debug("found a candidate: '%s'", path->buffer);
 				string_set(result, path->buffer);
 			}
 			else if (file_is_newer(path->buffer, result->buffer)) {
-				if (debug) {
-					error("find_newest: found newer candidate: '%s'", path->buffer);
-				}
+				debug("found newer candidate: '%s'", path->buffer);
 				string_set(result, path->buffer);
 			}
-			else if (debug) {
-				error("find_newest: rejected older candidate: '%s'", path->buffer);
-			}
+			else debug("rejected older candidate: '%s'", path->buffer);
 		}
-		else if (debug) {
-			error("find_newest: not a native library: '%s'", path->buffer);
-		}
+		else debug("not a native library: '%s'", path->buffer);
 	}
-	else if (debug) {
-		error("find_newest: file not found: '%s'", path->buffer);
-	}
+	else debug("file not found: '%s'", path->buffer);
 
-	if (max_depth <= 0)
+	// Recursive end
+	if (max_depth <= 0) {
+		leave();
 		return;
+	}
 
 	string_set_length(path, len);
 	directory = opendir(path->buffer);
-	if (!directory)
+	if (!directory) {
+		leave();
 		return;
-	string_add_char(path, '/');
+	}
+
+	if (path->buffer[path->length - 1] != '/') {
+		string_add_char(path, '/');
+	}
+
+	// Recursive step - descend to each subdirectory
 	while (NULL != (entry = readdir(directory))) {
 		if (entry->d_name[0] == '.')
 			continue;
@@ -544,5 +553,9 @@ void find_newest(struct string *path, int max_depth, const char *file, struct st
 		string_set_length(path, len + 1);
 	}
 	closedir(directory);
+
+	// Reset the search path
 	string_set_length(path, len);
+
+	leave();
 }

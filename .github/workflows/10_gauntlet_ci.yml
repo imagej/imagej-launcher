@@ -1,0 +1,94 @@
+name: JDK Gauntlet CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  run_gauntlet:
+    runs-on: ${{ matrix.os }}
+    strategy:
+        matrix:
+          os: [ubuntu-latest, windows-latest, macOS-latest]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Restore JDK Cache
+      id: restore-jdk-cache
+      uses: actions/cache@v2
+      with:
+        path: ~/.available_jdks
+        key: ${{ runner.os }}-jdk-cache
+
+    - name: Install Prereqs - Windows
+      if: steps.restore-jdk-cache.outputs.cache-hit != 'true' && runner.os == 'Windows'
+      run: |
+        choco install wget
+
+    - name: JDK Cache - Download
+      if: steps.restore-jdk-cache.outputs.cache-hit != 'true'
+      run: |
+        mkdir ~/.available_jdks
+        wget https://downloads.imagej.net/test/gauntlet/${{ runner.os }}.tar.bz2
+        mv ${{ runner.os }}.tar.bz2 ~/.available_jdks
+
+    - name: JDK Cache - Decompress - Mac
+      if: steps.restore-jdk-cache.outputs.cache-hit != 'true' && runner.os == 'macOS'
+      run: |
+        brew install bzip2 
+        cd ~/.available_jdks
+        /usr/local/opt/bzip2/bin/bunzip2 ${{ runner.os }}.tar.bz2
+        tar -xf ${{ runner.os }}.tar
+
+    - name: JDK Cache - Decompress - Linux
+      if: steps.restore-jdk-cache.outputs.cache-hit != 'true' && runner.os == 'Linux'
+      run: |
+        cd ~/.available_jdks
+        bunzip2 ${{ runner.os }}.tar.bz2
+        tar -xf ${{ runner.os }}.tar
+
+    - name: JDK Cache - Decompress - Windows
+      if: steps.restore-jdk-cache.outputs.cache-hit != 'true' && runner.os == 'Windows'
+      run: |
+        cd ~/.available_jdks
+        7z x ${{ runner.os }}.tar.bz2
+        7z x ${{ runner.os }}.tar
+        rm ${{ runner.os }}.tar.bz2
+
+    - name: JDK Cache - Clean-up
+      if: steps.restore-jdk-cache.outputs.cache-hit != 'true' 
+      run: |
+        cd ~/.available_jdks
+        rm ${{ runner.os }}.tar
+
+    - name: Install System JDK 1.8
+      uses: actions/setup-java@v1
+      with:
+        java-version: 1.8
+
+    - name: Restore Maven Cache
+      uses: actions/cache@v2
+      with:
+        path: ~/.m2
+        key: m2-cache${{ hashFiles('**/pom.xml') }}
+        restore-keys: m2-cache
+
+    - name: Run the Gauntlet
+      id: run_gauntlet
+      run: |
+        bash run-java-gauntlet.sh
+        echo "::set-output name=FAILED_COUNT::$(find target/gauntlet/ -name FAILED* | wc -l)"
+        echo "::set-output name=RUN_COUNT::$(ls target/gauntlet/ | wc -l)"
+
+    - name: Fail Gauntlet Output
+      if: steps.run_gauntlet.outputs.FAILED_COUNT > 0
+      run: |
+        echo "Gauntlet Failed:"
+        ls target/gauntlet
+        cat target/gauntlet/FAILED*
+        exit 1

@@ -2,9 +2,7 @@
  * #%L
  * ImageJ software for multidimensional image processing and analysis.
  * %%
- * Copyright (C) 2007 - 2016 Board of Regents of the University of
- * Wisconsin-Madison, Broad Institute of MIT and Harvard, and Max Planck
- * Institute of Molecular Cell Biology and Genetics.
+ * Copyright (C) 2007 - 2020 ImageJ developers.
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -37,9 +35,7 @@
  * (https://fiji.sc/), but has been adapted and improved for use with ImageJ
  * core. It is also meant to be the default launcher of ImageJ 1.x.
  *
- * The ImageJ launcher is copyright 2007 - 2013 Johannes Schindelin, Mark
- * Longair, Albert Cardona, Benjamin Schmid, Erwin Frise, Gregory Jefferis
- * and Curtis Rueden.
+ * The ImageJ launcher is copyright 2007 - 2020 ImageJ developers.
  *
  * Clarification: the license of the ImageJ launcher has no effect on
  * the Java Runtime, ImageJ or any plugins, since they are not derivatives.
@@ -85,9 +81,9 @@ static const char *default_fiji1_class = "fiji.Main";
 static const char *default_main_class = "net.imagej.Main";
 
 /* Define global variables declared in common.h */
-int debug = 0;
-int info = 0;
-int retrotranslator = 0;
+int debug_mode = 0;
+int debug_indent = 0;
+int info_mode = 0;
 
 static const char *legacy_ij1_class = "ij.ImageJ";
 
@@ -150,9 +146,6 @@ static MAYBE_UNUSED struct string *get_parent_directory(const char *path)
 }
 
 /*
- * On Linux, Java5 does not find the library path with libmlib_image.so,
- * so we have to add that explicitely to the LD_LIBRARY_PATH.
- *
  * Unfortunately, ld.so only looks at LD_LIBRARY_PATH at startup, so we
  * have to reexec after setting that variable.
  *
@@ -161,62 +154,37 @@ static MAYBE_UNUSED struct string *get_parent_directory(const char *path)
  *
  * As noticed by Ilan Tal, we also need to re-execute if the LD_LIBRARY_PATH
  * was extended for some other reason, e.g. when native libraries were discovered
- * in $IJDIR/lib/; This also affects Java6 because it is only clever enough to handle
+ * in $IJDIR/lib/; This affects Java because it is only clever enough to handle
  * the inter-dependent JRE libraries without requiring a correctly set LD_LIBRARY_PATH.
  *
  * We assume here that java_library_path was initialized with the value
  * of the environment variable LD_LIBRARY_PATH; if at the end, java_library_path
- * is longer than LD_LIBRARY_PATH, we have to reset it (and for Java5, re-execute).
+ * is longer than LD_LIBRARY_PATH, we have to reset it.
  */
 static void maybe_reexec_with_correct_lib_path(struct string *java_library_path)
 {
 #ifdef __linux__
-	const char *jre_home = get_jre_home(), *original = getenv("LD_LIBRARY_PATH");
-
-	if (jre_home) {
-		struct string *path, *parent, *lib_path, *jli;
-
-		path = string_initf("%s/%s", jre_home, get_library_path());
-		parent = get_parent_directory(path->buffer);
-		lib_path = get_parent_directory(parent->buffer);
-		jli = string_initf("%s/jli", lib_path->buffer);
-
-		/* Is this JDK5? */
-		if (dir_exists(get_jre_home()) && !dir_exists(jli->buffer)) {
-			/* need to make sure the JRE lib/ is in LD_LIBRARY_PATH */
-			if (!path_list_contains(java_library_path->buffer, lib_path->buffer))
-				string_append_path_list(java_library_path, lib_path->buffer);
-			if (!path_list_contains(java_library_path->buffer, parent->buffer))
-				string_append_path_list(java_library_path, parent->buffer);
-		}
-		string_release(jli);
-		string_release(lib_path);
-		string_release(parent);
-		string_release(path);
-	}
+	const char *original = getenv("LD_LIBRARY_PATH");
 
 	/* Was LD_LIBRARY_PATH already correct? */
 	if (java_library_path->length == (original ? strlen(original) : 0))
 		return;
 
 	setenv_or_exit("LD_LIBRARY_PATH", java_library_path->buffer, 1);
-	if (debug)
-		error("Re-executing with correct library lookup path (%s)", java_library_path->buffer);
+	debug("========================================================================");
+	debug("Re-executing with correct library lookup path (%s)", java_library_path->buffer);
 	execvp(main_argv_backup[0], main_argv_backup);
 	die("Could not re-exec with correct library lookup (%d: %s)!", errno, strerror(errno));
 #elif defined(__APPLE__)
 	const char *original;
-
-	if (!is_lion())
-		return;
 
 	original = getenv("DYLD_LIBRARY_PATH");
 	if (original != NULL && strlen(original) == java_library_path->length)
 		return;
 
 	setenv_or_exit("DYLD_LIBRARY_PATH", java_library_path->buffer, 1);
-	if (debug)
-		error("Re-executing with correct library lookup path (%s)", java_library_path->buffer);
+	debug("========================================================================");
+	debug("Re-executing with correct library lookup path (%s)", java_library_path->buffer);
 	execvp(main_argv_backup[0], main_argv_backup);
 	die("Could not re-exec with correct library lookup: %d (%s)", errno, strerror(errno));
 #endif
@@ -250,8 +218,7 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 		error("No known JRE; cannot link to Java library");
 		return 1;
 	}
-	if (debug)
-		error("Using JAVA_HOME %s", java_home);
+	debug("Using JAVA_HOME %s", java_home);
 
 #ifdef WIN32
 	/* On Windows, a setenv() invalidates strings obtained by getenv(). */
@@ -261,40 +228,31 @@ static int create_java_vm(JavaVM **vm, void **env, JavaVMInitArgs *args)
 
 	setenv_or_exit("JAVA_HOME", java_home, 1);
 
-#ifdef __APPLE__
-	/*
-	 * Thank you, Apple. Working around your excellent code quality has been
-	 * nothing if not entertaining.
-	 */
-	string_addf(buffer, "%s/%s", java_home, "lib/jli/libjli.dylib");
-	if (file_exists(buffer->buffer)) {
-		if (debug)
-			error("Work around attempt at MacOSX world domination: %s",
-					buffer->buffer);
-		handle = dlopen(buffer->buffer, RTLD_LAZY);
-		if (!handle) {
-			error("Could not open %s: %s", buffer->buffer, dlerror());
-			string_release(buffer);
-			return 1;
-		}
+	char *library_path = get_library_path();
+
+	if (!library_path) {
+		debug("Searching for Java library path");
+		struct string *dir = string_copy(java_home);
+		find_java_library_path(dir);
+		string_release(dir);
+		library_path = get_library_path();
 	}
-	string_set_length(buffer, 0);
-#endif
 
-	string_addf(buffer, "%s/%s", java_home, get_library_path());
+	if (!library_path) {
+		debug("ERROR: No library path!");
+		return 1;
+	}
 
-	if (debug)
-		error("Opening Java library %s", buffer->buffer);
+	string_addf(buffer, "%s/%s", java_home, library_path);
+	debug("Opening Java library %s", buffer->buffer);
 
 	handle = dlopen(buffer->buffer, RTLD_LAZY);
 	if (!handle) {
 		const char *err;
-		if (debug)
-			error("Could not open '%s'", buffer->buffer);
+		debug("Could not open '%s'", buffer->buffer);
 		setenv_or_exit("JAVA_HOME", original_java_home_env, 1);
 		if (!file_exists(java_home)) {
-			if (debug)
-				error("'%s' does not exist", java_home);
+			debug("'%s' does not exist", java_home);
 			string_release(buffer);
 			return 2;
 		}
@@ -332,31 +290,6 @@ static void initialize_imagej_launcher_jar_path(void)
 	imagej_launcher_jar = find_jar(ij_path("jars/"), "imagej-launcher");
 	if (!imagej_launcher_jar)
 		imagej_launcher_jar = find_jar(ij_path("jars/"), "ij-launcher");
-}
-
-static int add_retrotranslator_to_path(struct string *path)
-{
-	const char *retro = ij_path("retro/");
-	DIR *dir = opendir(retro);
-	struct dirent *entry;
-	int counter = 0;
-
-	if (!dir) {
-		error("Could not find Retrotranslator, trying to continue without.");
-		return 0;
-	}
-
-	while ((entry = readdir(dir))) {
-		if (suffixcmp(entry->d_name, -1, ".jar"))
-			continue;
-		string_append_path_list(path, retro);
-		string_append(path, entry->d_name);
-		counter++;
-	}
-
-	if (!counter)
-		error("Could not find Retrotranslator, trying to continue without.");
-	return counter;
 }
 
 static int headless, headless_argc, batch;
@@ -789,10 +722,6 @@ struct subcommand
 {
 	char *name, *expanded;
 	struct string description;
-	struct {
-		char **list;
-		int alloc, size;
-	} extensions;
 };
 
 struct {
@@ -805,30 +734,11 @@ static int iswhitespace(char c)
 	return c == ' ' || c == '\t' || c == '\n';
 }
 
-static void add_extension(struct subcommand *subcommand, const char *extension)
-{
-	int length = strlen(extension);
-
-	while (length && iswhitespace(extension[length - 1]))
-		length--;
-	if (!length)
-		return;
-
-	if (subcommand->extensions.size + 1 >= subcommand->extensions.alloc) {
-		int alloc = (16 + subcommand->extensions.alloc) * 3 / 2;
-		subcommand->extensions.list = xrealloc(subcommand->extensions.list, alloc * sizeof(char *));
-		subcommand->extensions.alloc = alloc;
-	}
-	subcommand->extensions.list[subcommand->extensions.size++] = xstrndup(extension, length);
-}
-
 /*
  * The files for subcommand configuration are of the form
  *
  * <option>: <command-line options to replacing the subcommand options>
  *  <description>
- *  [<possible continuation>]
- * [.extension]
  *
  * Example:
  *
@@ -880,50 +790,11 @@ static void add_subcommand(const char *line)
 			current->name = xstrndup(line, length);
 		all_subcommands.size++;
 	}
-	else if (line[0] == '.') {
-		add_extension(latest, line);
-	}
 }
 
 const char *default_subcommands[] = {
 	"--update --info --dont-patch-ij1 --full-classpath --main-class=net.imagej.updater.CommandLine",
 	" start the command-line version of the ImageJ updater",
-	"--jython --ij-jar=jars/jython.jar --full-classpath --main-class=org.python.util.jython",
-	".py",
-	" start Jython instead of ImageJ (this is the",
-	" default when called with a file ending in .py)",
-	"--jruby --ij-jar=jars/jruby.jar --full-classpath --main-class=org.jruby.Main",
-	".rb",
-	" start JRuby instead of ImageJ (this is the",
-	" default when called with a file ending in .rb)",
-	"--clojure --ij-jar=jars/clojure.jar --full-classpath --main-class=clojure.lang.Repl",
-	".clj",
-	" start Clojure instead of ImageJ (this is the """,
-	" default when called with a file ending in .clj)",
-	"--beanshell --ij-jar=jars/bsh.jar --full-classpath --main-class=bsh.Interpreter",
-	".bs",
-	"--bsh --ij-jar=jars/bsh.jar --full-classpath --main-class=bsh.Interpreter",
-	".bsh",
-	" start BeanShell instead of ImageJ (this is the",
-	" default when called with a file ending in .bs or .bsh",
-	"--javascript --ij-jar=jars/js.jar --full-classpath --main-class=org.mozilla.javascript.tools.shell.Main",
-	"--js --ij-jar=jars/js.jar --full-classpath --main-class=org.mozilla.javascript.tools.shell.Main",
-	".js",
-	" start Javascript (the Rhino engine) instead of",
-	" ImageJ (this is the default when called with a",
-	" file ending in .js)",
-	"--ant --tools-jar --ij-jar=jars/ant.jar --ij-jar=jars/ant-launcher.jar --ij-jar=jars/ant-nodeps.jar --ij-jar=jars/ant-junit.jar --dont-patch-ij1 --headless --main-class=org.apache.tools.ant.Main",
-	" run Apache Ant",
-	"--mini-maven --ij-jar=jars/ij-minimaven.jar --dont-patch-ij1 --main-class=org.scijava.minimaven.MiniMaven",
-	" run Fiji's very simple Maven mockup",
-	"--javac --ij-jar=jars/javac.jar --freeze-classloader --headless --full-classpath --dont-patch-ij1 --pass-classpath --main-class=com.sun.tools.javac.Main",
-	" start JavaC, the Java Compiler, instead of ImageJ",
-	"--javah --only-tools-jar --headless --full-classpath --dont-patch-ij1 --pass-classpath --main-class=com.sun.tools.javah.Main",
-	" start javah instead of ImageJ",
-	"--javap --only-tools-jar --headless --full-classpath --dont-patch-ij1 --pass-classpath --main-class=sun.tools.javap.Main",
-	" start javap instead of ImageJ",
-	"--javadoc --only-tools-jar --headless --full-classpath --dont-patch-ij1 --pass-classpath --main-class=com.sun.tools.javadoc.Main",
-	" start javadoc instead of ImageJ",
 };
 
 static void initialize_subcommands(void)
@@ -946,90 +817,6 @@ static const char *expand_subcommand(const char *option)
 	return NULL;
 }
 
-static const char *expand_subcommand_for_extension(const char *extension)
-{
-	int i, j;
-
-	if (!extension)
-		return NULL;
-
-	initialize_subcommands();
-	for (i = 0; i < all_subcommands.size; i++)
-		for (j = 0; j < all_subcommands.list[i].extensions.size; j++)
-			if (!strcmp(extension, all_subcommands.list[i].extensions.list[j]))
-				return all_subcommands.list[i].expanded;
-	return NULL;
-}
-
-static const char *get_file_extension(const char *path)
-{
-	int i = strlen(path);
-
-	while (i)
-		if (path[i - 1] == '.')
-			return path + i - 1;
-		else if (path[i - 1] == '/' || path[i - 1] == '\\')
-			return NULL;
-		else
-			i--;
-	return NULL;
-}
-
-__attribute__((format (printf, 1, 2)))
-static int jar_exists(const char *fmt, ...)
-{
-	struct string string = { 0, 0, NULL };
-	va_list ap;
-	int result;
-
-	va_start(ap, fmt);
-	string_vaddf(&string, fmt, ap);
-	result = file_exists(string.buffer);
-	free(string.buffer);
-	va_end(ap);
-
-	return result;
-}
-
-/*
- * Check whether all .jar files specified in the classpath are available.
- */
-static int check_subcommand_classpath(struct subcommand *subcommand)
-{
-	const char *expanded = subcommand->expanded;
-
-	while (expanded && *expanded) {
-		const char *space = strchr(expanded, ' ');
-		if (!space)
-			space = expanded + strlen(expanded);
-		if (!prefixcmp(expanded, "--fiji-jar=")) {
-			expanded += 11;
-			if (!jar_exists("%s/%.*s", ij_path(""), (int)(space - expanded), expanded))
-				return 0;
-		}
-		if (!prefixcmp(expanded, "--ij-jar=")) {
-			struct string *path = string_initf("%.*s", (int)(space - expanded) - 9, expanded + 9);
-			const char *slash = last_slash(path->buffer), *result;
-			if (!slash || suffixcmp(path->buffer, path->length,
-					".jar")) {
-				return 0;
-			}
-			path->buffer[slash - path->buffer] = '\0';
-			path->buffer[path->length - 4] = '\0';
-			result = find_jar(ij_path(path->buffer), slash + 1);
-			string_release(path);
-			return !!result;
-		}
-		else if (!prefixcmp(expanded, "--tools-jar") || !prefixcmp(expanded, "--only-tools-jar")) {
-			const char *jre_home = get_jre_home();
-			if (!jre_home || !jar_exists("%s/../lib/tools.jar", jre_home))
-				return 0;
-		}
-		expanded = space + !!*space;
-	}
-	return 1;
-}
-
 static void __attribute__((__noreturn__)) usage(void)
 {
 	struct string subcommands = { 0, 0, NULL };
@@ -1038,8 +825,6 @@ static void __attribute__((__noreturn__)) usage(void)
 	initialize_subcommands();
 	for (i = 0; i < all_subcommands.size; i++) {
 		struct subcommand *subcommand = &all_subcommands.list[i];
-		if (!check_subcommand_classpath(subcommand))
-			continue;
 		string_addf(&subcommands, "%s\n%s", subcommand->name,
 			subcommand->description.length ? subcommand->description.buffer : "");
 	}
@@ -1130,9 +915,7 @@ static void __attribute__((__noreturn__)) usage(void)
 		subcommands.buffer,
 		"--main-class <class name> (this is the\n"
 		"\tdefault when called with a file ending in .class)\n"
-		"\tstart the given class instead of ImageJ\n"
-		"--retrotranslator\n"
-		"\tuse Retrotranslator to support Java < 1.6\n\n");
+		"\tstart the given class instead of ImageJ\n\n");
 	string_release(&subcommands);
 }
 
@@ -1141,21 +924,6 @@ static const char *skip_whitespace(const char *string)
 	while (iswhitespace(*string))
 		string++;
 	return string;
-}
-
-static void jvm_workarounds(struct options *options)
-{
-	unsigned int java_version = guess_java_version();
-
-	if (java_version == 0x01070000 || java_version == 0x01070001) {
-#ifndef WIN32
-		add_option(options, "-XX:-UseLoopPredicate", 0);
-#endif
-		if (main_class && !strcmp(main_class, "sun.tools.javap.Main"))
-			main_class = "com.sun.tools.javap.Main";
-	}
-	else if (java_version && java_version < 0x01060000)
-		retrotranslator = 1;
 }
 
 /* the maximal size of the heap on 32-bit systems, in megabyte */
@@ -1209,8 +977,7 @@ static void try_with_less_memory(long megabytes)
 	}
 	new_argv[j] = NULL;
 
-	if (debug)
-		error("Trying with a smaller heap: %s", buffer->buffer);
+	debug("Trying with a smaller heap: %s", buffer->buffer);
 
 #ifdef WIN32
 	new_argv[0] = dos_path(new_argv[0]);
@@ -1234,35 +1001,6 @@ static void try_with_less_memory(long megabytes)
 	MessageBox(NULL, buffer->buffer, "Error executing ImageJ", MB_OK);
 #endif
 	die("%s", buffer->buffer);
-}
-
-static const char *maybe_substitute_ij_jar(const char *relative_path)
-{
-	const char *replacement = NULL;
-
-	if (!strcmp(relative_path, "jars/jython.jar"))
-		replacement = "/usr/share/java/jython.jar";
-	else if (!strcmp(relative_path, "jars/clojure.jar"))
-		replacement = "/usr/share/java/clojure.jar";
-	else if (!strcmp(relative_path, "jars/bsh-2.0b4.jar") || !strcmp(relative_path, "jars/bsh.jar"))
-		replacement = "/usr/share/java/bsh.jar";
-	else if (!strcmp(relative_path, "jars/ant.jar"))
-		replacement = "/usr/share/java/ant.jar";
-	else if (!strcmp(relative_path, "jars/ant-launcher.jar"))
-		replacement = "/usr/share/java/ant-launcher.jar";
-	else if (!strcmp(relative_path, "jars/ant-nodeps.jar"))
-		replacement = "/usr/share/java/ant-nodeps.jar";
-	else if (!strcmp(relative_path, "jars/ant-junit.jar"))
-		replacement = "/usr/share/java/ant-junit.jar";
-	else if (!strcmp(relative_path, "jars/jsch-0.1.44.jar") || !strcmp(relative_path, "jars/jsch.jar"))
-		replacement = "/usr/share/java/jsch.jar";
-	else if (!strcmp(relative_path, "jars/javassist.jar"))
-		replacement = "/usr/share/java/javassist.jar";
-
-	if (!replacement || file_exists(ij_path(relative_path)))
-		return NULL;
-
-	return replacement;
 }
 
 /*
@@ -1311,10 +1049,10 @@ static int handle_one_option2(int *i, int argc, const char **argv)
 	if (!strcmp(argv[*i], "--dry-run"))
 		options.dry_run++;
 	else if (!strcmp(argv[*i], "--debug")) {
-		debug++;
+		debug_mode++;
 	}
 	else if (!strcmp(argv[*i], "--info"))
-		info++;
+		info_mode++;
 	else if (handle_one_option(i, argv, "--java-home", &arg)) {
 		set_java_home(xstrdup(arg.buffer));
 		setenv_or_exit("JAVA_HOME", xstrdup(arg.buffer), 1);
@@ -1431,13 +1169,6 @@ static int handle_one_option2(int *i, int argc, const char **argv)
 			handle_one_option(i, argv, "--cp", &arg) ||
 			handle_one_option(i, argv, "-cp", &arg))
 		add_launcher_option(&options, "-classpath", arg.buffer);
-	else if (handle_one_option(i, argv, "--fiji-jar", &arg) || handle_one_option(i, argv, "--ij-jar", &arg)) {
-		const char *path = maybe_substitute_ij_jar(arg.buffer);
-		if (path)
-			add_launcher_option(&options, "-classpath", path);
-		else
-			add_launcher_option(&options, "-ijclasspath", arg.buffer);
-	}
 	else if (handle_one_option(i, argv, "--jar-path", &arg) ||
 			handle_one_option(i, argv, "--jarpath", &arg) ||
 			handle_one_option(i, argv, "-jarpath", &arg))
@@ -1480,9 +1211,6 @@ static int handle_one_option2(int *i, int argc, const char **argv)
 	}
 	else if (!strcmp(argv[*i], "--pass-classpath"))
 		add_launcher_option(&options, "-pass-classpath", NULL);
-	else if (!strcmp(argv[*i], "--retrotranslator") ||
-			!strcmp(argv[*i], "--retro"))
-		retrotranslator = 1;
 	else if (handle_one_option(i, argv, "--fiji-dir", &arg))
 		set_ij_dir(xstrdup(arg.buffer));
 	else if (handle_one_option(i, argv, "--ij-dir", &arg))
@@ -1711,7 +1439,7 @@ static void parse_command_line(void)
 
 	/* If arguments don't set the memory size, set it after available memory. */
 	if (megabytes == 0 && !has_memory_option(&options.java_options)) {
-		struct string *message = !debug ? NULL : string_init(32);
+		struct string *message = debug_mode ? string_init(32) : NULL;
 		megabytes = (long)(get_memory_size(0) >> 20);
 		if (message)
 			string_addf(message,"Available RAM: %dMB", (int)megabytes);
@@ -1747,8 +1475,6 @@ static void parse_command_line(void)
 	if (is_ipv6_broken())
 		add_option(&options, "-Djava.net.preferIPv4Stack=true", 0);
 
-	jvm_workarounds(&options);
-
 	if (advanced_gc == 1) {
 		// NB: No difference between advanced_gc 0 or 1 anymore.
 	}
@@ -1770,8 +1496,6 @@ static void parse_command_line(void)
 
 		if (len > 1 && !strncmp(first, "--", 2))
 			len = 0;
-		if (len > 3 && (expanded = expand_subcommand_for_extension(get_file_extension(first))))
-			handle_commandline(expanded);
 		else if (len > 6 && !strcmp(first + len - 6, ".class")) {
 			struct string *dotted = string_copy(first);
 			add_launcher_option(&options, "-classpath", ".");
@@ -1873,8 +1597,7 @@ static void parse_command_line(void)
 		add_option(&options, main_argv[i], 1);
 
 	if (batch < 0) {
-		if (debug)
-			error("Appending missing -batch flag for headless operation.");
+		debug("Appending missing -batch flag for headless operation.");
 		add_option(&options, "-batch", 1);
 	}
 
@@ -1897,13 +1620,13 @@ static void parse_command_line(void)
 	properties[i++] = "false";
 	properties[i++] = "python.console.encoding";
 	properties[i++] = "UTF-8";
-	if (debug) {
+	if (debug_mode) {
 		properties[i++] = "ij.debug";
 		properties[i++] = "true";
 		properties[i++] = "scijava.log.level";
 		properties[i++] = "debug";
 	}
-	else if (info) {
+	else if (info_mode) {
 		properties[i++] = "scijava.log.level";
 		properties[i++] = "info";
 	}
@@ -1926,8 +1649,6 @@ static void parse_command_line(void)
 
 	if (!skip_class_launcher && strcmp(main_class, "org.apache.tools.ant.Main")) {
 		struct string *string = string_initf("-Djava.class.path=%s", imagej_launcher_jar);
-		if (retrotranslator && !add_retrotranslator_to_path(string))
-			retrotranslator = 0;
 		add_option_string(&options, string, 0);
 		add_launcher_option(&options, main_class, NULL);
 		prepend_string_array(&options.ij_options, &options.launcher_options);
@@ -1957,13 +1678,7 @@ static void parse_command_line(void)
 		string_release(class_path);
 	}
 
-	if (retrotranslator) {
-		prepend_string(&options.ij_options, strdup(main_class));
-		prepend_string(&options.ij_options, "-advanced");
-		main_class = "net.sf.retrotranslator.transformer.JITRetrotranslator";
-	}
-
-	if (options.dry_run || debug) {
+	if (options.dry_run || debug_mode) {
 		for (i = 0; properties[i]; i += 2) {
 			if (!properties[i] || !properties[i + 1])
 				continue;
@@ -2014,8 +1729,7 @@ static int write_desktop_file(const char *path, const char *title, const char *e
 	FILE *f = fopen(path, "w");
 
 	if (!f) {
-		if (debug)
-			error("Could not write to '%s': %d (%s)", path, errno, strerror(errno));
+		debug("Could not write to '%s': %d (%s)", path, errno, strerror(errno));
 		return 1;
 	}
 
@@ -2054,8 +1768,7 @@ static void maybe_write_desktop_file(void)
 	if (!startup_class)
 		return;
 	if (!strcmp("net.imagej.launcher.ClassLauncher", startup_class)) {
-		if (debug)
-			error("Could not determine startup class!");
+		debug("Could not determine startup class!");
 		return;
 	}
 	if (!strcmp(startup_class, legacy_ij1_class)) {
@@ -2078,8 +1791,7 @@ static void maybe_write_desktop_file(void)
 
 	path = string_initf("%s%s.desktop", ij_path(""), name);
 	if (file_exists(path->buffer)) {
-		if (debug)
-			error("Keep existing '%s'", path->buffer);
+		debug("Keep existing '%s'", path->buffer);
 		string_release(path);
 		return;
 	}
@@ -2089,8 +1801,7 @@ static void maybe_write_desktop_file(void)
 	else {
 		const char *in_path = find_in_path(main_argv0, 0);
 		if (!in_path) {
-			if (debug)
-				error("Did not find '%s' in PATH, skipping %s\n", main_argv0, path->buffer);
+			debug("Did not find '%s' in PATH, skipping %s\n", main_argv0, path->buffer);
 			string_release(path);
 			return;
 		}
@@ -2103,22 +1814,18 @@ static void maybe_write_desktop_file(void)
 			icon_path = string_copy(icon);
 	}
 
-	if (debug)
-		error("Writing '%s'", path->buffer);
+	debug("Writing '%s'", path->buffer);
 	write_desktop_file(path->buffer, title, executable_path->buffer, icon_path ? icon_path->buffer : NULL, wm_class);
 	string_setf(path, "%s/.local/share/applications", getenv("HOME"));
 	if (dir_exists(path->buffer)) {
 		string_addf(path, "/%s.desktop", name);
 		if (!file_exists(path->buffer)) {
-			if (debug)
-				error("Writing '%s'", path->buffer);
+			debug("Writing '%s'", path->buffer);
 			write_desktop_file(path->buffer, title, executable_path->buffer, icon_path ? icon_path->buffer : NULL, wm_class);
 		}
-		else if (debug)
-			error("Keep existing '%s'", path->buffer);
+		else debug("Keep existing '%s'", path->buffer);
 	}
-	else if (debug)
-		error("Skipping user-wide .desktop file: '%s' does not exist", path->buffer);
+	else debug("Skipping user-wide .desktop file: '%s' does not exist", path->buffer);
 
 	string_release(path);
 	string_release(executable_path);
@@ -2180,8 +1887,7 @@ int start_ij(void)
 					// "${java.home}/.." or similar hacks.
 					string_set_length(buffer, buffer->length - 4);
 					string_replace_range(buffer, 0, 0, "-Djava.home=");
-					if (debug)
-						error("Adding option: %s", buffer->buffer);
+					debug("Adding option: %s", buffer->buffer);
 					prepend_string_copy(&options.java_options, buffer->buffer);
 				}
 			}
@@ -2315,61 +2021,6 @@ int start_ij(void)
 	return 0;
 }
 
-/* TODO: try to find Java even if there is JRE local to ImageJ */
-static void adjust_java_home_if_necessary(void)
-{
-	if (debug)
-		error("Entering adjust_java_home_if_necessary.");
-
-	struct string *result, *buffer, *path;
-	const char *prefix = "jre/";
-	int depth = 2, ij_dir_len;
-
-	if (get_library_path())
-		return; /* already set, no need to adjust */
-
-	buffer = string_copy(ij_path("java"));
-	ij_dir_len = buffer->length - 4;
-	result = string_init(32);
-
-	// HACK: We are looking for a bundled JDK first
-	set_library_path(
-#if defined(__APPLE__)
-		"Contents/Home/lib/server/libjvm.dylib"
-#elif defined(WIN32)
-		sizeof(void *) < 8 ? "bin/client/jvm.dll" : "bin/server/jvm.dll"
-#else
-		sizeof(void *) < 8 ? "lib/i386/client/libjvm.so" : (guess_java_version_for_path(result->buffer) >= 0x09000000 ? "lib/server/libjvm.so" : "lib/amd64/server/libjvm.so")
-#endif
-	);
-
-	path = string_initf("%s%s", prefix, get_library_path());
-
-	find_newest(buffer, depth, path->buffer, result);
-	if (result->length) {
-		if (result->buffer[result->length - 1] != '/')
-			string_add_char(result, '/');
-		string_append(result, prefix);
-		set_relative_java_home(xstrdup(result->buffer + ij_dir_len));
-	}
-	else if (*prefix) {
-		find_newest(buffer, depth + 1, get_library_path(), buffer);
-		if (result->length)
-			set_relative_java_home(xstrdup(result->buffer + ij_dir_len));
-	}
-
-	set_default_library_path();
-	set_library_path(get_default_library_path());
-
-	char* debugPath = get_library_path();
-	if (debug)
-		error("Default library path (relative): %s", debugPath);
-
-	string_release(buffer);
-	string_release(result);
-	string_release(path);
-}
-
 int main(int argc, char **argv, char **e)
 {
 	int size;
@@ -2379,11 +2030,11 @@ int main(int argc, char **argv, char **e)
 	 * Without this, the --debug CLI flag parsing happens too late
 	 * to see debugging output such as JVM detection on OS X.
 	 */
-	if (getenv("DEBUG")) debug++;
+	if (getenv("DEBUG")) debug_mode++;
 
 	if (!suffixcmp(argv[0], -1, "debug.exe") ||
 			!suffixcmp(argv[0], -1, "debug")) {
-		debug++;
+		debug_mode++;
 #ifdef WIN32
 		new_win_console();
 #endif
@@ -2394,18 +2045,13 @@ int main(int argc, char **argv, char **e)
 	/* Handle update/ */
 	update_all_files();
 
-#if defined(__APPLE__)
-	launch_32bit_on_tiger(argc, argv);
-#if !defined(NO_JAVA_FRAMEWORK)
-	set_path_to_apple_JVM();
-#endif
-#elif defined(WIN64)
+#if defined(WIN64)
 	/* work around MinGW64 breakage */
 	argc = __argc;
 	argv = __argv;
 	argv[0] = _pgmptr;
 #endif
-	adjust_java_home_if_necessary();
+	initialize_java_home_and_library_path();
 	main_argv0 = argv[0];
 	main_argv = argv;
 	main_argc = argc;
@@ -2418,14 +2064,11 @@ int main(int argc, char **argv, char **e)
 
 	if (has_jar(ij_path("jars/"), "imagej")) {
 		/* Launch ImageJ2 */
-		if (debug) {
-			error("Detected ImageJ2");
-		}
+		debug("Detected ImageJ2");
 	}
 	else if (has_jar(ij_path("jars/"), "fiji-compat")) {
 		/* Launch Fiji1 when fiji-compat.jar was found */
-		if (debug)
-			error("Detected Fiji1");
+		debug("Detected Fiji1");
 		legacy_mode = 1;
 	}
 	else if (has_jar(ij_path("jars/"), "ij-app")) {
@@ -2433,8 +2076,7 @@ int main(int argc, char **argv, char **e)
 	}
 	else {
 		/* If no ImageJ2 was found, try to fall back to ImageJ 1.x */
-		if (debug)
-			error("Detected ImageJ 1.x");
+		debug("Detected ImageJ 1.x");
 		legacy_mode = 1;
 		main_class = legacy_ij1_class;
 	}
@@ -2443,7 +2085,7 @@ int main(int argc, char **argv, char **e)
 	parse_command_line();
 
 	maybe_write_legacy_config();
-	if (!debug)
+	if (!debug_mode)
 		maybe_write_desktop_file();
 
 #ifdef __linux__
@@ -2452,8 +2094,7 @@ int main(int argc, char **argv, char **e)
 	if (!headless) {
 		void *libX11Handle = dlopen("libX11.so", RTLD_LAZY);
 		if(libX11Handle != NULL) {
-			if (debug)
-				error("Running XInitThreads\n");
+			debug("Running XInitThreads\n");
 			xinit_threads_reference = dlsym(libX11Handle, "XInitThreads");
 
 			if(xinit_threads_reference != NULL) {
