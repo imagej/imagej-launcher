@@ -632,6 +632,7 @@ int is_ipv6_broken(void)
 
 #elif defined(WIN32)
 
+#undef UNICODE
 #include <windows.h>
 
 /* Determining heap size */
@@ -648,7 +649,7 @@ static char *dlerror_value;
 
 void *dlopen(const char *name, int flags)
 {
-	void *result = LoadLibrary(name);
+	void *result = LoadLibraryA(name);
 
 	dlerror_value = get_win_error();
 
