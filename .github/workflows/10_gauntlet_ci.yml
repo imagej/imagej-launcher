@@ -23,7 +23,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~/.available_jdks
-        key: ${{ runner.os }}-jdk-cache
+        key: ${{ runner.os }}-jdk-cache-v2
 
     - name: Install Prereqs - Windows
       if: steps.restore-jdk-cache.outputs.cache-hit != 'true' && runner.os == 'Windows'
