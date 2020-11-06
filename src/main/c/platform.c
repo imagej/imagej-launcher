@@ -649,7 +649,11 @@ static char *dlerror_value;
 
 void *dlopen(const char *name, int flags)
 {
+#ifdef WIN32
 	void *result = LoadLibraryA(name);
+#else
+	void *result = LoadLibrary(name);
+#endif
 
 	dlerror_value = get_win_error();
 
