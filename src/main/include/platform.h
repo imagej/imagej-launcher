@@ -145,7 +145,7 @@ static const char *get_platform(void)
 	return sizeof(void *) < 8 ? "win32" : "win64";
 #endif
 #ifdef __linux__
-	return sizeof(void *) < 8 ? "linux32" : "linux64";
+	return sizeof(void *) < 8 ? "linux" : "linux-amd64";
 #endif
 	return NULL;
 }

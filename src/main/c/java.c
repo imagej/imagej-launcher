@@ -409,7 +409,7 @@ void *initialize_java_home_and_library_path(void)
 #elif defined(WIN32)
 		sizeof(void *) < 8 ? "win32/" : "win64/"
 #else
-		sizeof(void *) < 8 ? "linux32/" : "linux64/"
+		sizeof(void *) < 8 ? "linux/" : "linux-amd64/"
 #endif
 		);
 

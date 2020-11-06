@@ -3,7 +3,7 @@
 # run-java-gauntlet - A script to test the ImageJ native launcher against one
 # or more Java installation(s)
 # Inputs:
-#   - base directory containing a platform-specific folder ('macosx', 'win32', 'win64', 'linux32', 'linux64') with Java installations (default: ~/.available_jdks/*/)
+#   - base directory containing a platform-specific folder ('macosx', 'win32', 'win64', 'linux', 'linux-amd64') with Java installations (default: ~/.available_jdks/*/)
 # Outputs:
 #   Summary logs for each Java installation, one file each, in
 #   "target/gauntlet"
