@@ -632,7 +632,6 @@ int is_ipv6_broken(void)
 
 #elif defined(WIN32)
 
-#undef UNICODE
 #include <windows.h>
 
 /* Determining heap size */
