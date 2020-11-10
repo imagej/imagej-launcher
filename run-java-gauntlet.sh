@@ -29,13 +29,14 @@ runGauntlet() {
 		mv "$expected" "target/java/$platformname"
 
 		# Run the script to check this JRE
-		./check-java-version.sh 2> "$logfile"
+		./check-java-version.sh > "$logfile" 2>&1
 
 		# Extract the actual JRE used
 		actual=$( tail -n 1 "$logfile" )
 
 		# Test if the correct JRE was used
 		echo "expected: $expected" >> "$logfile"
+
 		success="FAILED"
 		if [[ "$actual" == *"$expected"* ]]; then
 			success="PASSED"
