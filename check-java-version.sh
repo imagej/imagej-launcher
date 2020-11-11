@@ -21,7 +21,7 @@ public class WhichJava {
 ' > WhichJava.java
 javac WhichJava.java
 
-DEBUG=1 $(find target/ -maxdepth 1 -name "ImageJ-*") --attach-console --main-class WhichJava
+DEBUG=1 $(find target/ -maxdepth 1 -name "ImageJ-*") --main-class WhichJava
 
 cat which_java.out
 rm which_java.out
