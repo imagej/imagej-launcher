@@ -31,6 +31,7 @@
 
 #include "string-funcs.h"
 
+extern int file_is_newer(const char *path, const char *than);
 extern int find_file(struct string *search_root, int max_depth, const char *file, struct string *result);
 extern void detect_library_path(struct string *library_path, struct string *directory);
 

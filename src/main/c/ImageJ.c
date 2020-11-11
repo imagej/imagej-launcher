@@ -595,15 +595,6 @@ static void show_commandline(struct options *options)
 	fputc('\n', stdout);
 }
 
-int file_is_newer(const char *path, const char *than)
-{
-	struct stat st1, st2;
-
-	if (stat(path, &st1))
-		return 0;
-	return stat(than, &st2) || st1.st_mtime > st2.st_mtime;
-}
-
 int handle_one_option(int *i, const char **argv, const char *option, struct string *arg)
 {
 	int len;

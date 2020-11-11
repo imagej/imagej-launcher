@@ -36,6 +36,16 @@
 
 #include <sys/stat.h>
 
+int file_is_newer(const char *path, const char *than)
+{
+	struct stat st1, st2;
+
+	if (stat(path, &st1))
+		return 0;
+	return stat(than, &st2) || st1.st_mtime > st2.st_mtime;
+}
+
+
 int find_file(struct string *search_root, int max_depth, const char *file, struct string *result)
 {
 	int len = search_root->length;
