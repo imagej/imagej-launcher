@@ -2069,6 +2069,10 @@ int main(int argc, char **argv, char **e)
 		/* If no ImageJ2 was found, try to fall back to ImageJ 1.x */
 		debug("Detected ImageJ 1.x");
 		legacy_mode = 1;
+		// If there's no ImageJ.cfg but a jre directory, use that
+		if (dir_exists("jre") && !file_exists("ImageJ.cfg")) {
+			set_legacy_jre_path("jre");
+		}
 		main_class = legacy_ij1_class;
 	}
 
