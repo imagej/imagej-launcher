@@ -188,13 +188,19 @@ void read_config(struct string *jvm_options)
 	const char *path = ij_path("ImageJ.cfg");
 
 	if (file_exists(path)) {
+		debug("read_config: reading ImageJ.cfg");
 		read_file_as_string(path, jvm_options);
-		if (is_modern_config(jvm_options->buffer))
+		if (is_modern_config(jvm_options->buffer)) {
+			debug("read_config: detected modern config");
 			parse_modern_config(jvm_options);
-		else
+		}
+		else {
+			debug("read_config: detected legacy config");
 			parse_legacy_config(jvm_options);
+		}
 	}
 	else {
+		debug("read_config: checking jvm.cfg");
 		path = ij_path("jvm.cfg");
 		if (file_exists(path))
 			read_file_as_string(path, jvm_options);
