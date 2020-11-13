@@ -219,7 +219,8 @@ int is_absolute_path(const char *path)
 
 int file_exists(const char *path)
 {
-	return !access(path, R_OK);
+	const int rval = access(path, R_OK);
+	return rval != -1;
 }
 
 int dir_exists(const char *path)
