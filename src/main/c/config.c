@@ -51,7 +51,7 @@ void parse_legacy_config(struct string *jvm_options)
 
 		debug("ImageJ.cfg:%d: %.*s", line, (int)(eol - p), p);
 
-		if (line == 2) {
+		if (line == 2 && legacy_mode) {
 			int jre_len = -1;
 #ifdef WIN32
 			if (!suffixcmp(p, eol - p, "\\bin\\javaw.exe"))
@@ -68,7 +68,13 @@ void parse_legacy_config(struct string *jvm_options)
 #endif
 			if (jre_len > 0) {
 				p[jre_len] = '\0';
-				set_legacy_jre_path(p);
+				const struct string *jre_dir = string_copy(p);
+				if (file_exists(jre_dir->buffer)) {
+					set_legacy_jre_path(p);
+				} else {
+					debug("ImageJ.cfg points to invalid java: %s", p);
+				}
+				string_release(jre_dir);
 			}
 		}
 		else if (line == 3) {
