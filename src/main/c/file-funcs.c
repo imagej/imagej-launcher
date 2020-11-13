@@ -33,6 +33,7 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include <sys/stat.h>
 
@@ -220,6 +221,16 @@ int is_absolute_path(const char *path)
 int file_exists(const char *path)
 {
 	const int rval = access(path, R_OK);
+	/*
+	 * Optional debugging, if necessary.
+	if (errno == EACCES) debug("file_exists failed for path %s: EACCES", path);
+	if (errno == ELOOP) debug("file_exists failed for path %s: ELOOP", path);
+	if (errno == ENAMETOOLONG) debug("file_exists failed for path %s: ENAMETOOLONG", path);
+	if (errno == ENOENT) debug("file_exists failed for path %s: ENOENT", path);
+	if (errno == ENOTDIR) debug("file_exists failed for path %s: ENOTDIR", path);
+	if (errno == EINVAL) debug("file_exists failed for path %s: EINVAL", path);
+	if (errno == ETXTBSY) debug("file_exists failed for path %s: ETXTBSY", path);
+	*/
 	return rval != -1;
 }
 
