@@ -51,7 +51,7 @@ void parse_legacy_config(struct string *jvm_options)
 
 		debug("ImageJ.cfg:%d: %.*s", line, (int)(eol - p), p);
 
-		if (line == 2 && legacy_mode) {
+		if (line == 2) {
 			int jre_len = -1;
 #ifdef WIN32
 			if (!suffixcmp(p, eol - p, "\\bin\\javaw.exe"))
