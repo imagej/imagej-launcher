@@ -29,6 +29,13 @@ if (JNI_FOUND)
 	message (STATUS "JNI_INCLUDE_DIRS=${JNI_INCLUDE_DIRS}")
 	message (STATUS "JNI_LIBRARIES=${JNI_LIBRARIES}")
 endif()
+
+if (APPLE)
+	SET(JAVA_INCLUDE_PATH "$ENV{JAVA_HOME}/include")
+	SET(JAVA_INCLUDE_PATH2 "$ENV{JAVA_HOME}/include/darwin")
+endif()
+include_directories(${JAVA_INCLUDE_PATH})
+include_directories(${JAVA_INCLUDE_PATH2})
 include_directories(${JNI_INCLUDE_DIRS})
 
 # Find Frameworks on macOS
@@ -103,6 +110,7 @@ set(SOURCE_FILES ${SOURCE_FOLDER}/ImageJ.c ${SOURCE_FOLDER}/common.c ${SOURCE_FO
 
 # Set compiler flags and compile
 if (APPLE)
+	set(CMAKE_OSX_ARCHITECTURES "arm64; x86_64")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mmacosx-version-min=10.6")
 elseif (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 	# Windows (64-bit)
