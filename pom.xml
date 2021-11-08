@@ -111,7 +111,7 @@
 	</mailingLists>
 
 	<scm>
-		<connection>scm:git:git://github.com/imagej/imagej-launcher</connection>
+		<connection>scm:git:https://github.com/imagej/imagej-launcher</connection>
 		<developerConnection>scm:git:git@github.com:imagej/imagej-launcher</developerConnection>
 		<tag>HEAD</tag>
 		<url>https://github.com/imagej/imagej-launcher</url>
