@@ -7,8 +7,8 @@ The ImageJ launcher is a native application for launching ImageJ.
 
 It supports the following flavors of ImageJ:
 
-* [ImageJ1](https://github.com/imagej/ImageJA)
-* [ImageJ2](https://github.com/imagej/imagej)
+* [ImageJ](https://github.com/imagej/imagej)
+* [ImageJ2](https://github.com/imagej/imagej2)
 * [Fiji](https://github.com/fiji/fiji)
 
 ## Purpose
