@@ -399,7 +399,7 @@ char *find_jar(const char *jars_directory, const char *prefix)
 			continue;
 		string_set_length(buffer, length);
 		string_append(buffer, name);
-		if (!stat(buffer->buffer, &st) && st.st_mtime > mtime) {
+		if (!stat(buffer->buffer, &st) && st.st_mtime >= mtime) {
 			free(result);
 			result = strdup(buffer->buffer);
 			mtime = st.st_mtime;
