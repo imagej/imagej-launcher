@@ -15,7 +15,8 @@ It supports the following flavors of ImageJ:
 
 The launcher provides a platform-specific entry point into the ImageJ Java
 application. Its most major function is to facilitate the ImageJ Updater
-feature by taking care of pending updates when ImageJ is first launched.
+feature of ImageJ2, by taking care of pending updates when ImageJ2 is first
+launched.
 
 ## Usage
 
