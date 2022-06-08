@@ -87,6 +87,10 @@
 			<properties><id>jefferis</id></properties>
 		</contributor>
 		<contributor>
+			<name>Matthias Klumpp</name>
+			<properties><id>ximion</id></properties>
+		</contributor>
+		<contributor>
 			<name>Mark Longair</name>
 			<url>https://imagej.net/User:Mark</url>
 			<properties><id>mhl</id></properties>
