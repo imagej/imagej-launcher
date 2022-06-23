@@ -21,3 +21,19 @@ jobs:
         run: .github/setup.sh
       - name: Execute the build
         run: .github/build.sh
+
+  build_macOS_ARM64:
+    runs-on: [mkitti_m1_mac_studio, macOS, ARM64]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Java
+        uses: actions/setup-java@v2
+        with:
+          java-version: '8'
+          distribution: 'zulu'
+          cache: 'maven'
+      - name: Set up CI environment
+        run: .github/setup.sh
+      - name: Execute the build
+        run: .github/build.sh
