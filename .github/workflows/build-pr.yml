@@ -23,7 +23,7 @@ jobs:
         run: .github/build.sh
 
   build_macOS_ARM64:
-    runs-on: [mkitti_m1_mac_studio, macOS, ARM64]
+    runs-on: [self-hosted, macOS, ARM64]
 
     steps:
       - uses: actions/checkout@v2
