@@ -59,6 +59,13 @@ public class ClassLauncher {
 		} catch (Throwable t) {
 			// ignore; Java 1.4 pretended that getenv() goes away
 		}
+
+		// Allow Java Native Access (JNA) to search java.library.path
+		// for versioned shared libraries on Linux.
+		final String java_library_path = System.getProperty("java.library.path");
+		if (java_library_path != null && System.getProperty("jna.library.path") == null) {
+			System.setProperty("jna.library.path", java_library_path);
+		}
 	}
 
 	protected static String[] originalArguments;
