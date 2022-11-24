@@ -137,8 +137,6 @@
 		<license.copyrightOwners>ImageJ2 developers.</license.copyrightOwners>
 		<license.projectName>ImageJ2 software for multidimensional image processing and analysis.</license.projectName>
 
-		<scijava.jvm.version>1.6</scijava.jvm.version>
-
 		<target.architecture />
 		<debug.option />
 		<skipTests>true</skipTests>
@@ -153,7 +151,6 @@
 		<dependency>
 			<groupId>org.scijava</groupId>
 			<artifactId>scijava-common</artifactId>
-			<scope>test</scope>
 		</dependency>
 	</dependencies>
 
