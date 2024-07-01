@@ -109,6 +109,7 @@ public class SplashScreen {
 					final Window[] windows = Window.getWindows();
 					for (final Window win : windows) {
 						if (win.isVisible() && win != splashWindow) {
+							win.requestFocusInWindow();
 							hide();
 							return;
 						}
