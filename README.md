@@ -1,37 +1,12 @@
 [![](https://img.shields.io/maven-central/v/net.imagej/imagej-launcher.svg)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22net.imagej%22%20AND%20a%3A%22imagej-launcher%22)
 [![](https://github.com/imagej/imagej-launcher/actions/workflows/build-main.yml/badge.svg)](https://github.com/imagej/imagej-launcher/actions/workflows/build-main.yml)
-[![](https://ci.appveyor.com/api/projects/status/95q9hoe091w96b2n/branch/master?svg=true)](https://ci.appveyor.com/project/scijava/imagej-launcher)
-![](https://github.com/imagej/imagej-launcher/workflows/JDK%20Gauntlet%20CI/badge.svg?branch=master)
 
-The ImageJ launcher is a native application for launching ImageJ.
+The ImageJ launcher is a supporting library for launching ImageJ.
 
-It supports the following flavors of ImageJ:
-
-* [ImageJ](https://github.com/imagej/imagej)
-* [ImageJ2](https://github.com/imagej/imagej2)
-* [Fiji](https://github.com/fiji/fiji)
+For the latest native support in launching ImageJ, see [Jaunch](https://github.com/apposed/jaunch)
 
 ## Purpose
 
-The launcher provides a platform-specific entry point into the ImageJ Java
-application. Its most major function is to facilitate the ImageJ Updater
-feature of ImageJ2, by taking care of pending updates when ImageJ2 is first
-launched.
-
-## Usage
-
-For an overview of supported options, run:
-
-    ./ImageJ-xyz --help
-
-where `xyz` is your platform.
-
-## Download
-
-Up-to-date versions can always be downloaded from the
-[SciJava Maven repository](https://maven.scijava.org):
-
-- [Windows 64-bit](https://maven.scijava.org/service/local/artifact/maven/redirect?r=snapshots&g=net.imagej&a=imagej-launcher&v=LATEST&e=exe&c=win64)
-- [Windows 32-bit](https://maven.scijava.org/service/local/artifact/maven/redirect?r=snapshots&g=net.imagej&a=imagej-launcher&v=LATEST&e=exe&c=win32)
-- [Linux 64-bit](https://maven.scijava.org/service/local/artifact/maven/redirect?r=snapshots&g=net.imagej&a=imagej-launcher&v=LATEST&e=exe&c=linux64)
-- [macOS 64-bit](https://maven.scijava.org/service/local/artifact/maven/redirect?r=snapshots&g=net.imagej&a=imagej-launcher&v=LATEST&e=exe&c=macosx)
+The launcher provides an entry point into the ImageJ Java application. Its most
+major function is to facilitate the ImageJ Updater feature of ImageJ2, by
+taking care of pending updates when ImageJ2 is first launched.
